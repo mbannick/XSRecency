@@ -20,7 +20,7 @@ simulate.beta <- function(){
 #' from the study.
 #'
 #' @export
-simulate.study <- function(phi.func){
+simulate.study <- function(phi.func, ...){
 
   # probability of sampling in each cohort
   p_samp <- (PHI_PARAMS$mean_samp - 1) / (PHI_PARAMS$max_samp - 1)
@@ -74,7 +74,7 @@ simulate.study <- function(phi.func){
   # generate the recency indicator for the infection duration
   # based on the true phi() function
   indicators <- lapply(infection_durations, function(x) rbinom(n=length(x),
-                       size=1, prob=phi.func(x)))
+                       size=1, prob=phi.func(x, ...)))
 
   return(list(
     recent=unlist(indicators),
@@ -154,13 +154,13 @@ integrate.phi <- function(model, follow_T=PHI_PARAMS$FOLLOW_T){
 #' the recency assay, and returns all of the ones that we're interested in
 #'
 #' @export
-assay.properties.sim <- function(phi.func){
+assay.properties.sim <- function(phi.func, ...){
 
   # SIMULATIONS -----------------------------
 
   # simulate one phi function and
   # get the estimate and variance
-  study <- simulate.study(phi.func)
+  study <- simulate.study(phi.func, ...)
 
   model <- fit.cubic(recent=study$recent,
                      durations=study$durations)

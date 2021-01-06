@@ -24,12 +24,11 @@ generate.raw.data <- function(n_sims, n, prevalence){
 #' and the infection incidence function.
 #'
 #' @export
-#' @param data Outputs from the `generate.raw.data` function
+#' @param sim_data Outputs from the `generate.raw.data` function
 #' @param infection.function Function that simulates the infection time
-#' @param model A `glm` model that was fit using data generated from
-#'              the same true.phi.function, but then fit with cubic polynomial
 #'
-simulate.recent <- function(sim_data, infection.function, phi.func, baseline_incidence, prevalence, rho){
+simulate.recent <- function(sim_data, infection.function,
+                            phi.func, baseline_incidence, prevalence, rho, ...){
 
   # get the uniform for the cumulative distribution
   # function for each individual
@@ -37,14 +36,13 @@ simulate.recent <- function(sim_data, infection.function, phi.func, baseline_inc
 
   # infection time
   t_infect <- mapply(infection.function, e=cdfs, t=0, p=prevalence,
-                     lambda_0=baseline_incidence, rho=rho)
-
+                     lambda_0=baseline_incidence, rho=rho, SIMPLIFY=F)
 
   # infection duration to pass to the phi hat function
-  infect_duration <- mapply(function(t, u) t - u, t=0, u=t_infect)
+  infect_duration <- mapply(function(t, u) t - u, t=0, u=t_infect, SIMPLIFY=F)
 
   # probability of recent infection
-  recent_probabilities <- lapply(infect_duration, phi.func)
+  recent_probabilities <- lapply(infect_duration, phi.func, ...)
 
   # indicators
   indicators <- lapply(recent_probabilities,
@@ -53,35 +51,24 @@ simulate.recent <- function(sim_data, infection.function, phi.func, baseline_inc
   # number of recents
   n_r <- lapply(indicators, sum) %>% unlist
 
-  new.data <- list(
+  new_data <- list(
     n_r=n_r
   )
 
-  all.data <- append(data, new.data)
-  return(all.data)
+  new_data <- append(sim_data, new_data)
+  return(new_data)
 }
 
-# INCIDENCE FUNCTIONS
-
-# (1) constant incidence
-c.incidence <- function(t, lambda_0, rho=NA) lambda_0
-# (2) linear incidence
-l.incidence <- function(t, lambda_0, rho=1) lambda_0 - rho * t
-# (3) exponential incidence
-e.incidence <- function(t, lambda_0, rho=1) lambda_0 * exp(-rho * t)
-
-# infection time functions
-# (1) constant incidence infection time
-c.infections <- function(e, t, p, lambda_0, rho=NA){
-  infections <- t - p*e / ((1 - p) * c.incidence(t=t, lambda_0=lambda_0))
-  return(infections)
-}
-
-#' Compute the average incidence
-#' over an interval.
-avg.incidence <- function(inc_function, ts, ...){
-  incidence <- lapply(ts, inc_function, ...) %>% unlist
-  return(mean(incidence))
+#' Generate the full data set.
+#'
+#' @export
+generate.data <- function(n_sims, n, infection.function,
+                          phi.func, baseline_incidence,
+                          prevalence, rho, ...){
+  data <- generate.raw.data(n_sims, n, prevalence)
+  data <- simulate.recent(data, infection.function, phi.func,
+                          baseline_incidence, prevalence, rho, ...)
+  return(data)
 }
 
 # INFECTION FUNCTIONS
