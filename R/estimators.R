@@ -10,8 +10,8 @@ snapshot.estimate <- function(n_r, n_n, mu_sim){
 #'
 #' @export
 adjusted.estimate <- function(n_r, n_n, n_p, omega_sim, beta_sim, big_T){
-  o_b <- omega$est - beta$est * big_T
-  est <- n_r - beta$est * n_p
+  o_b <- omega_sim$est - beta_sim$est * big_T
+  est <- n_r - beta_sim$est * n_p
   val <- est / (o_b * n_n)
   return(val)
 }
@@ -61,7 +61,7 @@ get.snapshot <- function(n_r, n_n, n_p, n, mu_sim){
 #'
 #' @export
 get.adjusted <- function(n_r, n_n, n_p, n, omega_sim, beta_sim, big_T){
-  est <- adjusted.estimate(n_r=n_r, n_n=n_n,
+  est <- adjusted.estimate(n_r=n_r, n_n=n_n, n_p=n_p,
                            omega_sim=omega_sim, beta_sim=beta_sim, big_T=big_T)
   logvar <- variance(n_n=n_n, n_r=n_r, n_p=n_p, n=n,
                      omega_sim=omega_sim, beta_sim=beta_sim, big_T=big_T)
