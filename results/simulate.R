@@ -1,9 +1,11 @@
 rm(list=ls())
 library(XSRecency)
+library(data.table)
+library(xtable)
 source("./results/sim-helpers.R")
 
 # number of simulations
-n_sims <- 100
+n_sims <- 2000
 
 # number screened
 n <- 5000
@@ -54,5 +56,54 @@ for(type in c("constant", "linear", "exponential")){
                     baseline_incidence=inc, prevalence=p, rho=rho,
                     phi.func=phi.func, frr=frr, mdri=mdri, big_T=big_T)
     assign(paste(type, phi, sep="_"), sim)
+    summ <- summarize.simulation(sim)
+    assign(paste(type, phi, "summary", sep="_"), summ)
+    rm(sim)
+    rm(summ)
   }
 }
+
+data <- data.table()
+
+for(phi in c(1, 2, 3)){
+  for(type in c("constant", "linear")){
+    sim <- get(paste(type, phi, "summary", sep="_"))
+
+    if(type == "constant") tname <- "Constant"
+    if(type == "linear") tname <- "Non-constant"
+
+    if(phi == 1) pname <- "Zero"
+    if(phi == 2) pname <- "Constant"
+    if(phi == 3) pname <- "Non-constant"
+
+    row <- c(
+      tname,
+      pname,
+      sprintf('%.4f', sim$snap_true$bias),
+      sprintf('%.3f', sim$snap_true$cover),
+
+      sprintf('%.4f', sim$snap_est$bias),
+      sprintf('%.3f', sim$snap_est$cover),
+
+      sprintf('%.4f', sim$adj_true$bias),
+      sprintf('%.3f', sim$adj_true$cover),
+
+      sprintf('%.4f', sim$adj_est$bias),
+      sprintf('%.3f', sim$adj_est$cover)
+    )
+    data <- rbind(data, t(row))
+  }
+}
+
+addtorow <- list()
+addtorow$pos <- list(0, 0, 0, 0, 0, 0)
+addtorow$command <- c("\\multicolumn{2}{c}{Setting} & \\multicolumn{4}{c}{Snapshot Estimator (1)} & \\multicolumn{4}{c}{Kassanjee Estimator (2)} \\\\\n",
+                      "\\hline \\\\\n",
+                      "Incidence & FRR & \\multicolumn{2}{c}{$\\mu$} & \\multicolumn{2}{c}{$\\hat{\\mu}$} & \\multicolumn{2}{c}{$\\Omega_T$, $\\beta_T$} & \\multicolumn{2}{c}{$\\hat{\\Omega_T}$, $\\hat{\\beta_T}$} \\\\\n",
+                      "\\hline \\\\\n",
+                      "& & Bias & Cov & Bias & Cov & Bias & Cov & Bias & Cov \\\\\n",
+                      "\\hline \\\\\n")
+tab <- xtable(data, align=rep("c", 11), digits=2, caption="Simulation results.")
+print(tab, add.to.row = addtorow,
+      include.colnames = FALSE, include.rownames = FALSE)
+
