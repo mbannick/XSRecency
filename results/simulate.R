@@ -5,6 +5,8 @@ library(xtable)
 library(ggplot2)
 library(ggbeeswarm)
 library(latex2exp)
+library(gridExtra)
+setwd("~/repos/XSRecency/")
 source("./results/sim-helpers.R")
 
 set.seed(100)
@@ -243,22 +245,49 @@ melted[, upper := estimate + qnorm(0.975) * variance ** 0.5]
 melted[, cover := (lower < truth) & (upper > truth)]
 melted.b <- melted[, lapply(.SD, mean), .SDcols="estimate", by=c("type", "phi", "truth", "estimator")]
 
-melted.small <- melted[num <= 200]
+melted.small <- melted[num <= 100]
 
-test <- melted.small[type == "A. Constant Incidence" & phi == "1. Zero FRR"]
-test.b <- melted.b[type == "A. Constant Incidence" & phi == "1. Zero FRR"]
-truth <- unique(test$truth)
-ggplot(data=test, mapping=aes(x=num, y=estimate, color=cover)) +
-  geom_pointrange(aes(ymin=lower, ymax=upper, color=cover), size=0.1) +
-  geom_hline(yintercept=truth) +
-  geom_hline(data=test.b, aes(yintercept=estimate), linetype='dashed') +
-  theme_minimal() +
-  theme(legend.position="bottom") +
-  theme(panel.grid.minor = element_line(size = 0.25),
-        panel.grid.major = element_line(size = 0.25)) +
-  scale_color_brewer(palette="Set1") +
-  labs("Coverage") + xlab("Simulation") + ylab("Estimate") +
-  facet_wrap(~ estimator, nrow=4)
+plots <- list()
+i <- 1
 
-# MAKE THIS INTO A GRID WITH GEOM_GRID
-# ALSO PUT THE ESTIMATORS IN THE RIGHT ORDER
+for(phi in c(1, 2, 3)){
+  for(type in c("constant", "linear")){
+
+    if(type == "constant") tname <- "A. Constant Incidence"
+    if(type == "linear") tname <- "B. Non-constant Incidence"
+
+    if(phi == 1) pname <- "1. Zero FRR"
+    if(phi == 2) pname <- "2. Constant FRR"
+    if(phi == 3) pname <- "3. Non-constant FRR"
+
+    sub.melted <- copy(melted[type == tname & phi == pname])
+    sub.data <- copy(melted.small[type == tname & phi == pname])
+    b.data <- copy(melted.b[type == tname & phi == pname])
+    truth <- unique(sub.melted$truth)
+
+    pp <- ggplot(data=sub.data, mapping=aes(x=num, y=estimate, color=cover)) +
+      geom_pointrange(aes(ymin=lower, ymax=upper, color=cover), size=0.3, fatten=0.5) +
+      geom_hline(yintercept=truth) +
+      geom_hline(data=b.data, aes(yintercept=estimate), linetype='dashed',
+                 lwd=0.5) +
+      theme_minimal() +
+      theme(legend.position="none") +
+      theme(panel.grid.minor = element_line(size = 0.25),
+            panel.grid.major = element_line(size = 0.25)) +
+      scale_color_brewer(palette="Set1") +
+      labs("Coverage") + xlab("Simulation") + ylab("Estimate") +
+      facet_wrap(~ factor(estimator,
+                          levels=c("snap_true", "snap_est", "adj_true", "adj_est")),
+                 nrow=4, strip.position="right") +
+      ggtitle(paste0(tname, "\n", pname))
+
+    plots[[i]] <- pp
+    i <- i + 1
+
+  }
+}
+
+pdf(file="/Users/marlena/OneDrive/Documents/2020_2021/RA/simulation-plots-20200107/estimator-detailed.pdf",
+    height=11, width=9)
+grid.arrange(grobs=plots, nrow=3, ncol=2)
+dev.off()
