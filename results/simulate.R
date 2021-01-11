@@ -112,7 +112,7 @@ addtorow <- list()
 addtorow$pos <- list(0, 0, 0, 0, 0, 0)
 addtorow$command <- c("\\multicolumn{2}{c}{Setting} & \\multicolumn{4}{c}{Snapshot Estimator (1)} & \\multicolumn{4}{c}{Kassanjee Estimator (2)} \\\\\n",
                       "\\hline \\\\\n",
-                      "Incidence & FRR & \\multicolumn{2}{c}{$\\mu$} & \\multicolumn{2}{c}{$\\hat{\\mu}$} & \\multicolumn{2}{c}{$\\Omega_T$, $\\beta_T$} & \\multicolumn{2}{c}{$\\hat{\\Omega_T}$, $\\hat{\\beta_T}$} \\\\\n",
+                      "Incidence & FRR & \\multicolumn{2}{c}{$\\mu$} & \\multicolumn{2}{c}{$\\hat{\\mu}$} & \\multicolumn{2}{c}{$\\Omega_{T^*}$, $\\beta_{T^*}$} & \\multicolumn{2}{c}{$\\hat{\\Omega}_{T^*}$, $\\hat{\\beta}_{T^*}$} \\\\\n",
                       "\\hline \\\\\n",
                       "& & Bias & Cov & Bias & Cov & Bias & Cov & Bias & Cov \\\\\n",
                       "\\hline \\\\\n")
