@@ -5,6 +5,7 @@ library(xtable)
 library(ggplot2)
 library(ggbeeswarm)
 library(latex2exp)
+library(magrittr)
 library(gridExtra)
 setwd("~/repos/XSRecency/")
 source("./results/sim-helpers.R")
@@ -12,7 +13,7 @@ source("./results/sim-helpers.R")
 set.seed(100)
 
 # number of simulations
-n_sims <- 5000
+n_sims <- 1000
 
 # number screened
 n <- 5000
@@ -27,7 +28,10 @@ p <- 0.29
 inc <- 0.032
 
 for(type in c("constant", "linear", "exponential")){
+  cat("Working on ", type, "\n")
+
   for(phi in c(1, 2, 3)){
+    cat("Working on ", phi, "\n")
 
     if(type == "constant"){
       inc.function <- c.incidence
@@ -228,7 +232,7 @@ pdf(file="/Users/marlena/OneDrive/Documents/2020_2021/RA/simulation-plots-202001
 p2
 dev.off()
 
-# FIGURE C -- ASSAY ESTIMATES
+# FIGURE C -- DETAILED ESTIMATOR
 
 melt.est <- data.table::melt(all.fig.data, id.vars=c("type", "phi", "truth", "num"),
                              measure.vars=patterns("est$", cols=names(all.fig.data)),
@@ -260,6 +264,8 @@ for(phi in c(1, 2, 3)){
     if(phi == 2) pname <- "2. Constant FRR"
     if(phi == 3) pname <- "3. Non-constant FRR"
 
+    lab <- i %in% c(5, 6)
+
     sub.melted <- copy(melted[type == tname & phi == pname])
     sub.data <- copy(melted.small[type == tname & phi == pname])
     b.data <- copy(melted.b[type == tname & phi == pname])
@@ -280,6 +286,9 @@ for(phi in c(1, 2, 3)){
                           levels=c("snap_true", "snap_est", "adj_true", "adj_est")),
                  nrow=4, strip.position="right") +
       ggtitle(paste0(tname, "\n", pname))
+    if(lab){
+      pp <- pp + theme(axis.title.x=element_blank())
+    }
 
     plots[[i]] <- pp
     i <- i + 1
@@ -290,4 +299,72 @@ for(phi in c(1, 2, 3)){
 pdf(file="/Users/marlena/OneDrive/Documents/2020_2021/RA/simulation-plots-20200107/estimator-detailed.pdf",
     height=11, width=9)
 grid.arrange(grobs=plots, nrow=3, ncol=2)
+dev.off()
+
+# FIGURE D -- RECENCY ASSAY ESTIMATES
+cat("Working on recency assay simulations.")
+
+phi_sims <- list()
+
+for(phi in c(1, 2, 3)){
+
+  if(phi == 1){
+    phi.func <- phi.character.1
+    frr <- 0
+    mdri <- 142
+  } else if(phi == 2){
+    phi.func <- phi.character.1
+    frr <- 0.015
+    mdri <- 142
+  } else {
+    phi.func <- phi.character.2
+    frr <- 0.015
+    mdri <- 142
+  }
+
+  if(phi == 1) pname <- "1. Zero FRR"
+  if(phi == 2) pname <- "2. Constant FRR"
+  if(phi == 3) pname <- "3. Non-constant FRR"
+
+  simulations <- replicate(1000, assay.properties.sim(phi.func, mdri, frr), simplify="matrix") %>% t
+  simulations <- data.table(simulations)
+
+  simulations[, case := pname]
+  simulations[, constant := phi %in% c(1, 2)]
+  simulations[, frr := frr]
+  simulations[, mdri := mdri]
+  simulations[, num := .I]
+  phi_sims[[phi]] <- simulations
+}
+
+df <- rbindlist(phi_sims)
+
+columns <- colnames(df)
+cols <- lapply(columns, function(x) unlist(df[[x]]))
+df <- do.call(cbind, cols) %>% data.table
+names(df) <- columns
+
+mu <- melt(df, id.vars=c("case", "constant", "frr", "mdri", "num"), measure.vars="mu_est")
+omega <- melt(df, id.vars=c("case", "constant", "frr", "mdri", "num"), measure.vars="omega_est")
+beta <- melt(df, id.vars=c("case", "constant", "frr", "mdri", "num"), measure.vars="beta_est")
+
+df <- rbindlist(list(mu, omega, beta))
+df[, true := ifelse(variable == "beta_est", as.numeric(frr), as.numeric(mdri)/365.25)]
+df[, value := as.numeric(value)]
+df[variable == "mu_est", variable := "Mean Window Period"]
+df[variable == "omega_est", variable := "MDRI"]
+df[variable == "beta_est", variable := "FRR"]
+
+df.truth <- df[, lapply(.SD, mean), .SDcols="true", by=c("case", "variable")]
+
+rp <- ggplot(data=df) + geom_boxplot(aes(y=value)) +
+  geom_hline(data=df.truth, aes(yintercept=true), color='red') +
+  facet_grid(variable ~ case, scales="free_y") +
+  theme_bw() +
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+
+pdf(file="/Users/marlena/OneDrive/Documents/2020_2021/RA/simulation-plots-20200107/recency.pdf",
+    height=6, width=6)
+rp
 dev.off()

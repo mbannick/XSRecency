@@ -8,9 +8,9 @@
 #' given in the study.
 #'
 #' @export
-simulate.beta <- function(){
+simulate.beta <- function(frr){
   false <- rbinom(n=1, size=PHI_PARAMS$N_LONG_INFECT,
-                  prob=PHI_PARAMS$TAIL_PROB)
+                  prob=frr)
   beta <- false / PHI_PARAMS$N_LONG_INFECT
   beta_var <- beta * (1 - beta) / PHI_PARAMS$N_LONG_INFECT
   return(list(est=beta, var=beta_var))
@@ -20,7 +20,7 @@ simulate.beta <- function(){
 #' from the study.
 #'
 #' @export
-simulate.study <- function(phi.func, ...){
+simulate.study <- function(phi.func, mdri, frr){
 
   # probability of sampling in each cohort
   p_samp <- (PHI_PARAMS$mean_samp - 1) / (PHI_PARAMS$max_samp - 1)
@@ -74,8 +74,7 @@ simulate.study <- function(phi.func, ...){
   # generate the recency indicator for the infection duration
   # based on the true phi() function
   indicators <- lapply(infection_durations, function(x) rbinom(n=length(x),
-                       size=1, prob=phi.func(x, ...)))
-
+                       size=1, prob=phi.func(x, mdri, frr)))
   return(list(
     recent=unlist(indicators),
     durations=unlist(infection_durations)
@@ -154,13 +153,13 @@ integrate.phi <- function(model, follow_T=PHI_PARAMS$FOLLOW_T){
 #' the recency assay, and returns all of the ones that we're interested in
 #'
 #' @export
-assay.properties.sim <- function(phi.func, ...){
+assay.properties.sim <- function(phi.func, mdri, frr){
 
   # SIMULATIONS -----------------------------
 
   # simulate one phi function and
   # get the estimate and variance
-  study <- simulate.study(phi.func, ...)
+  study <- simulate.study(phi.func, mdri, frr)
 
   model <- fit.cubic(recent=study$recent,
                      durations=study$durations)
@@ -170,10 +169,29 @@ assay.properties.sim <- function(phi.func, ...){
   omega_sim <- integrate.phi(model, follow_T=PHI_PARAMS$FOLLOW_T)
 
   # simulate beta and get the estimate and variance of them
-  beta_sim <- simulate.beta()
+  beta_sim <- simulate.beta(frr)
 
-  result <- list(mu=mu_sim,
-                 omega=omega_sim,
-                 beta=beta_sim)
+  result <- list(mu_est=mu_sim$est,
+                 mu_var=mu_sim$var,
+                 omega_est=omega_sim$est,
+                 omega_var=omega_sim$var,
+                 beta_est=beta_sim$est,
+                 beta_var=beta_sim$var)
   return(result)
+}
+
+#' Function that simulates all the properties of
+#' the recency assay, and returns all of the ones that we're interested in
+#'
+#' @export
+assay.properties.nsim <- function(n_sims, phi.func, mdri, frr){
+  result <- replicate(n_sims, assay.properties.sim(phi.func=phi.func,
+                                                   mdri=mdri, frr=frr))
+  result <- t(result)
+  result <- data.table(result)
+  columns <- colnames(result)
+  cols <- lapply(columns, function(x) unlist(result[[x]]))
+  df <- do.call(cbind, cols) %>% data.table
+  names(df) <- columns
+  return(df)
 }

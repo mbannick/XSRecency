@@ -11,8 +11,7 @@ avg.incidence <- function(inc.function, big_T,
 
 simulate <- function(n_sims, n, inc.function, infection.function, phi.func,
                      baseline_incidence, prevalence, rho, mdri, frr, big_T){
-
-  assay <- assay.properties.sim(phi.func, frr=frr, mdri=mdri)
+  assay <- assay.properties.nsim(n_sims, phi.func=phi.func, frr=frr, mdri=mdri)
   avg_incidence <- avg.incidence(inc.function=inc.function, big_T=big_T,
                                  baseline_incidence=baseline_incidence, rho=rho)
 
@@ -23,16 +22,18 @@ simulate <- function(n_sims, n, inc.function, infection.function, phi.func,
                         prevalence=prevalence, rho=rho, frr=frr, mdri=mdri)
 
   snap.true <- get.snapshot(n_r=data$n_r, n_n=data$n_n, n_p=data$n_p,
-                            n=data$n, mu_sim=list(est=mdri/365.25, var=0))
+                            n=data$n, mu=mdri/365.25, mu_var=0)
   snap.est <- get.snapshot(n_r=data$n_r, n_n=data$n_n, n_p=data$n_p,
-                           n=data$n, mu_sim=assay$mu)
+                           n=data$n, mu=assay$mu_est, mu_var=assay$mu_var)
 
   adj.true <- get.adjusted(n_r=data$n_r, n_n=data$n_n, n_p=data$n_p, n=data$n,
-                           omega_sim=list(est=mdri/365.25, var=0),
-                           beta_sim=list(est=frr, var=0), big_T=big_T)
+                           omega=mdri/365.25, omega_var=0,
+                           beta=frr, beta_var=0,
+                           big_T=big_T)
   adj.est <- get.adjusted(n_r=data$n_r, n_n=data$n_n, n_p=data$n_p, n=data$n,
-                          omega_sim=assay$omega,
-                          beta_sim=assay$beta, big_T=big_T)
+                          omega=assay$omega_est, omega_var=assay$omega_var,
+                          beta=assay$beta_est, beta_var=assay$beta_var,
+                          big_T=big_T)
 
   return(list(truth=rep(avg_incidence, n_sims),
          snap_true_est=snap.true$est,
