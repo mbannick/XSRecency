@@ -6,7 +6,7 @@
 PHI_PARAMS <- list(
 
   # what is the follow-up time
-  FOLLOW_T=3,
+  FOLLOW_T=2,
 
   # tail probability for phi
   TAIL_PROB=0.016,
