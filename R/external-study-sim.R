@@ -8,10 +8,12 @@
 #' given in the study.
 #'
 #' @export
-simulate.beta <- function(frr){
-  false <- rbinom(n=1, size=PHI_PARAMS$N_LONG_INFECT,
-                  prob=frr)
-  beta <- false / PHI_PARAMS$N_LONG_INFECT
+simulate.beta <- function(mdri, frr, phi.func){
+  infected_times <- runif(n=PHI_PARAMS$N_LONG_INFECT,
+                          min=PHI_PARAMS$FRR_MIN,
+                          max=PHI_PARAMS$FRR_MAX)
+  recent <- phi.func(infected_times, mdri=mdri, frr=frr)
+  beta <- sum(recent) / PHI_PARAMS$N_LONG_INFECT
   beta_var <- beta * (1 - beta) / PHI_PARAMS$N_LONG_INFECT
   return(list(est=beta, var=beta_var))
 }
@@ -169,7 +171,7 @@ assay.properties.sim <- function(phi.func, mdri, frr){
   omega_sim <- integrate.phi(model, follow_T=PHI_PARAMS$FOLLOW_T)
 
   # simulate beta and get the estimate and variance of them
-  beta_sim <- simulate.beta(frr)
+  beta_sim <- simulate.beta(mdri=mdri, frr=frr, phi.func=phi.func)
 
   result <- list(mu_est=mu_sim$est,
                  mu_var=mu_sim$var,

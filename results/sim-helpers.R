@@ -1,19 +1,9 @@
 library(magrittr)
 
-avg.incidence <- function(inc.function, big_T,
-                          baseline_incidence, rho){
-  ts <- -1 * seq(0, big_T, 0.001)
-  incidence <- lapply(ts, inc.function,
-                      lambda_0=baseline_incidence,
-                      rho=rho) %>% unlist
-  return(mean(incidence))
-}
-
 simulate <- function(n_sims, n, inc.function, infection.function, phi.func,
                      baseline_incidence, prevalence, rho, mdri, frr, big_T){
   assay <- assay.properties.nsim(n_sims, phi.func=phi.func, frr=frr, mdri=mdri)
-  avg_incidence <- avg.incidence(inc.function=inc.function, big_T=big_T,
-                                 baseline_incidence=baseline_incidence, rho=rho)
+  true_frr <- true.frr(phi.func=phi.func, mdri=mdri, frr=frr)
 
   data <- generate.data(n=n, n_sims=n_sims,
                         infection.function=infection.function,
@@ -28,14 +18,14 @@ simulate <- function(n_sims, n, inc.function, infection.function, phi.func,
 
   adj.true <- get.adjusted(n_r=data$n_r, n_n=data$n_n, n_p=data$n_p, n=data$n,
                            omega=mdri/365.25, omega_var=0,
-                           beta=frr, beta_var=0,
+                           beta=true_frr, beta_var=0,
                            big_T=big_T)
   adj.est <- get.adjusted(n_r=data$n_r, n_n=data$n_n, n_p=data$n_p, n=data$n,
                           omega=assay$omega_est, omega_var=assay$omega_var,
                           beta=assay$beta_est, beta_var=assay$beta_var,
                           big_T=big_T)
 
-  return(list(truth=rep(avg_incidence, n_sims),
+  return(list(truth=rep(baseline_incidence, n_sims),
          snap_true_est=snap.true$est,
          snap_true_var=snap.true$var,
          snap_est_est=snap.est$est,

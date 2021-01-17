@@ -19,7 +19,7 @@ n_sims <- 1000
 n <- 5000
 
 # time being considered
-big_T <- 1
+big_T <- 2
 
 # prevalence
 p <- 0.29
@@ -83,24 +83,24 @@ for(phi in c(1, 2, 3)){
     if(type == "constant") tname <- "Constant"
     if(type == "linear") tname <- "Non-constant"
 
-    if(phi == 1) pname <- "Zero"
-    if(phi == 2) pname <- "Constant"
-    if(phi == 3) pname <- "Non-constant"
+    if(phi == 1) pname <- "(1) Zero"
+    if(phi == 2) pname <- "(2) Constant"
+    if(phi == 3) pname <- "(3) Non-constant"
 
     row <- c(
       tname,
       pname,
-      sprintf('%.4f', sim$snap_true$bias),
-      sprintf('%.3f', sim$snap_true$cover),
+      sprintf('%.4f', sim$snap_true$bias * 100),
+      sprintf('%05.2f', sim$snap_true$cover * 100),
 
-      sprintf('%.4f', sim$snap_est$bias),
-      sprintf('%.3f', sim$snap_est$cover),
+      sprintf('%.4f', sim$snap_est$bias * 100),
+      sprintf('%05.2f', sim$snap_est$cover * 100),
 
-      sprintf('%.4f', sim$adj_true$bias),
-      sprintf('%.3f', sim$adj_true$cover),
+      sprintf('%.4f', sim$adj_true$bias * 100),
+      sprintf('%05.2f', sim$adj_true$cover * 100),
 
-      sprintf('%.4f', sim$adj_est$bias),
-      sprintf('%.3f', sim$adj_est$cover)
+      sprintf('%.4f', sim$adj_est$bias * 100),
+      sprintf('%05.2f', sim$adj_est$cover * 100)
     )
     data <- rbind(data, t(row))
   }

@@ -22,7 +22,13 @@ phi.character.2 <- function(t, mdri=142, frr=0.015){
   alpha <- 1
   x <- (mdri/365.25-frr)/(1-frr)
   beta <- alpha/x
-  phit <- (1 - pgamma(t, shape = alpha, rate = beta))*(1-frr)+frr +
-    0.01*(t-2)*(t>2)
+  phit <- (1-pgamma(t, shape=alpha, rate=beta))*(1 - frr) + frr + dnorm(t-7, mean=0, sd=1) / 8
   return(phit)
+}
+
+#' Non-constant FRR true rate based on the phi function and the tail probability of 0.015
+#' @export
+true.frr <- function(phi.function, mdri=142, frr=0.015){
+  ts <- seq(2, PHI_PARAMS$FRR_MAX, 1e-3)
+  return(mean(phi.function(ts, mdri, frr)))
 }
