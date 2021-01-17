@@ -12,7 +12,11 @@ PHI_PARAMS <- list(
   TAIL_PROB=0.016,
 
   # number of long infecteds for beta study
-  N_LONG_INFECT=3740,
+  N_LONG_INFECT=1388,
+
+  # minimum and maximum infection times for long infecteds
+  FRR_MIN=2,
+  FRR_MAX=12,
 
   # cohorts
   coh=c(1, 2, 3),
