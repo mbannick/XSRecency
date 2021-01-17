@@ -13,7 +13,7 @@ source("./results/sim-helpers.R")
 set.seed(100)
 
 # number of simulations
-n_sims <- 1000
+n_sims <- 10
 
 # number screened
 n <- 5000
@@ -326,7 +326,7 @@ for(phi in c(1, 2, 3)){
   if(phi == 2) pname <- "2. Constant FRR"
   if(phi == 3) pname <- "3. Non-constant FRR"
 
-  simulations <- replicate(1000, assay.properties.sim(phi.func, mdri, frr), simplify="matrix") %>% t
+  simulations <- replicate(n_sims, assay.properties.sim(phi.func, mdri, frr), simplify="matrix") %>% t
   simulations <- data.table(simulations)
 
   simulations[, case := pname]
@@ -368,3 +368,28 @@ pdf(file="/Users/marlena/OneDrive/Documents/2020_2021/RA/simulation-plots-202001
     height=6, width=6)
 rp
 dev.off()
+
+# CALCULATE THE SHADOW PERIOD
+
+for(phi in c(1, 2, 3)){
+
+  if(phi == 1){
+    phi.func <- phi.character.1
+    frr <- 0
+    mdri <- 142
+    tau <- 9.9
+  } else if(phi == 2){
+    phi.func <- phi.character.1
+    frr <- 0.015
+    mdri <- 142
+    tau <- big_T
+  } else {
+    phi.func <- phi.character.2
+    frr <- 0.015
+    mdri <- 142
+    tau <- big_T
+  }
+
+  shadow <- calculate.shadow(phi.func, tau, mdri, frr)
+  cat("Phi ", phi, " has shadow period ", shadow * 365.25, "\n")
+}

@@ -29,6 +29,14 @@ phi.character.2 <- function(t, mdri=142, frr=0.015){
 #' Non-constant FRR true rate based on the phi function and the tail probability of 0.015
 #' @export
 true.frr <- function(phi.function, mdri=142, frr=0.015){
-  ts <- seq(2, PHI_PARAMS$FRR_MAX, 1e-3)
+  ts <- seq(PHI_PARAMS$FRR_MIN, PHI_PARAMS$FRR_MAX, 1e-3)
   return(mean(phi.function(ts, mdri, frr)))
+}
+
+#' Calculate the shadow period for a given phi function.
+#' @export
+calculate.shadow <- function(phi.function, tau, mdri=142, frr=0.015){
+  ts <- seq(0, tau, 1e-3)
+  lomega <- sum(ts * 1e-3 * (phi.function(ts, mdri, frr) - frr) / (mdri/365.25 - frr))
+  return(lomega)
 }
