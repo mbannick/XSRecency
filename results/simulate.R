@@ -13,7 +13,7 @@ source("./results/sim-helpers.R")
 set.seed(100)
 
 # number of simulations
-n_sims <- 10
+n_sims <- 1000
 
 # number screened
 n <- 5000
