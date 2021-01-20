@@ -340,6 +340,8 @@ for(phi in c(1, 2, 3)){
   simulations[, constant := phi %in% c(1, 2)]
   simulations[, frr := frr]
   simulations[, window := window]
+  mdri <- true.mdri(phi.func, window=window, frr=frr, shadow=shadow)
+  simulations[, mdri := mdri]
   simulations[, num := .I]
   phi_sims[[phi]] <- simulations
 }
@@ -351,9 +353,9 @@ cols <- lapply(columns, function(x) unlist(df[[x]]))
 df <- do.call(cbind, cols) %>% data.table
 names(df) <- columns
 
-mu <- melt(df, id.vars=c("case", "constant", "frr", "window", "num"), measure.vars="mu_est")
-omega <- melt(df, id.vars=c("case", "constant", "frr", "window", "num"), measure.vars="omega_est")
-beta <- melt(df, id.vars=c("case", "constant", "frr", "window", "num"), measure.vars="beta_est")
+mu <- melt(df, id.vars=c("case", "constant", "frr", "window", "mdri", "num"), measure.vars="mu_est")
+omega <- melt(df, id.vars=c("case", "constant", "frr", "window", "mdri", "num"), measure.vars="omega_est")
+beta <- melt(df, id.vars=c("case", "constant", "frr", "window", "mdri", "num"), measure.vars="beta_est")
 
 df <- rbindlist(list(mu, omega, beta))
 df[, true := ifelse(variable == "beta_est", as.numeric(frr), as.numeric(window)/365.25)]
