@@ -12,7 +12,7 @@ simulate.beta <- function(window, frr, shadow, phi.func){
   infected_times <- runif(n=PHI_PARAMS$N_LONG_INFECT,
                           min=PHI_PARAMS$FRR_MIN,
                           max=PHI_PARAMS$FRR_MAX)
-  recent <- phi.func(infected_times, window=window, frr=frr, shadow=shadow)
+  recent <- rbinom(n=PHI_PARAMS$N_LONG_INFECT, size=1, p=phi.func(infected_times, window=window, frr=frr, shadow=shadow))
   beta <- sum(recent) / PHI_PARAMS$N_LONG_INFECT
   beta_var <- beta * (1 - beta) / PHI_PARAMS$N_LONG_INFECT
   return(list(est=beta, var=beta_var))
