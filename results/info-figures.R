@@ -29,19 +29,24 @@ library(latex2exp)
 pdf('~/OneDrive/Documents/2020_2021/RA/RAplot.pdf',height=8,width=8)
 par(mfrow=c(1,1))
 
+mdri <- 142
+shadow <- 150
+
+params <- get.gamma.params(window=mdri/356.25, shadow=shadow/365.25)
+
 ###### MDRI at 2 year 142/365, FRR 1.5%: 1.5% + Gamma distribution with mean 142/365.25-1.5%
 alpha = 1; x = (142/365.25-0.015)/(1-0.015); beta=alpha/x
 t = seq(0,12,0.01)
-phit = (1-pgamma(t, shape = alpha, rate = beta))*(1-0.015)+0.015
+phit = (1-pgamma(t, shape = params[1], rate = params[2]))*(1-0.015)+0.015
 plot(t,phit,type='l',ylab=expression(phi(t)), col='red')
 
 ###### window period 142/365, FRR 0%: Gamma distribution with mean 142/(365.25*2)
 alpha = 1; x = 142/365.25; beta=alpha/x
-phit = 1-pgamma(t, shape = alpha, rate = beta)
+phit = 1-pgamma(t, shape = params[1], rate = params[2])
 lines(t,phit,col='black')
 
 ##### Non-constant FRR -- peak at 7 years
-phit = (1-pgamma(t, shape=alpha, rate=beta))*(1 - 0.015) + 0.015 + dnorm(t-7, mean=0, sd=1) / 8
+phit = (1-pgamma(t, shape=params[1], rate=params[2]))*(1 - 0.015) + 0.015 + dnorm(t-7, mean=0, sd=1) / 8
 lines(t, phit, col='blue')
 
 legend('topright',c('(1)','(2)','(3)'),lty=rep(1,4),col=c("black", "red", "blue"))

@@ -13,7 +13,7 @@ source("./results/sim-helpers.R")
 set.seed(100)
 
 # number of simulations
-n_sims <- 10
+n_sims <- 100
 
 # number screened
 n <- 5000
@@ -50,22 +50,26 @@ for(type in c("constant", "linear", "exponential")){
     if(phi == 1){
       phi.func <- phi.character.1
       frr <- 0
-      mdri <- 142
+      window <- 142
+      shadow <- 150
     } else if(phi == 2){
       phi.func <- phi.character.1
       frr <- 0.015
-      mdri <- 142
+      window <- 142
+      shadow <- 150
     } else {
       phi.func <- phi.character.2
       frr <- 0.015
-      mdri <- 142
+      window <- 142
+      shadow <- 150
     }
 
     sim <- simulate(n_sims=n_sims, n=n,
                     inc.function=inc.function,
                     infection.function=infection.function,
                     baseline_incidence=inc, prevalence=p, rho=rho,
-                    phi.func=phi.func, frr=frr, mdri=mdri, big_T=big_T)
+                    phi.func=phi.func, frr=frr, window=window, shadow=shadow,
+                    big_T=big_T)
     assign(paste(type, phi, sep="_"), sim)
     summ <- summarize.simulation(sim)
     assign(paste(type, phi, "summary", sep="_"), summ)
@@ -163,8 +167,8 @@ p <- ggplot(data=sub, mapping=aes(x=variable, y=value, fill=variable)) +
   scale_fill_brewer(palette="Set2") +
   scale_color_brewer(palette="Set2") +
   ylab("Estimate") + xlab("Estimator") + labs(fill="Estimator") +
+  ylab("Estimate") + xlab("Estimator") + labs(fill="Estimator") +
   theme(legend.position="bottom") +
-  # ggtitle(TeX("Bias of Estimators for $\\lambda_0$")) +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
   theme(panel.grid.minor = element_line(size = 0.25),
         panel.grid.major = element_line(size = 0.25)) +
@@ -311,28 +315,31 @@ for(phi in c(1, 2, 3)){
   if(phi == 1){
     phi.func <- phi.character.1
     frr <- 0
-    mdri <- 142
+    window <- 142
+    shadow <- 150
   } else if(phi == 2){
     phi.func <- phi.character.1
     frr <- 0.015
-    mdri <- 142
+    window <- 142
+    shadow <- 150
   } else {
     phi.func <- phi.character.2
     frr <- 0.015
-    mdri <- 142
+    window <- 142
+    shadow <- 150
   }
 
   if(phi == 1) pname <- "1. Zero FRR"
   if(phi == 2) pname <- "2. Constant FRR"
   if(phi == 3) pname <- "3. Non-constant FRR"
 
-  simulations <- replicate(n_sims, assay.properties.sim(phi.func, mdri, frr), simplify="matrix") %>% t
+  simulations <- replicate(n_sims, assay.properties.sim(phi.func, window, frr, shadow), simplify="matrix") %>% t
   simulations <- data.table(simulations)
 
   simulations[, case := pname]
   simulations[, constant := phi %in% c(1, 2)]
   simulations[, frr := frr]
-  simulations[, mdri := mdri]
+  simulations[, window := window]
   simulations[, num := .I]
   phi_sims[[phi]] <- simulations
 }
@@ -344,12 +351,12 @@ cols <- lapply(columns, function(x) unlist(df[[x]]))
 df <- do.call(cbind, cols) %>% data.table
 names(df) <- columns
 
-mu <- melt(df, id.vars=c("case", "constant", "frr", "mdri", "num"), measure.vars="mu_est")
-omega <- melt(df, id.vars=c("case", "constant", "frr", "mdri", "num"), measure.vars="omega_est")
-beta <- melt(df, id.vars=c("case", "constant", "frr", "mdri", "num"), measure.vars="beta_est")
+mu <- melt(df, id.vars=c("case", "constant", "frr", "window", "num"), measure.vars="mu_est")
+omega <- melt(df, id.vars=c("case", "constant", "frr", "window", "num"), measure.vars="omega_est")
+beta <- melt(df, id.vars=c("case", "constant", "frr", "window", "num"), measure.vars="beta_est")
 
 df <- rbindlist(list(mu, omega, beta))
-df[, true := ifelse(variable == "beta_est", as.numeric(frr), as.numeric(mdri)/365.25)]
+df[, true := ifelse(variable == "beta_est", as.numeric(frr), as.numeric(window)/365.25)]
 df[, value := as.numeric(value)]
 df[variable == "mu_est", variable := "Mean Window Period"]
 df[variable == "omega_est", variable := "MDRI"]
@@ -374,22 +381,19 @@ dev.off()
 for(phi in c(1, 2, 3)){
 
   if(phi == 1){
-    phi.func <- phi.character.1
-    frr <- 0
-    mdri <- 142
-    tau <- 9.9
+    next()
   } else if(phi == 2){
     phi.func <- phi.character.1
     frr <- 0.015
-    mdri <- 142
-    tau <- big_T
+    window <- 142
+    shadow <- 150
   } else {
     phi.func <- phi.character.2
     frr <- 0.015
-    mdri <- 142
-    tau <- big_T
+    window <- 142
+    shadow <- 150
   }
 
-  shadow <- calculate.shadow(phi.func, tau, mdri, frr)
-  cat("Phi ", phi, " has shadow period ", shadow * 365.25, "\n")
+  shadow <- true.mdri(phi.func, window, frr, shadow=shadow)
+  cat("Phi ", phi, " has true MDRI ", shadow, "\n")
 }

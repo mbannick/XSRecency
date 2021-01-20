@@ -1,23 +1,26 @@
 library(magrittr)
 
 simulate <- function(n_sims, n, inc.function, infection.function, phi.func,
-                     baseline_incidence, prevalence, rho, mdri, frr, big_T){
-  assay <- assay.properties.nsim(n_sims, phi.func=phi.func, frr=frr, mdri=mdri)
-  true_frr <- true.frr(phi.func=phi.func, mdri=mdri, frr=frr)
+                     baseline_incidence, prevalence, rho, window, frr, shadow, big_T){
+
+  assay <- assay.properties.nsim(n_sims, phi.func=phi.func, frr=frr, window=window, shadow=shadow)
+  true_frr <- true.frr(phi.func=phi.func, window=window, frr=frr, shadow=shadow)
+  true_mdri <- true.mdri(phi.func=phi.func, window=window, frr=frr, shadow=shadow)
 
   data <- generate.data(n=n, n_sims=n_sims,
                         infection.function=infection.function,
                         phi.func=phi.func,
                         baseline_incidence=baseline_incidence,
-                        prevalence=prevalence, rho=rho, frr=frr, mdri=mdri)
+                        prevalence=prevalence, rho=rho, frr=frr, window=window,
+                        shadow=shadow)
 
   snap.true <- get.snapshot(n_r=data$n_r, n_n=data$n_n, n_p=data$n_p,
-                            n=data$n, mu=mdri/365.25, mu_var=0)
+                            n=data$n, mu=window/365.25, mu_var=0)
   snap.est <- get.snapshot(n_r=data$n_r, n_n=data$n_n, n_p=data$n_p,
                            n=data$n, mu=assay$mu_est, mu_var=assay$mu_var)
 
   adj.true <- get.adjusted(n_r=data$n_r, n_n=data$n_n, n_p=data$n_p, n=data$n,
-                           omega=mdri/365.25, omega_var=0,
+                           omega=true_mdri, omega_var=0,
                            beta=true_frr, beta_var=0,
                            big_T=big_T)
   adj.est <- get.adjusted(n_r=data$n_r, n_n=data$n_n, n_p=data$n_p, n=data$n,
