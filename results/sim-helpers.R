@@ -20,7 +20,8 @@ simulate <- function(n_sims, n, inc.function, infection.function, phi.func,
                            n=data$n, mu=assay$mu_est, mu_var=assay$mu_var)
 
   adj.true <- get.adjusted(n_r=data$n_r, n_n=data$n_n, n_p=data$n_p, n=data$n,
-                           omega=true_mdri, omega_var=0,
+                           omega=window/365.25, omega_var=0,
+                           # omega=true_mdri, omega_var=0,
                            beta=true_frr, beta_var=0,
                            big_T=big_T)
   adj.est <- get.adjusted(n_r=data$n_r, n_n=data$n_n, n_p=data$n_p, n=data$n,
