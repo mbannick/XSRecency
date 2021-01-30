@@ -83,9 +83,9 @@ server <- function(input, output, session) {
         if(input$standard == "No FRR"){
             new_text <- paste0("1 - pgamma(t, ", round(alpha, 4), ", ", round(beta, 3), ")")
         } else if(input$standard == "Constant FRR"){
-            new_text <- paste0("(1 - pgamma(t, ", round(alpha, 4), ", ", round(beta, 4), ")) * (1 - ", input$frr, ") + ", frr)
+            new_text <- paste0("(1 - pgamma(t, ", round(alpha, 4), ", ", round(beta, 4), ")) * (1 - ", input$frr, ") + ", input$frr)
         } else {
-            new_text <- paste0("(1 - pgamma(t, ", round(alpha, 4), ", ", round(beta, 4), ")) * (1 - ", input$frr, ") + ", frr, " + dnorm(t-7, mean=0, sd=1) / 8")
+            new_text <- paste0("(1 - pgamma(t, ", round(alpha, 4), ", ", round(beta, 4), ")) * (1 - ", input$frr, ") + ", input$frr, " + dnorm(t-7, mean=0, sd=1) / 8")
         }
 
         updateTextInput(session, "express", value=new_text)
