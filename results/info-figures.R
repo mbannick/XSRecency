@@ -26,31 +26,44 @@ legend('topright',c('Constant','Linear','Exponential'),lty=rep(2,3),col=c(1,2,4)
 
 library(latex2exp)
 
-pdf('~/OneDrive/Documents/2020_2021/RA/RAplot.pdf',height=8,width=8)
-par(mfrow=c(1,1))
+pdf('~/OneDrive/Documents/2020_2021/RA/RAplot.pdf',height=6,width=10)
+par(mfrow=c(1,2))
 
-mdri <- 142
-shadow <- 150
+for(i in 1:2){
 
-params <- get.gamma.params(window=mdri/356.25, shadow=shadow/365.25)
+  if(i == 1){
+    mdri <- 71
+    shadow <- 237
+    frr <- 0.015
+  } else {
+    mdri <- 248
+    shadow <- 306
+    frr <- 0.015
+  }
 
-###### MDRI at 2 year 142/365, FRR 1.5%: 1.5% + Gamma distribution with mean 142/365.25-1.5%
-alpha = 1; x = (142/365.25-0.015)/(1-0.015); beta=alpha/x
-t = seq(0,12,0.01)
-phit = (1-pgamma(t, shape = params[1], rate = params[2]))*(1-0.015)+0.015
-plot(t,phit,type='l',ylab=expression(phi(t)), col='red')
+  t = seq(0,12,0.01)
+  params <- get.gamma.params(window=mdri/356.25, shadow=shadow/365.25)
 
-###### window period 142/365, FRR 0%: Gamma distribution with mean 142/(365.25*2)
-alpha = 1; x = 142/365.25; beta=alpha/x
-phit = 1-pgamma(t, shape = params[1], rate = params[2])
-lines(t,phit,col='black')
+  ###### window period 142/365, FRR 0%: Gamma distribution with mean 142/(365.25*2)
+  phit = 1-pgamma(t, shape = params[1], rate = params[2])
+  plot(t, phit, col='black', type='l', ylab=expression(phi(t)), xlab=expression(t))
 
-##### Non-constant FRR -- peak at 7 years
-phit = (1-pgamma(t, shape=params[1], rate=params[2]))*(1 - 0.015) + 0.015 + dnorm(t-7, mean=0, sd=1) / 8
-lines(t, phit, col='blue')
+  ###### MDRI at 2 year 142/365, FRR 1.5%: 1.5% + Gamma distribution with mean 142/365.25-1.5%
+  phit = (1-pgamma(t, shape = params[1], rate = params[2]))*(1-frr)+frr
+  lines(t, phit, col='red')
 
-legend('topright',c('(1)','(2)','(3)'),lty=rep(1,4),col=c("black", "red", "blue"))
-# abline(h=0, lty='dashed')
-abline(v=2, lty='dashed')
+  ##### Non-constant FRR -- peak at 7 years
+  phit = (1-pgamma(t, shape=params[1], rate=params[2]))*(1 - frr) + frr + dnorm(t-7, mean=0, sd=1) / 8
+  lines(t, phit, col='blue')
+
+  pgon <- c(seq(2, 12, 0.01))
+  pgon.phi <- 1-pgamma(pgon, shape = params[1], rate = params[2])
+  polygon(x=c(pgon, rev(pgon)), y=c(rep(0, length(pgon)), rev(pgon.phi)), col='lightgrey')
+
+  legend('topright',c('(1)','(2)','(3)'),lty=rep(1, 4),col=c("black", "red", "blue"), cex=0.75)
+  # abline(h=0, lty='dashed')
+  abline(v=2, lty='dashed')
+}
+
 dev.off()
 

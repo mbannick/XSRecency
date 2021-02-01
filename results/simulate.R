@@ -10,10 +10,13 @@ library(gridExtra)
 setwd("~/repos/XSRecency/")
 source("./results/sim-helpers.R")
 
+date <- format(Sys.time(), "%d-%m-%y")
+out_dir <- paste0("/Users/marlena/OneDrive/Documents/2020_2021/RA/simulation-plots-", date, "/")
+
 set.seed(100)
 
 # number of simulations
-n_sims <- 100
+n_sims <- 1000
 
 # number screened
 n <- 5000
@@ -26,6 +29,14 @@ p <- 0.29
 
 # baseline incidence
 inc <- 0.032
+
+# Which assay settings to use (1 or 2)
+setting <- 1
+
+out_dir <- paste0(out_dir, "setting_", setting, "-")
+out_dir <- paste0(out_dir, "nsims_", n_sims, "-")
+out_dir <- paste0(out_dir, "T_", big_T)
+dir.create(out_dir)
 
 for(type in c("constant", "linear", "exponential")){
   cat("Working on ", type, "\n")
@@ -47,21 +58,23 @@ for(type in c("constant", "linear", "exponential")){
       rho <- 0.07
     }
 
+    if(setting == 1){
+      window <- 71
+      shadow <- 237
+    } else {
+      window <- 248
+      shadow <- 306
+    }
+
     if(phi == 1){
       phi.func <- phi.character.1
       frr <- 0
-      window <- 142
-      shadow <- 150
     } else if(phi == 2){
       phi.func <- phi.character.1
       frr <- 0.015
-      window <- 142
-      shadow <- 150
     } else {
       phi.func <- phi.character.2
       frr <- 0.015
-      window <- 142
-      shadow <- 150
     }
 
     sim <- simulate(n_sims=n_sims, n=n,
@@ -176,11 +189,6 @@ p <- ggplot(data=sub, mapping=aes(x=variable, y=value, fill=variable)) +
         axis.text.x=element_blank(),
         axis.ticks.x=element_blank())
 
-pdf(file="/Users/marlena/OneDrive/Documents/2020_2021/RA/simulation-plots-20200107/bias-3.pdf",
-    height=9, width=7)
-p
-dev.off()
-
 # FIGURE B -- COVERAGE
 
 cov.data <- data.table()
@@ -230,11 +238,6 @@ p2 <- ggplot(data=cov.data, mapping=aes(x=name, y=value, color=variable, group=v
   theme(legend.position="bottom") +
   theme(panel.grid.minor = element_line(size = 0.25),
         panel.grid.major = element_line(size = 0.25))
-
-pdf(file="/Users/marlena/OneDrive/Documents/2020_2021/RA/simulation-plots-20200107/coverage-summary-2.pdf",
-    height=7, width=10)
-p2
-dev.off()
 
 # FIGURE C -- DETAILED ESTIMATOR
 
@@ -300,11 +303,6 @@ for(phi in c(1, 2, 3)){
   }
 }
 
-pdf(file="/Users/marlena/OneDrive/Documents/2020_2021/RA/simulation-plots-20200107/estimator-detailed.pdf",
-    height=11, width=9)
-grid.arrange(grobs=plots, nrow=3, ncol=2)
-dev.off()
-
 # FIGURE D -- RECENCY ASSAY ESTIMATES
 cat("Working on recency assay simulations.")
 
@@ -312,21 +310,23 @@ phi_sims <- list()
 
 for(phi in c(1, 2, 3)){
 
+  if(setting == 1){
+    window <- 71
+    shadow <- 237
+  } else {
+    window <- 248
+    shadow <- 306
+  }
+
   if(phi == 1){
     phi.func <- phi.character.1
     frr <- 0
-    window <- 142
-    shadow <- 150
   } else if(phi == 2){
     phi.func <- phi.character.1
     frr <- 0.015
-    window <- 142
-    shadow <- 150
   } else {
     phi.func <- phi.character.2
     frr <- 0.015
-    window <- 142
-    shadow <- 150
   }
 
   if(phi == 1) pname <- "1. Zero FRR"
@@ -373,29 +373,24 @@ rp <- ggplot(data=df) + geom_boxplot(aes(y=value)) +
   theme(axis.text.x=element_blank(),
         axis.ticks.x=element_blank())
 
-pdf(file="/Users/marlena/OneDrive/Documents/2020_2021/RA/simulation-plots-20200107/recency.pdf",
+# Output all of the plots
+
+pdf(file=paste0(out_dir, "bias-3.pdf"),
+    height=9, width=7)
+p
+dev.off()
+
+pdf(file=paste0(out_dir, "coverage-summary-2.pdf"),
+    height=7, width=10)
+p2
+dev.off()
+
+pdf(file=paste0(out_dir, "estimator-detailed.pdf"),
+    height=11, width=9)
+grid.arrange(grobs=plots, nrow=3, ncol=2)
+dev.off()
+
+pdf(file=paste0(out_dir, "recency.pdf"),
     height=6, width=6)
 rp
 dev.off()
-
-# CALCULATE THE SHADOW PERIOD
-
-for(phi in c(1, 2, 3)){
-
-  if(phi == 1){
-    next()
-  } else if(phi == 2){
-    phi.func <- phi.character.1
-    frr <- 0.015
-    window <- 142
-    shadow <- 150
-  } else {
-    phi.func <- phi.character.2
-    frr <- 0.015
-    window <- 142
-    shadow <- 150
-  }
-
-  shadow <- true.mdri(phi.func, window, frr, shadow=shadow)
-  cat("Phi ", phi, " has true MDRI ", shadow, "\n")
-}

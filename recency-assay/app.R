@@ -125,11 +125,6 @@ server <- function(input, output, session) {
         v$phi <- NULL
     })
 
-    # simulants <- eventReactive(input$simulate, {
-    #
-    #     return(sims)
-    # })
-
     output$phi.plot <- renderPlot({
         p <- ggplot() + geom_line(data=phi.data(), mapping=aes(x=t, y=phi)) +
             geom_vline(xintercept=input$bigT, linetype=2) + theme_bw() +
