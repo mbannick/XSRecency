@@ -19,6 +19,7 @@ res_exp = lm(log(Incidence1)~Year1)
 par(mfrow=c(1,1))
 plot(Year1,Incidence1/100,xlab='Year',ylab='Incidence')
 lines(Year1,rep(3.2 /100,length(Year1)),lty=2)
+lines(Year1, 0.032 + 0.0028 * (2018-Year1))
 lines(Year1,(3.2 + 0.28*(2018-Year1))/100,lty=2,col='red')
 lines(Year1,3.2 *exp(0.07*(2018-Year1))/100,lty=2,col='blue')
 legend('topright',c('Constant','Linear','Exponential'),lty=rep(2,3),col=c(1,2,4))
@@ -32,33 +33,42 @@ par(mfrow=c(1,2))
 for(i in 1:2){
 
   if(i == 1){
-    mdri <- 71
-    shadow <- 237
-    frr <- 0.015
+    mdri <- 45 # 71
+    shadow <- 250 # 237
   } else {
     mdri <- 248
     shadow <- 306
-    frr <- 0.015
   }
 
-  t = seq(0,12,0.01)
+  t = seq(0, 12, 0.01)
   params <- get.gamma.params(window=mdri/356.25, shadow=shadow/365.25)
 
+  phit <- function(t) 1-pgamma(t, shape = params[1], rate = params[2])
+
+  if(i == 1) ttime <- 2
+  if(i == 1) tval <- phit(2)
+
+  if(i == 2) tval <- 0.015
+  if(i == 2) ttime <- uniroot(function(t) phit(t) - tval, interval=c(0, 12))$root
+
+  phit.const <- function(t) phit(t)*(t <= ttime) + tval*(t > ttime)
+  phit.const.dnorm <- function(t) phit.const(t) + dnorm(t-7, mean=0, sd=1) / 8
+
   ###### window period 142/365, FRR 0%: Gamma distribution with mean 142/(365.25*2)
-  phit = 1-pgamma(t, shape = params[1], rate = params[2])
-  plot(t, phit, col='black', type='l', ylab=expression(phi(t)), xlab=expression(t))
+  plot(t, phit(t), col='black', type='l', ylab=expression(phi(t)), xlab=expression(t))
+  abline(h=0.015, lty='dashed')
 
   ###### MDRI at 2 year 142/365, FRR 1.5%: 1.5% + Gamma distribution with mean 142/365.25-1.5%
-  phit = (1-pgamma(t, shape = params[1], rate = params[2]))*(1-frr)+frr
-  lines(t, phit, col='red')
+  lines(t, phit.const(t), col='red')
 
   ##### Non-constant FRR -- peak at 7 years
-  phit = (1-pgamma(t, shape=params[1], rate=params[2]))*(1 - frr) + frr + dnorm(t-7, mean=0, sd=1) / 8
-  lines(t, phit, col='blue')
+  lines(t, phit.const.dnorm(t), col='blue')
 
-  pgon <- c(seq(2, 12, 0.01))
-  pgon.phi <- 1-pgamma(pgon, shape = params[1], rate = params[2])
-  polygon(x=c(pgon, rev(pgon)), y=c(rep(0, length(pgon)), rev(pgon.phi)), col='lightgrey')
+  if(i == 2){
+    pgon <- c(seq(2, ttime, 0.01))
+    pgon.phi <- 1-pgamma(pgon, shape = params[1], rate = params[2])
+    polygon(x=c(pgon, rev(pgon)), y=c(rep(tval, length(pgon)), rev(pgon.phi)), col='lightgrey')
+  }
 
   legend('topright',c('(1)','(2)','(3)'),lty=rep(1, 4),col=c("black", "red", "blue"), cex=0.75)
   # abline(h=0, lty='dashed')

@@ -12,11 +12,12 @@ source("./results/sim-helpers.R")
 
 date <- format(Sys.time(), "%d-%m-%y")
 out_dir <- paste0("/Users/marlena/OneDrive/Documents/2020_2021/RA/simulation-plots-", date, "/")
+dir.create(out_dir)
 
 set.seed(100)
 
 # number of simulations
-n_sims <- 1000
+n_sims <- 500
 
 # number screened
 n <- 5000
@@ -59,8 +60,8 @@ for(type in c("constant", "linear", "exponential")){
     }
 
     if(setting == 1){
-      window <- 71
-      shadow <- 237
+      mdri <- 45 # 71
+      shadow <- 250 # 237
     } else {
       window <- 248
       shadow <- 306
@@ -375,22 +376,22 @@ rp <- ggplot(data=df) + geom_boxplot(aes(y=value)) +
 
 # Output all of the plots
 
-pdf(file=paste0(out_dir, "bias-3.pdf"),
+pdf(file=paste0(out_dir, "/bias-3.pdf"),
     height=9, width=7)
 p
 dev.off()
 
-pdf(file=paste0(out_dir, "coverage-summary-2.pdf"),
+pdf(file=paste0(out_dir, "/coverage-summary-2.pdf"),
     height=7, width=10)
 p2
 dev.off()
 
-pdf(file=paste0(out_dir, "estimator-detailed.pdf"),
+pdf(file=paste0(out_dir, "/estimator-detailed.pdf"),
     height=11, width=9)
 grid.arrange(grobs=plots, nrow=3, ncol=2)
 dev.off()
 
-pdf(file=paste0(out_dir, "recency.pdf"),
+pdf(file=paste0(out_dir, "/recency.pdf"),
     height=6, width=6)
 rp
 dev.off()

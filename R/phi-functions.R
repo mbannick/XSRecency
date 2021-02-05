@@ -43,11 +43,6 @@ true.frr <- function(phi.function, window=142, frr=0.015, shadow=150){
 #' MDRI for convenience
 #' @export
 true.mdri <- function(phi.function, window=142, frr=0.015, shadow=150){
-  if(frr == 0){
-    # that means we're calculating the window rather than MDRI
-    return(window / 365.25)
-  } else {
-    ts <- seq(0, PHI_PARAMS$FRR_MIN, 1e-3)
-    return(sum(phi.function(ts, window, frr, shadow) * 1e-3))
-  }
+  ts <- seq(0, PHI_PARAMS$FRR_MIN, 1e-3)
+  return(sum(phi.function(ts, window, frr, shadow) * 1e-3))
 }
