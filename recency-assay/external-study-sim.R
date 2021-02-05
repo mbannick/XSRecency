@@ -1,18 +1,18 @@
 # -------------------------------------------------------------------------
 # EXTERNAL STUDY DATA SIMULATION TO ESTIMATE MU, OMEGA, BETA
 # -------------------------------------------------------------------------
+library(tidyr)
 
 #' This simulates the false recency rate using
 #' tail probabilities from the phi parameters
 #' by sampling from a binomial with a sample size
 #' given in the study.
-#'
-#' @export
-simulate.beta <- function(window, frr, shadow, phi.func){
+simulate.beta <- function(phi.func, big_T, max_T){
   infected_times <- runif(n=PHI_PARAMS$N_LONG_INFECT,
-                          min=PHI_PARAMS$FRR_MIN,
-                          max=PHI_PARAMS$FRR_MAX)
-  recent <- rbinom(n=PHI_PARAMS$N_LONG_INFECT, size=1, p=phi.func(infected_times, window=window, frr=frr, shadow=shadow))
+                          min=big_T,
+                          max=max_T)
+  recent <- rbinom(n=PHI_PARAMS$N_LONG_INFECT, size=1,
+                   p=phi.func(infected_times))
   beta <- sum(recent) / PHI_PARAMS$N_LONG_INFECT
   beta_var <- beta * (1 - beta) / PHI_PARAMS$N_LONG_INFECT
   return(list(est=beta, var=beta_var))
@@ -21,8 +21,7 @@ simulate.beta <- function(window, frr, shadow, phi.func){
 #' Simulate infection duration and recency indicators
 #' from the study.
 #'
-#' @export
-simulate.study <- function(phi.func, window, frr, shadow){
+simulate.study <- function(phi.func){
 
   # probability of sampling in each cohort
   p_samp <- (PHI_PARAMS$mean_samp - 1) / (PHI_PARAMS$max_samp - 1)
@@ -76,7 +75,7 @@ simulate.study <- function(phi.func, window, frr, shadow){
   # generate the recency indicator for the infection duration
   # based on the true phi() function
   indicators <- lapply(infection_durations, function(x) rbinom(n=length(x),
-                       size=1, prob=phi.func(x, window, frr, shadow)))
+                                                               size=1, prob=phi.func(x)))
   return(list(
     recent=unlist(indicators),
     durations=unlist(infection_durations)
@@ -86,7 +85,6 @@ simulate.study <- function(phi.func, window, frr, shadow){
 #' Fits a cubic model to indicators and durations
 #' and returns the model object.
 #'
-#' @export
 fit.cubic <- function(recent, durations){
   durations2 <- durations**2
   durations3 <- durations**3
@@ -100,7 +98,6 @@ fit.cubic <- function(recent, durations){
 #' Create phi probability predictions
 #' based on a model object and d durations
 #'
-#' @export
 phi.hat <- function(d, model){
   dmat <- cbind(
     rep(1, length(d)),
@@ -113,15 +110,14 @@ phi.hat <- function(d, model){
 #' Estimate omega_T from a model object
 #' Can instead estimate mu hat if you pass in a sufficiently
 #' long follow_T parameter (like 9)
-#'
-#' @export
-integrate.phi <- function(model, follow_T=PHI_PARAMS$FOLLOW_T){
+integrate.phi <- function(model, max_T){
 
   # generate a sequence of duration times, starting at 0 and
   # up to max t, just to get the phi_hat
   dt <- 0.001
 
-  ts <- seq(0, follow_T, by=dt)
+  ts <- seq(0, max_T, by=dt)
+  time <- ts
   ts <- cbind(rep(1, length(ts)),
               ts,
               ts**2,
@@ -148,51 +144,93 @@ integrate.phi <- function(model, follow_T=PHI_PARAMS$FOLLOW_T){
   # the variance of omega_t
   variance <- c(t(grad) %*% vc %*% grad)
 
-  return(list(est=estimate, var=variance))
+  return(list(est=estimate, var=variance, ts=time, phi=phi))
 }
 
 #' Function that simulates all the properties of
 #' the recency assay, and returns all of the ones that we're interested in
 #'
 #' @export
-assay.properties.sim <- function(phi.func, window, frr, shadow){
+assay.properties.sim <- function(phi.func, max_T, big_T){
   # SIMULATIONS -----------------------------
 
   # simulate one phi function and
   # get the estimate and variance
-  study <- simulate.study(phi.func, window, frr, shadow)
+  study <- simulate.study(phi.func)
 
   model <- fit.cubic(recent=study$recent,
                      durations=study$durations)
 
   # get mu and omega
-  mu_sim <- integrate.phi(model, follow_T=9.9)
-  omega_sim <- integrate.phi(model, follow_T=PHI_PARAMS$FOLLOW_T)
+  mu_sim <- integrate.phi(model, max_T=max_T)
+  omega_sim <- integrate.phi(model, max_T=big_T)
 
   # simulate beta and get the estimate and variance of them
-  beta_sim <- simulate.beta(window=window, frr=frr, shadow=shadow, phi.func=phi.func)
+  beta_sim <- simulate.beta(big_T=big_T, max_T=max_T, phi.func=phi.func)
 
-  result <- list(mu_est=mu_sim$est,
-                 mu_var=mu_sim$var,
-                 omega_est=omega_sim$est,
-                 omega_var=omega_sim$var,
-                 beta_est=beta_sim$est,
-                 beta_var=beta_sim$var)
+  result <- list(estimators=list(
+                  mu_est=mu_sim$est,
+                  mu_var=mu_sim$var,
+                  omega_est=omega_sim$est,
+                  omega_var=omega_sim$var,
+                  beta_est=beta_sim$est,
+                  beta_var=beta_sim$var
+                 ),
+                 curve=data.table(
+                   ts=mu_sim$ts,
+                   phi=mu_sim$phi
+                 )
+                )
   return(result)
 }
 
 #' Function that simulates all the properties of
 #' the recency assay, and returns all of the ones that we're interested in
 #'
-#' @export
-assay.properties.nsim <- function(n_sims, phi.func, window, frr, shadow){
-  result <- replicate(n_sims, assay.properties.sim(phi.func=phi.func,
-                                                   window=window, frr=frr, shadow=shadow))
-  result <- t(result)
-  result <- data.table(result)
+assay.properties.nsim <- function(n_sims, phi.func, max_T, big_T){
+  replicates <- replicate(n_sims, assay.properties.sim(phi.func=phi.func,
+                                                       max_T=max_T, big_T=big_T))
+  result <- do.call(cbind, replicates["estimators", ]) %>% t %>% data.table
   columns <- colnames(result)
   cols <- lapply(columns, function(x) unlist(result[[x]]))
+
   df <- do.call(cbind, cols) %>% data.table
   names(df) <- columns
-  return(df)
+  df[, sim := .I]
+
+  est <- melt(df, id.vars="sim", measure.vars=patterns("_est"), value.name="estimate")
+  vars <- melt(df, id.vars="sim", measure.vars=patterns("_var"), value.name="variance")
+
+  est <- est %>% separate(col="variable", into=c("quantity", "stub"), sep="_")
+  vars <- vars %>% separate(col="variable", into=c("quantity", "stub"), sep="_")
+
+  est <- est[, .(sim, quantity, estimate)]
+  vars <- vars[, .(sim, quantity, variance)]
+
+  df <- merge(est, vars, by=c("sim", "quantity"))
+  df[, lower := estimate - qnorm(0.975) * sqrt(variance)]
+  df[, upper := estimate + qnorm(0.975) * sqrt(variance)]
+
+  true_mu <- true_mdri(phi.func, follow_T=max_T)
+  true_omega <- true_mdri(phi.func, follow_T=big_T)
+
+  df[, truth := NULL]
+  df[quantity == "mu", truth := true_mu]
+  df[quantity == "omega", truth := true_omega]
+
+  phis <- do.call(cbind, replicates["curve", ])
+  n <- ncol(phis)
+  phis <- phis[, c(1, seq(2, n, 2)), with=F]
+  n <- ncol(phis)
+  namecols <- paste0("phi_", 1:(n-1))
+  setnames(phis, c("time", namecols))
+  phis <- melt(phis, id.vars=c("time"))
+  phis <- phis %>% separate(col='variable', into=c("stub", "sim"), sep="_")
+
+  return(list(estimators=df, phi=phis))
+}
+
+true_mdri <- function(phi.function, follow_T){
+  ts <- seq(0, follow_T, 1e-3)
+  return(sum(phi.function(ts) * 1e-3))
 }

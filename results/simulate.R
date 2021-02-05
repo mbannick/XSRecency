@@ -10,10 +10,14 @@ library(gridExtra)
 setwd("~/repos/XSRecency/")
 source("./results/sim-helpers.R")
 
+date <- format(Sys.time(), "%d-%m-%y")
+out_dir <- paste0("/Users/marlena/OneDrive/Documents/2020_2021/RA/simulation-plots-", date, "/")
+dir.create(out_dir)
+
 set.seed(100)
 
 # number of simulations
-n_sims <- 1000
+n_sims <- 500
 
 # number screened
 n <- 5000
@@ -26,6 +30,14 @@ p <- 0.29
 
 # baseline incidence
 inc <- 0.032
+
+# Which assay settings to use (1 or 2)
+setting <- 1
+
+out_dir <- paste0(out_dir, "setting_", setting, "-")
+out_dir <- paste0(out_dir, "nsims_", n_sims, "-")
+out_dir <- paste0(out_dir, "T_", big_T)
+dir.create(out_dir)
 
 for(type in c("constant", "linear", "exponential")){
   cat("Working on ", type, "\n")
@@ -47,25 +59,31 @@ for(type in c("constant", "linear", "exponential")){
       rho <- 0.07
     }
 
+    if(setting == 1){
+      mdri <- 45 # 71
+      shadow <- 250 # 237
+    } else {
+      window <- 248
+      shadow <- 306
+    }
+
     if(phi == 1){
       phi.func <- phi.character.1
       frr <- 0
-      mdri <- 142
     } else if(phi == 2){
       phi.func <- phi.character.1
       frr <- 0.015
-      mdri <- 142
     } else {
       phi.func <- phi.character.2
       frr <- 0.015
-      mdri <- 142
     }
 
     sim <- simulate(n_sims=n_sims, n=n,
                     inc.function=inc.function,
                     infection.function=infection.function,
                     baseline_incidence=inc, prevalence=p, rho=rho,
-                    phi.func=phi.func, frr=frr, mdri=mdri, big_T=big_T)
+                    phi.func=phi.func, frr=frr, window=window, shadow=shadow,
+                    big_T=big_T)
     assign(paste(type, phi, sep="_"), sim)
     summ <- summarize.simulation(sim)
     assign(paste(type, phi, "summary", sep="_"), summ)
@@ -163,19 +181,14 @@ p <- ggplot(data=sub, mapping=aes(x=variable, y=value, fill=variable)) +
   scale_fill_brewer(palette="Set2") +
   scale_color_brewer(palette="Set2") +
   ylab("Estimate") + xlab("Estimator") + labs(fill="Estimator") +
+  ylab("Estimate") + xlab("Estimator") + labs(fill="Estimator") +
   theme(legend.position="bottom") +
-  # ggtitle(TeX("Bias of Estimators for $\\lambda_0$")) +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
   theme(panel.grid.minor = element_line(size = 0.25),
         panel.grid.major = element_line(size = 0.25)) +
   theme(axis.title.x=element_blank(),
         axis.text.x=element_blank(),
         axis.ticks.x=element_blank())
-
-pdf(file="/Users/marlena/OneDrive/Documents/2020_2021/RA/simulation-plots-20200107/bias-3.pdf",
-    height=9, width=7)
-p
-dev.off()
 
 # FIGURE B -- COVERAGE
 
@@ -226,11 +239,6 @@ p2 <- ggplot(data=cov.data, mapping=aes(x=name, y=value, color=variable, group=v
   theme(legend.position="bottom") +
   theme(panel.grid.minor = element_line(size = 0.25),
         panel.grid.major = element_line(size = 0.25))
-
-pdf(file="/Users/marlena/OneDrive/Documents/2020_2021/RA/simulation-plots-20200107/coverage-summary-2.pdf",
-    height=7, width=10)
-p2
-dev.off()
 
 # FIGURE C -- DETAILED ESTIMATOR
 
@@ -296,11 +304,6 @@ for(phi in c(1, 2, 3)){
   }
 }
 
-pdf(file="/Users/marlena/OneDrive/Documents/2020_2021/RA/simulation-plots-20200107/estimator-detailed.pdf",
-    height=11, width=9)
-grid.arrange(grobs=plots, nrow=3, ncol=2)
-dev.off()
-
 # FIGURE D -- RECENCY ASSAY ESTIMATES
 cat("Working on recency assay simulations.")
 
@@ -308,30 +311,37 @@ phi_sims <- list()
 
 for(phi in c(1, 2, 3)){
 
+  if(setting == 1){
+    window <- 71
+    shadow <- 237
+  } else {
+    window <- 248
+    shadow <- 306
+  }
+
   if(phi == 1){
     phi.func <- phi.character.1
     frr <- 0
-    mdri <- 142
   } else if(phi == 2){
     phi.func <- phi.character.1
     frr <- 0.015
-    mdri <- 142
   } else {
     phi.func <- phi.character.2
     frr <- 0.015
-    mdri <- 142
   }
 
   if(phi == 1) pname <- "1. Zero FRR"
   if(phi == 2) pname <- "2. Constant FRR"
   if(phi == 3) pname <- "3. Non-constant FRR"
 
-  simulations <- replicate(n_sims, assay.properties.sim(phi.func, mdri, frr), simplify="matrix") %>% t
+  simulations <- replicate(n_sims, assay.properties.sim(phi.func, window, frr, shadow), simplify="matrix") %>% t
   simulations <- data.table(simulations)
 
   simulations[, case := pname]
   simulations[, constant := phi %in% c(1, 2)]
   simulations[, frr := frr]
+  simulations[, window := window]
+  mdri <- true.mdri(phi.func, window=window, frr=frr, shadow=shadow)
   simulations[, mdri := mdri]
   simulations[, num := .I]
   phi_sims[[phi]] <- simulations
@@ -344,12 +354,12 @@ cols <- lapply(columns, function(x) unlist(df[[x]]))
 df <- do.call(cbind, cols) %>% data.table
 names(df) <- columns
 
-mu <- melt(df, id.vars=c("case", "constant", "frr", "mdri", "num"), measure.vars="mu_est")
-omega <- melt(df, id.vars=c("case", "constant", "frr", "mdri", "num"), measure.vars="omega_est")
-beta <- melt(df, id.vars=c("case", "constant", "frr", "mdri", "num"), measure.vars="beta_est")
+mu <- melt(df, id.vars=c("case", "constant", "frr", "window", "mdri", "num"), measure.vars="mu_est")
+omega <- melt(df, id.vars=c("case", "constant", "frr", "window", "mdri", "num"), measure.vars="omega_est")
+beta <- melt(df, id.vars=c("case", "constant", "frr", "window", "mdri", "num"), measure.vars="beta_est")
 
 df <- rbindlist(list(mu, omega, beta))
-df[, true := ifelse(variable == "beta_est", as.numeric(frr), as.numeric(mdri)/365.25)]
+df[, true := ifelse(variable == "beta_est", as.numeric(frr), as.numeric(window)/365.25)]
 df[, value := as.numeric(value)]
 df[variable == "mu_est", variable := "Mean Window Period"]
 df[variable == "omega_est", variable := "MDRI"]
@@ -364,32 +374,24 @@ rp <- ggplot(data=df) + geom_boxplot(aes(y=value)) +
   theme(axis.text.x=element_blank(),
         axis.ticks.x=element_blank())
 
-pdf(file="/Users/marlena/OneDrive/Documents/2020_2021/RA/simulation-plots-20200107/recency.pdf",
+# Output all of the plots
+
+pdf(file=paste0(out_dir, "/bias-3.pdf"),
+    height=9, width=7)
+p
+dev.off()
+
+pdf(file=paste0(out_dir, "/coverage-summary-2.pdf"),
+    height=7, width=10)
+p2
+dev.off()
+
+pdf(file=paste0(out_dir, "/estimator-detailed.pdf"),
+    height=11, width=9)
+grid.arrange(grobs=plots, nrow=3, ncol=2)
+dev.off()
+
+pdf(file=paste0(out_dir, "/recency.pdf"),
     height=6, width=6)
 rp
 dev.off()
-
-# CALCULATE THE SHADOW PERIOD
-
-for(phi in c(1, 2, 3)){
-
-  if(phi == 1){
-    phi.func <- phi.character.1
-    frr <- 0
-    mdri <- 142
-    tau <- 9.9
-  } else if(phi == 2){
-    phi.func <- phi.character.1
-    frr <- 0.015
-    mdri <- 142
-    tau <- big_T
-  } else {
-    phi.func <- phi.character.2
-    frr <- 0.015
-    mdri <- 142
-    tau <- big_T
-  }
-
-  shadow <- calculate.shadow(phi.func, tau, mdri, frr)
-  cat("Phi ", phi, " has shadow period ", shadow * 365.25, "\n")
-}
