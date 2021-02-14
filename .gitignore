@@ -4,3 +4,5 @@
 .RData
 .Ruserdata
 *rsconnect*
+*.RData
+.DS_Store
