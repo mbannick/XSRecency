@@ -8,11 +8,11 @@
 #' given in the study.
 #'
 #' @export
-simulate.beta <- function(window, frr, shadow, phi.func){
+simulate.beta <- function(phi.func){
   infected_times <- runif(n=PHI_PARAMS$N_LONG_INFECT,
                           min=PHI_PARAMS$FRR_MIN,
                           max=PHI_PARAMS$FRR_MAX)
-  recent <- rbinom(n=PHI_PARAMS$N_LONG_INFECT, size=1, p=phi.func(infected_times, window=window, frr=frr, shadow=shadow))
+  recent <- rbinom(n=PHI_PARAMS$N_LONG_INFECT, size=1, p=phi.func(infected_times))
   beta <- sum(recent) / PHI_PARAMS$N_LONG_INFECT
   beta_var <- beta * (1 - beta) / PHI_PARAMS$N_LONG_INFECT
   return(list(est=beta, var=beta_var))
@@ -22,7 +22,7 @@ simulate.beta <- function(window, frr, shadow, phi.func){
 #' from the study.
 #'
 #' @export
-simulate.study <- function(phi.func, window, frr, shadow){
+simulate.study <- function(phi.func){
 
   # probability of sampling in each cohort
   p_samp <- (PHI_PARAMS$mean_samp - 1) / (PHI_PARAMS$max_samp - 1)
@@ -76,7 +76,7 @@ simulate.study <- function(phi.func, window, frr, shadow){
   # generate the recency indicator for the infection duration
   # based on the true phi() function
   indicators <- lapply(infection_durations, function(x) rbinom(n=length(x),
-                       size=1, prob=phi.func(x, window, frr, shadow)))
+                       size=1, prob=phi.func(x)))
   return(list(
     recent=unlist(indicators),
     durations=unlist(infection_durations)
@@ -155,12 +155,12 @@ integrate.phi <- function(model, follow_T=PHI_PARAMS$FOLLOW_T){
 #' the recency assay, and returns all of the ones that we're interested in
 #'
 #' @export
-assay.properties.sim <- function(phi.func, window, frr, shadow){
+assay.properties.sim <- function(phi.func){
   # SIMULATIONS -----------------------------
 
   # simulate one phi function and
   # get the estimate and variance
-  study <- simulate.study(phi.func, window, frr, shadow)
+  study <- simulate.study(phi.func)
 
   model <- fit.cubic(recent=study$recent,
                      durations=study$durations)
@@ -170,7 +170,7 @@ assay.properties.sim <- function(phi.func, window, frr, shadow){
   omega_sim <- integrate.phi(model, follow_T=PHI_PARAMS$FOLLOW_T)
 
   # simulate beta and get the estimate and variance of them
-  beta_sim <- simulate.beta(window=window, frr=frr, shadow=shadow, phi.func=phi.func)
+  beta_sim <- simulate.beta(phi.func=phi.func)
 
   result <- list(mu_est=mu_sim$est,
                  mu_var=mu_sim$var,
@@ -185,9 +185,8 @@ assay.properties.sim <- function(phi.func, window, frr, shadow){
 #' the recency assay, and returns all of the ones that we're interested in
 #'
 #' @export
-assay.properties.nsim <- function(n_sims, phi.func, window, frr, shadow){
-  result <- replicate(n_sims, assay.properties.sim(phi.func=phi.func,
-                                                   window=window, frr=frr, shadow=shadow))
+assay.properties.nsim <- function(n_sims, phi.func){
+  result <- replicate(n_sims, assay.properties.sim(phi.func=phi.func))
   result <- t(result)
   result <- data.table(result)
   columns <- colnames(result)

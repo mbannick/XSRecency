@@ -28,7 +28,8 @@ generate.raw.data <- function(n_sims, n, prevalence){
 #' @param infection.function Function that simulates the infection time
 #'
 simulate.recent <- function(sim_data, infection.function,
-                            phi.func, baseline_incidence, prevalence, rho, ...){
+                            phi.func, baseline_incidence, prevalence, rho){
+
   # get the uniform for the cumulative distribution
   # function for each individual
   cdfs <- lapply(sim_data$n_p, runif)
@@ -41,7 +42,7 @@ simulate.recent <- function(sim_data, infection.function,
   infect_duration <- mapply(function(t, u) t - u, t=0, u=t_infect, SIMPLIFY=F)
 
   # probability of recent infection
-  recent_probabilities <- lapply(infect_duration, phi.func, ...)
+  recent_probabilities <- lapply(infect_duration, phi.func)
 
   # indicators
   indicators <- lapply(recent_probabilities,
@@ -63,10 +64,10 @@ simulate.recent <- function(sim_data, infection.function,
 #' @export
 generate.data <- function(n_sims, n, infection.function,
                           phi.func, baseline_incidence,
-                          prevalence, rho, ...){
+                          prevalence, rho){
   data <- generate.raw.data(n_sims, n, prevalence)
   data <- simulate.recent(data, infection.function, phi.func,
-                          baseline_incidence, prevalence, rho, ...)
+                          baseline_incidence, prevalence, rho)
   return(data)
 }
 
@@ -85,18 +86,13 @@ e.incidence <- function(t, lambda_0, rho=1) lambda_0 * exp(-rho * t)
 #' from constant incidence.
 #' Note that you can work with e or 1 - e since e is Uniform(0, 1)
 c.infections <- function(e, t, p, lambda_0, rho=NA){
-  # infections <- t - p*e / ((1 - p) * c.incidence(t=t, lambda_0=lambda_0))
   infections <- t - p*e / ((1 - p) * lambda_0)
   return(infections)
 }
 
 #' Function to produce infection times
 #' from linear incidence.
-#' Commenting out the original thing I did for incidence
-#' because it should not have had the specfic incidence functions
-#' in there, only the baseline incidence.
 l.infections <- function(e, t, p, lambda_0, rho){
-  # incidence <- l.incidence(t=t, lambda_0=lambda_0, rho=rho)
   incidence <- lambda_0
   numerator <- incidence**2 + 2 * rho * p * e / (1 - p)
   numerator <- sqrt(numerator) - incidence
@@ -108,7 +104,6 @@ l.infections <- function(e, t, p, lambda_0, rho){
 #' Function to produce infection times
 #' from exponential incidence.
 e.infections <- function(e, t, p, lambda_0, rho){
-  # incidence <- e.incidence(t=t, rho=rho, lambda_0=lambda_0)
   incidence <- lambda_0
   infections <- t - (1/rho) * log(rho*p*e/((1-p)*incidence) + 1)
   return(infections)

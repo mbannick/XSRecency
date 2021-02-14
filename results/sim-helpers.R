@@ -1,30 +1,36 @@
 library(magrittr)
 
 simulate <- function(n_sims, n, inc.function, infection.function, phi.func,
-                     baseline_incidence, prevalence, rho, window, frr, shadow, big_T){
-  assay <- assay.properties.nsim(n_sims, phi.func=phi.func, frr=frr, window=window, shadow=shadow)
-  true_frr <- true.frr(phi.func=phi.func, window=window, frr=frr, shadow=shadow)
-  true_mdri <- true.mdri(phi.func=phi.func, window=window, frr=frr, shadow=shadow)
-  true_window <- true.window(phi.func=phi.func, window=window, frr=frr, shadow=shadow)
-  analytical_snap <- snap.bias.linear(phi.func=phi.func, rho=rho)
-  analytical_adj <- adj.bias.linear(phi.func=phi.func, rho=rho)
+                     baseline_incidence, prevalence, rho, big_T){
+
+  # Get assay parameters simulation based on external data simulation
+  assay <- assay.properties.nsim(n_sims, phi.func=phi.func)
+
+  # Calculate true assay parameters
+  true_frr <- true.frr(phi.func=phi.func)
+  true_mdri <- true.mdri(phi.func=phi.func)
+  true_window <- true.window(phi.func=phi.func)
+
+  # Get expected bias of the esitmators
   exp_bias_snap <- snap.bias(phi.func=phi.func, inc.func=inc.function,
                              inc.0=baseline_incidence, rho=rho)
   exp_bias_adj <- adj.bias(phi.func=phi.func, inc.func=inc.function,
                            inc.0=baseline_incidence, rho=rho)
 
+  # Generate trial data
   data <- generate.data(n=n, n_sims=n_sims,
                         infection.function=infection.function,
                         phi.func=phi.func,
                         baseline_incidence=baseline_incidence,
-                        prevalence=prevalence, rho=rho, frr=frr, window=window,
-                        shadow=shadow)
+                        prevalence=prevalence, rho=rho)
 
+  # Compute estimates for snapshot
   snap.true <- get.snapshot(n_r=data$n_r, n_n=data$n_n, n_p=data$n_p,
                             n=data$n, mu=true_window, mu_var=0)
   snap.est <- get.snapshot(n_r=data$n_r, n_n=data$n_n, n_p=data$n_p,
                            n=data$n, mu=assay$mu_est, mu_var=assay$mu_var)
 
+  # Compute estimates for adjusted
   adj.true <- get.adjusted(n_r=data$n_r, n_n=data$n_n, n_p=data$n_p, n=data$n,
                            omega=true_mdri, omega_var=0,
                            beta=true_frr, beta_var=0,
@@ -70,8 +76,6 @@ summarize <- function(truth, estimates, variance){
 }
 
 summarize.simulation <- function(sim){
-
-  browser()
 
   snap_true <- summarize(sim$truth, sim$snap_true_est, sim$snap_true_var)
   snap_est <- summarize(sim$truth, sim$snap_est_est, sim$snap_est_var)

@@ -60,8 +60,6 @@ if(re.run){
           rho <- 0.07
         }
 
-        if(phi != 3) next
-
         if(setting == 1){
           window <- 71 # 45 # 80 # 45 # 71
           shadow <- 80 # 250 # 25 # 250 # 237
@@ -83,21 +81,19 @@ if(re.run){
 
         if(phi == 1){
           phi.func <- phit
-          frr <- 0
         } else if(phi == 2){
           phi.func <- phit.const
-          frr <- 0.015
         } else {
           phi.func <- phit.const.dnorm
-          frr <- 0.015
         }
 
         sim <- simulate(n_sims=n_sims, n=n,
                         inc.function=inc.function,
                         infection.function=infection.function,
                         baseline_incidence=inc, prevalence=p, rho=rho,
-                        phi.func=phi.func, frr=frr, window=window, shadow=shadow,
+                        phi.func=phi.func,
                         big_T=2)
+
         assign(paste(type, phi, setting, sep="_"), sim)
         summ <- summarize.simulation(sim)
         assign(paste(type, phi, setting, "summary", sep="_"), summ)
