@@ -10,20 +10,19 @@ library(gridExtra)
 setwd("~/repos/XSRecency/")
 source("./results/sim-helpers.R")
 
-date <- format(Sys.time(), "%d-%m-%y")
+date <- format(Sys.time(), "%d-%m-%y-%h")
 out_dir <- paste0("/Users/marlena/OneDrive/Documents/2020_2021/RA/simulation-plots-", date, "/")
 dir.create(out_dir)
+
+re.run <- TRUE
 
 set.seed(100)
 
 # number of simulations
-n_sims <- 500
+n_sims <- 10
 
 # number screened
 n <- 5000
-
-# time being considered
-big_T <- 2
 
 # prevalence
 p <- 0.29
@@ -32,109 +31,177 @@ p <- 0.29
 inc <- 0.032
 
 # Which assay settings to use (1 or 2)
-setting <- 1
+# setting <- 1
 
-out_dir <- paste0(out_dir, "setting_", setting, "-")
-out_dir <- paste0(out_dir, "nsims_", n_sims, "-")
-out_dir <- paste0(out_dir, "T_", big_T)
+# out_dir <- paste0(out_dir, "setting_", setting, "-")
+out_dir <- paste0(out_dir, "nsims_", n_sims)
 dir.create(out_dir)
 
-for(type in c("constant", "linear", "exponential")){
-  cat("Working on ", type, "\n")
+if(re.run){
+  for(setting in c(1, 2)){
+    for(type in c("constant", "linear", "exponential")){
+      cat("Working on ", type, "\n")
 
-  for(phi in c(1, 2, 3)){
-    cat("Working on ", phi, "\n")
+      for(phi in c(1, 2, 3)){
+        cat("Working on ", phi, "\n")
+        set.seed(100)
 
-    if(type == "constant"){
-      inc.function <- c.incidence
-      infection.function <- c.infections
-      rho <- NA
-    } else if(type == "linear"){
-      inc.function <- l.incidence
-      infection.function <- l.infections
-      rho <- 0.0028
-    } else {
-      inc.function <- e.incidence
-      infection.function <- e.infections
-      rho <- 0.07
+        if(type == "constant"){
+          inc.function <- c.incidence
+          infection.function <- c.infections
+          rho <- NA
+        } else if(type == "linear"){
+          inc.function <- l.incidence
+          infection.function <- l.infections
+          rho <- 0.0028
+        } else {
+          inc.function <- e.incidence
+          infection.function <- e.infections
+          rho <- 0.07
+        }
+
+        if(phi != 3) next
+
+        if(setting == 1){
+          window <- 71 # 45 # 80 # 45 # 71
+          shadow <- 80 # 250 # 25 # 250 # 237
+        } else {
+          window <- 248
+          shadow <- 306
+        }
+        params <- get.gamma.params(window=window/356.25, shadow=shadow/365.25)
+        phit <- function(t, ...) 1-pgamma(t, shape = params[1], rate = params[2])
+
+        if(setting == 1) ttime <- 2
+        if(setting == 1) tval <- phit(2)
+
+        if(setting == 2) tval <- 0.02
+        if(setting == 2) ttime <- uniroot(function(t) phit(t) - tval, interval=c(0, 12))$root
+
+        phit.const <- function(t, ...) phit(t)*(t <= ttime) + tval*(t > ttime)
+        phit.const.dnorm <- function(t, ...) phit.const(t) + dnorm(t-7, mean=0, sd=1) / 8
+
+        if(phi == 1){
+          phi.func <- phit
+          frr <- 0
+        } else if(phi == 2){
+          phi.func <- phit.const
+          frr <- 0.015
+        } else {
+          phi.func <- phit.const.dnorm
+          frr <- 0.015
+        }
+
+        sim <- simulate(n_sims=n_sims, n=n,
+                        inc.function=inc.function,
+                        infection.function=infection.function,
+                        baseline_incidence=inc, prevalence=p, rho=rho,
+                        phi.func=phi.func, frr=frr, window=window, shadow=shadow,
+                        big_T=2)
+        assign(paste(type, phi, setting, sep="_"), sim)
+        summ <- summarize.simulation(sim)
+        assign(paste(type, phi, setting, "summary", sep="_"), summ)
+        rm(sim)
+        rm(summ)
+      }
     }
-
-    if(setting == 1){
-      mdri <- 45 # 71
-      shadow <- 250 # 237
-    } else {
-      window <- 248
-      shadow <- 306
-    }
-
-    if(phi == 1){
-      phi.func <- phi.character.1
-      frr <- 0
-    } else if(phi == 2){
-      phi.func <- phi.character.1
-      frr <- 0.015
-    } else {
-      phi.func <- phi.character.2
-      frr <- 0.015
-    }
-
-    sim <- simulate(n_sims=n_sims, n=n,
-                    inc.function=inc.function,
-                    infection.function=infection.function,
-                    baseline_incidence=inc, prevalence=p, rho=rho,
-                    phi.func=phi.func, frr=frr, window=window, shadow=shadow,
-                    big_T=big_T)
-    assign(paste(type, phi, sep="_"), sim)
-    summ <- summarize.simulation(sim)
-    assign(paste(type, phi, "summary", sep="_"), summ)
-    rm(sim)
-    rm(summ)
   }
+
+  # for(setting in c(1, 2)){
+  #   for(phi in c(1, 2, 3)){
+  #     for(type in c("constant", "linear", "exponential")){
+  #       name <- paste(type, phi, setting, "summary", sep="_")
+  #       sim <- get(name)
+  #       save(sim, file=paste0(name, ".Rdata"))
+  #
+  #       name <- paste(type, phi, setting, sep="_")
+  #       sim <- get(name)
+  #       save(sim, file=paste0(name, ".Rdata"))
+  #     }
+  #   }
+  # }
 }
+# for(setting in c(1, 2)){
+#   for(phi in c(1, 2, 3)){
+#     for(type in c("constant", "linear", "exponential")){
+#       name <- paste(type, phi, setting, "summary", sep="_")
+#       load(file=paste0(name, ".Rdata"))
+#
+#       name <- paste(type, phi, setting, sep="_")
+#       load(file=paste0(name, ".Rdata"))
+#     }
+#   }
+# }
 
 data <- data.table()
 
-for(phi in c(1, 2, 3)){
-  for(type in c("constant", "linear")){
-    sim <- get(paste(type, phi, "summary", sep="_"))
+for(setting in c(1, 2)){
+  for(phi in c(1, 2, 3)){
+    for(type in c("constant", "linear", "exponential")){
+      sim <- get(paste(type, phi, setting, "summary", sep="_"))
 
-    if(type == "constant") tname <- "Constant"
-    if(type == "linear") tname <- "Non-constant"
+      if(type == "constant") tname <- "Constant"
+      if(type == "linear") tname <- "Linear"
+      if(type == "exponential") tname <- "Exponential"
 
-    if(phi == 1) pname <- "(1) Zero"
-    if(phi == 2) pname <- "(2) Constant"
-    if(phi == 3) pname <- "(3) Non-constant"
+      if(phi == 1) pname <- "(1) Zero"
+      if(phi == 2) pname <- "(2) Constant"
+      if(phi == 3) pname <- "(3) Non-constant"
 
-    row <- c(
-      tname,
-      pname,
-      sprintf('%.4f', sim$snap_true$bias * 100),
-      sprintf('%05.2f', sim$snap_true$cover * 100),
+      if(setting == 1) sname <- "Brookmeyer et al. 2013"
+      if(setting == 2) sname <- "Laeyendecker et al. 2018"
 
-      sprintf('%.4f', sim$snap_est$bias * 100),
-      sprintf('%05.2f', sim$snap_est$cover * 100),
+      row <- c(
+        # sname,
+        tname,
+        pname,
+        sprintf('%.2f', sim$snap_bias * 100),
+        sprintf('%.2f', sim$snap_true$bias * 100),
+        sprintf('%.2f', sim$snap_true$se * 100),
+        sprintf('%.2f', sim$snap_true$see * 100),
+        sprintf('%05.2f', sim$snap_true$cover * 100),
 
-      sprintf('%.4f', sim$adj_true$bias * 100),
-      sprintf('%05.2f', sim$adj_true$cover * 100),
+        sprintf('%.2f', sim$snap_est$bias * 100),
+        sprintf('%.2f', sim$snap_est$se * 100),
+        sprintf('%.2f', sim$snap_est$see * 100),
+        sprintf('%05.2f', sim$snap_est$cover * 100),
 
-      sprintf('%.4f', sim$adj_est$bias * 100),
-      sprintf('%05.2f', sim$adj_est$cover * 100)
-    )
-    data <- rbind(data, t(row))
+        sprintf('%.2f', sim$adj_bias * 100),
+        sprintf('%.2f', sim$adj_true$bias * 100),
+        sprintf('%.2f', sim$adj_true$se * 100),
+        sprintf('%.2f', sim$adj_true$see * 100),
+        sprintf('%05.2f', sim$adj_true$cover * 100),
+
+        sprintf('%.2f', sim$adj_est$bias * 100),
+        sprintf('%.2f', sim$adj_est$se * 100),
+        sprintf('%.2f', sim$adj_est$see * 100),
+        sprintf('%05.2f', sim$adj_est$cover * 100)
+      )
+      data <- rbind(data, t(row))
+    }
   }
 }
 
 # TABLE
 
 addtorow <- list()
-addtorow$pos <- list(0, 0, 0, 0, 0, 0)
-addtorow$command <- c("\\multicolumn{2}{c}{Setting} & \\multicolumn{4}{c}{Snapshot Estimator (1)} & \\multicolumn{4}{c}{Kassanjee Estimator (2)} \\\\\n",
-                      "\\hline \\\\\n",
-                      "Incidence & FRR & \\multicolumn{2}{c}{$\\mu$} & \\multicolumn{2}{c}{$\\hat{\\mu}$} & \\multicolumn{2}{c}{$\\Omega_{T^*}$, $\\beta_{T^*}$} & \\multicolumn{2}{c}{$\\hat{\\Omega}_{T^*}$, $\\hat{\\beta}_{T^*}$} \\\\\n",
-                      "\\hline \\\\\n",
-                      "& & Bias & Cov & Bias & Cov & Bias & Cov & Bias & Cov \\\\\n",
-                      "\\hline \\\\\n")
-tab <- xtable(data, align=rep("c", 11), digits=2, caption="Simulation results.")
+addtorow$pos <- list(0, 0, 0, 0, 0, 0, 0, 3, 6, 9, 9, 9, 12, 15, 18)
+addtorow$command <- c("\\multicolumn{2}{c}{Setting} & \\multicolumn{9}{c}{Snapshot Estimator (1)} & \\multicolumn{9}{c}{Kassanjee Estimator (2)} \\\\\n",
+                      "\\hline ",
+                      "Incidence & FRR & \\multicolumn{5}{c}{$\\mu$} & \\multicolumn{4}{c}{$\\hat{\\mu}$} & \\multicolumn{5}{c}{$\\Omega_{T^*}$, $\\beta_{T^*}$} & \\multicolumn{4}{c}{$\\hat{\\Omega}_{T^*}$, $\\hat{\\beta}_{T^*}$} \\\\\n",
+                      "\\hline ",
+                      "& & E[Bias] & Bias & SE & SEE & Cov & Bias & SE & SEE & Cov & E[Bias] & Bias & SE & SEE & Cov & Bias & SE & SEE & Cov \\\\\n",
+                      "\\hline ",
+                      "\\multicolumn{19}{c}{Brookmeyer et al. 2013} \\\\\n",
+                      "\\hline ",
+                      "\\hline ",
+                      "\\hline ",
+                      "\\multicolumn{19}{c}{Laeyendecker et al. 2018} \\\\\n",
+                      "\\hline ",
+                      "\\hline ",
+                      "\\hline ",
+                      "\\hline ")
+tab <- xtable(data, align=rep("c", 21), digits=2, caption="Simulation results.")
 print(tab, add.to.row = addtorow,
       include.colnames = FALSE, include.rownames = FALSE)
 

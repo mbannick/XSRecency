@@ -2,7 +2,6 @@
 #'
 #' @export
 snapshot.estimate <- function(n_r, n_n, mu){
-  browser()
   val <- n_r / (mu * n_n)
   return(val)
 }
@@ -11,7 +10,6 @@ snapshot.estimate <- function(n_r, n_n, mu){
 #'
 #' @export
 adjusted.estimate <- function(n_r, n_n, n_p, omega, beta, big_T){
-  browser()
   o_b <- omega - beta * big_T
   est <- n_r - beta * n_p
   val <- est / (o_b * n_n)
