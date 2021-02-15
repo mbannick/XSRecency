@@ -1,5 +1,8 @@
 rm(list=ls())
 
+args <- commandArgs()
+print(args)
+
 library(data.table)
 library(magrittr)
 library(R.utils)
@@ -20,7 +23,7 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                       window=71,
                       shadow=80,
                       itype="constant",
-                      rho=NA,
+                      rho=NULL,
                       tau=12,
                       bigT=2,
                       phi_frr=NA,
@@ -31,13 +34,17 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                       out_dir="."
                     ))
 
+print(a)
+
 # Capture date in the out directory
 date <- format(Sys.time(), "%d-%m-%y-%h")
 out_dir <- paste0(a$out_dir, "/", date, "/")
 dir.create(out_dir, showWarnings=FALSE)
 
-a[[1]] <- NULL
+# a[[1]] <- NULL
 a$out_dir <- NULL
+
+print(a)
 
 # Logic checks for arguments
 if(!is.na(a$phi_frr) & !is.na(a$phi_tfrr)){
@@ -48,7 +55,7 @@ if(!is.na(a$phi_norm_mu)){
     stop("Need stdev and divided by params for normal.")
   }
 }
-if(is.na(a$rho) & a$itype != "constant"){
+if(is.null(a$rho) & a$itype != "constant"){
   stop("Need a rho param if not constant incidence.")
 }
 
