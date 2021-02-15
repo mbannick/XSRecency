@@ -34,8 +34,6 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                       out_dir="."
                     ))
 
-print(a)
-
 # Capture date in the out directory
 date <- format(Sys.time(), "%d-%m-%y-%h")
 out_dir <- paste0(a$out_dir, "/", date, "/")
