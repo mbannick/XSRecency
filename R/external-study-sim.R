@@ -2,16 +2,55 @@
 # EXTERNAL STUDY DATA SIMULATION TO ESTIMATE MU, OMEGA, BETA
 # -------------------------------------------------------------------------
 
+#' External study data parameters for estimating
+#' omega, mu, and beta through simulation.
+#'
+#' @export
+#'
+PHI_PARAMS <- list(
+
+  # number of long infecteds for beta study
+  N_LONG_INFECT=1388,
+
+  # cohorts
+  coh=c(1, 2, 3),
+
+  # number of people in each cohort
+  coh_n=c(90, 162, 25),
+
+  # mean number of samples per cohort
+  mean_samp=c(6, 12, 4),
+
+  # max number of samples per cohort
+  max_samp=c(7, 20, 4),
+
+  # multinomial probabilities buckets
+  duration_years=list(c(0.0, 0.5),
+                      c(0.5, 1.0),
+                      c(1.0, 2.0),
+                      c(2.0, 3.0),
+                      c(3.0, 5.0),
+                      c(5.0, 9.9)),
+
+  # number of people in each duration of infection years category above
+  # per cohort
+  coh_buckets=list(
+    c(159, 173, 088, 076, 022, 000),
+    c(306, 262, 448, 105, 347, 371),
+    c(042, 043, 000, 000, 000, 000)
+  )
+)
+
 #' This simulates the false recency rate using
 #' tail probabilities from the phi parameters
 #' by sampling from a binomial with a sample size
 #' given in the study.
 #'
 #' @export
-simulate.beta <- function(phi.func){
+simulate.beta <- function(phi.func, minT, maxT){
   infected_times <- runif(n=PHI_PARAMS$N_LONG_INFECT,
-                          min=PHI_PARAMS$FRR_MIN,
-                          max=PHI_PARAMS$FRR_MAX)
+                          min=minT,
+                          max=maxT)
   recent <- rbinom(n=PHI_PARAMS$N_LONG_INFECT, size=1, p=phi.func(infected_times))
   beta <- sum(recent) / PHI_PARAMS$N_LONG_INFECT
   beta_var <- beta * (1 - beta) / PHI_PARAMS$N_LONG_INFECT
@@ -115,13 +154,13 @@ phi.hat <- function(d, model){
 #' long follow_T parameter (like 9)
 #'
 #' @export
-integrate.phi <- function(model, follow_T=PHI_PARAMS$FOLLOW_T){
+integrate.phi <- function(model, maxT=maxT){
 
   # generate a sequence of duration times, starting at 0 and
   # up to max t, just to get the phi_hat
   dt <- 0.001
 
-  ts <- seq(0, follow_T, by=dt)
+  ts <- seq(0, maxT, by=dt)
   ts <- cbind(rep(1, length(ts)),
               ts,
               ts**2,
@@ -155,7 +194,7 @@ integrate.phi <- function(model, follow_T=PHI_PARAMS$FOLLOW_T){
 #' the recency assay, and returns all of the ones that we're interested in
 #'
 #' @export
-assay.properties.sim <- function(phi.func){
+assay.properties.sim <- function(phi.func, bigT, tau){
   # SIMULATIONS -----------------------------
 
   # simulate one phi function and
@@ -166,11 +205,11 @@ assay.properties.sim <- function(phi.func){
                      durations=study$durations)
 
   # get mu and omega
-  mu_sim <- integrate.phi(model, follow_T=9.9)
-  omega_sim <- integrate.phi(model, follow_T=PHI_PARAMS$FOLLOW_T)
+  mu_sim <- integrate.phi(model, maxT=tau)
+  omega_sim <- integrate.phi(model, maxT=bigT)
 
   # simulate beta and get the estimate and variance of them
-  beta_sim <- simulate.beta(phi.func=phi.func)
+  beta_sim <- simulate.beta(phi.func=phi.func, minT=bigT, maxT=tau)
 
   result <- list(mu_est=mu_sim$est,
                  mu_var=mu_sim$var,
@@ -185,8 +224,9 @@ assay.properties.sim <- function(phi.func){
 #' the recency assay, and returns all of the ones that we're interested in
 #'
 #' @export
-assay.properties.nsim <- function(n_sims, phi.func){
-  result <- replicate(n_sims, assay.properties.sim(phi.func=phi.func))
+assay.properties.nsim <- function(n_sims, phi.func, bigT, tau){
+  result <- replicate(n_sims,
+                      assay.properties.sim(phi.func=phi.func, bigT=bigT, tau=tau))
   result <- t(result)
   result <- data.table(result)
   columns <- colnames(result)
