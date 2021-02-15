@@ -1,9 +1,9 @@
 #!/bin/sh
 
-OUT="/home/students/mnorwood/recency/sgeout/"
+OUT="/home/students/mnorwood/hutch/sgeout/"
 SHELL="/home/students/mnorwood/repos/XSRecency/results/shell.sh"
 SCRIPT="simulate-parallel.R"
-OUTPUT="/home/students/mnorwood/recency"
+OUTPUT="/home/students/mnorwood/hutch/xs-recent"
 
 CONSTANTS="-cwd -N recency_sim -j y -o ${OUT} -pe smp 1 -q normal.q ${SHELL} ${SCRIPT}"
 
@@ -38,12 +38,12 @@ do
 
   BASELINE="${CONSTANTS} ${ARGS} ${TYPE}"
 
-  echo qsub ${BASELINE} ${SETTING1}
-  #qsub ${BASELINE} ${SETTING1}
-  #qsub ${BASELINE} ${SETTING1} -phi_tfrr 2
-  #qsub ${BASELINE} ${SETTING1} -phi_tfrr 2 ${NORMAL}
+  # echo qsub ${BASELINE} ${SETTING1}
+  qsub ${BASELINE} ${SETTING1}
+  qsub ${BASELINE} ${SETTING1} -phi_tfrr 2
+  qsub ${BASELINE} ${SETTING1} -phi_tfrr 2 ${NORMAL}
 
-  #qsub ${BASELINE} ${SETTING2}
-  #qsub ${BASELINE} ${SETTING2} -phi_frr 0.02
-  #qsub ${BASELINE} ${SETTING2} -phi_frr 0.02 ${NORMAL}
+  qsub ${BASELINE} ${SETTING2}
+  qsub ${BASELINE} ${SETTING2} -phi_frr 0.02
+  qsub ${BASELINE} ${SETTING2} -phi_frr 0.02 ${NORMAL}
 done
