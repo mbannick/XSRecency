@@ -1,21 +1,27 @@
+setwd("~/repos/XSRecency/")
+source("R/data-generator.R")
+source("R/external-study-sim.R")
+source("R/external-study-data.R")
+source("R/estimators.R")
+
 library(magrittr)
 
 simulate <- function(n_sims, n, inc.function, infection.function, phi.func,
-                     baseline_incidence, prevalence, rho, big_T){
+                     baseline_incidence, prevalence, rho, bigT, tau){
 
   # Get assay parameters simulation based on external data simulation
-  assay <- assay.properties.nsim(n_sims, phi.func=phi.func)
+  assay <- assay.properties.nsim(n_sims, phi.func=phi.func, bigT=bigT, tau=tau)
 
   # Calculate true assay parameters
-  true_frr <- true.frr(phi.func=phi.func)
-  true_mdri <- true.mdri(phi.func=phi.func)
-  true_window <- true.window(phi.func=phi.func)
+  true_frr <- true.frr(phi.func=phi.func, bigT=bigT, tau=tau)
+  true_mdri <- true.window.mdri(phi.func=phi.func, maxT=bigT)
+  true_window <- true.window.mdri(phi.func=phi.func, maxT=tau)
 
-  # Get expected bias of the esitmators
+  # Get expected bias of the estimators
   exp_bias_snap <- snap.bias(phi.func=phi.func, inc.func=inc.function,
-                             inc.0=baseline_incidence, rho=rho)
+                             inc.0=baseline_incidence, rho=rho, tau=tau)
   exp_bias_adj <- adj.bias(phi.func=phi.func, inc.func=inc.function,
-                           inc.0=baseline_incidence, rho=rho)
+                           inc.0=baseline_incidence, rho=rho, bigT=bigT, tau=tau)
 
   # Generate trial data
   data <- generate.data(n=n, n_sims=n_sims,
@@ -34,19 +40,19 @@ simulate <- function(n_sims, n, inc.function, infection.function, phi.func,
   adj.true <- get.adjusted(n_r=data$n_r, n_n=data$n_n, n_p=data$n_p, n=data$n,
                            omega=true_mdri, omega_var=0,
                            beta=true_frr, beta_var=0,
-                           big_T=big_T)
+                           big_T=bigT)
   adj.est <- get.adjusted(n_r=data$n_r, n_n=data$n_n, n_p=data$n_p, n=data$n,
                           omega=assay$omega_est, omega_var=assay$omega_var,
                           beta=assay$beta_est, beta_var=assay$beta_var,
-                          big_T=big_T)
+                          big_T=bigT)
 
   return(list(truth=rep(baseline_incidence, n_sims),
-         snap_bias=exp_bias_snap,
+         snap_bias_exp=rep(exp_bias_snap, n_sims),
          snap_true_est=snap.true$est,
          snap_true_var=snap.true$var,
          snap_est_est=snap.est$est,
          snap_est_var=snap.est$var,
-         adj_bias=exp_bias_adj,
+         adj_bias_exp=rep(exp_bias_adj, n_sims),
          adj_true_est=adj.true$est,
          adj_true_var=adj.true$var,
          adj_est_est=adj.est$est,
