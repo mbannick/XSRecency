@@ -13,8 +13,8 @@ get.gamma.params <- function(window, shadow){
 
 #' Non-constant FRR true rate based on the phi function and the tail probability of 0.015
 #' @export
-true.frr <- function(phi.function){
-  ts <- seq(PHI_PARAMS$FRR_MIN, PHI_PARAMS$FRR_MAX, DELTA)
+true.frr <- function(phi.function, bigT, tau){
+  ts <- seq(bigT, tau, DELTA)
   return(mean(phi.function(ts)))
 }
 
@@ -22,38 +22,31 @@ true.frr <- function(phi.function){
 #' the MDRI argument here is really mean window period, just calling it
 #' MDRI for convenience
 #' @export
-true.mdri <- function(phi.function){
-  ts <- seq(0, PHI_PARAMS$FRR_MIN, DELTA)
+true.window.mdri <- function(phi.function, maxT){
+  ts <- seq(0, maxT, DELTA)
   return(sum(phi.function(ts) * DELTA))
 }
 
 #' @export
-#' Numerically calculate the true window period.
-true.window <- function(phi.function){
-  ts <- seq(0, PHI_PARAMS$FRR_MAX, DELTA)
-  return(sum(phi.function(ts) * DELTA))
-}
-
-#' @export
-true.shadow.snap <- function(phi.function){
-  ts <- seq(0, PHI_PARAMS$FRR_MAX, DELTA)
+true.shadow.snap <- function(phi.function, tau){
+  ts <- seq(0, tau, DELTA)
   window <- true.window(phi.function)
   return(sum(phi.function(ts) * ts / window * DELTA))
 }
 
 #' @export
-true.shadow.adj <- function(phi.function, rho){
-  ts <- seq(0, PHI_PARAMS$FRR_MIN, DELTA)
+true.shadow.adj <- function(phi.function, bigT, tau, rho){
+  ts <- seq(0, bigT, DELTA)
   omega <- true.mdri(phi.function)
-  beta <- true.frr(phi.function)
+  beta <- true.frr(phi.function, bigT=bigT, tau=tau)
   return(sum(ts * (phi.function(ts) - beta)/(omega - beta) * DELTA))
 }
 
 #' Expected bias for the snapshot estimator
 #' @export
-snap.bias <- function(phi.func, inc.func, inc.0, rho){
-  window <- true.window(phi.func)
-  us <- seq(0, PHI_PARAMS$FRR_MAX, DELTA)
+snap.bias <- function(phi.func, inc.func, inc.0, tau, rho){
+  window <- true.window.mdri(phi.func, maxT=tau)
+  us <- seq(0, tau, DELTA)
 
   integrand <- (phi.func(us) / window) * inc.function(t=-us,lambda_0=inc.0, rho=rho)
   integral <- sum(integrand * DELTA)
@@ -63,12 +56,12 @@ snap.bias <- function(phi.func, inc.func, inc.0, rho){
 
 # Expected bias for the snapshot estimator
 #' @export
-adj.bias <- function(phi.func, inc.func, inc.0, rho){
-  mdri <- true.mdri(phi.func)
-  frr <- true.frr(phi.func)
-  us <- seq(0, PHI_PARAMS$FRR_MIN, DELTA)
+adj.bias <- function(phi.func, inc.func, inc.0, bigT, tau, rho){
+  mdri <- true.window.mdri(phi.func, maxT=bigT)
+  frr <- true.frr(phi.func, bigT=bigT, tau=tau)
+  us <- seq(0, bigT, DELTA)
 
-  integrand <- (phi.func(us) - frr) / (mdri - PHI_PARAMS$FRR_MIN * frr) * inc.function(t=-us,
+  integrand <- (phi.func(us) - frr) / (mdri - bigT * frr) * inc.function(t=-us,
                                                                        lambda_0=inc.0,
                                                                        rho=rho)
   integral <- sum(integrand * DELTA)
