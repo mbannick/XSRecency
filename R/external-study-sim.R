@@ -50,6 +50,8 @@ PHI_PARAMS <- list(
 simulate.beta <- function(phi.func, minT, maxT, frr_mixture=NULL){
   if(!is.null(frr_mixture)){
     N <- PHI_PARAMS$N_LONG_INFECT / 2
+  } else {
+    N <- PHI_PARAMS$N_LONG_INFECT
   }
   infected_times <- runif(n=N, min=minT, max=maxT)
   if(!is.null(frr_mixture)){
