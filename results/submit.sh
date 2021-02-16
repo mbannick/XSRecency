@@ -7,7 +7,7 @@ OUTPUT="/home/students/mnorwood/hutch/xs-recent"
 
 CONSTANTS="-cwd -N recency_sim -j y -o ${OUT} -pe smp 1 -q normal.q ${SHELL} ${SCRIPT}"
 
-NSIMS=1000
+NSIMS=5000
 N=5000
 P=0.29
 INC=0.032
