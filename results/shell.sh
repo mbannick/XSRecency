@@ -1,3 +1,3 @@
 #$ -S /bin/sh
-R --no-save --args "${@:2}" < $1
+R-4.0.1 --no-save --args "${@:2}" < $1
 
