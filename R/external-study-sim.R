@@ -47,10 +47,16 @@ PHI_PARAMS <- list(
 #' given in the study.
 #'
 #' @export
-simulate.beta <- function(phi.func, minT, maxT){
-  infected_times <- runif(n=PHI_PARAMS$N_LONG_INFECT,
-                          min=minT,
-                          max=maxT)
+simulate.beta <- function(phi.func, minT, maxT, frr_mixture=NULL){
+  if(!is.null(frr_mixture)){
+    N <- PHI_PARAMS$N_LONG_INFECT / 2
+  }
+  infected_times <- runif(n=N, min=minT, max=maxT)
+  if(!is.null(frr_mixture)){
+    infected_times2 <- runif(n=N, min=frr_mixture[1], max=frr_mixture[2])
+    infected_times <- c(infected_times, infected_times2)
+  }
+
   recent <- rbinom(n=PHI_PARAMS$N_LONG_INFECT, size=1, p=phi.func(infected_times))
   beta <- sum(recent) / PHI_PARAMS$N_LONG_INFECT
   beta_var <- beta * (1 - beta) / PHI_PARAMS$N_LONG_INFECT
@@ -194,7 +200,7 @@ integrate.phi <- function(model, maxT=maxT){
 #' the recency assay, and returns all of the ones that we're interested in
 #'
 #' @export
-assay.properties.sim <- function(phi.func, bigT, tau){
+assay.properties.sim <- function(phi.func, bigT, tau, frr_mixture=NULL){
   # SIMULATIONS -----------------------------
 
   # simulate one phi function and
@@ -209,7 +215,8 @@ assay.properties.sim <- function(phi.func, bigT, tau){
   omega_sim <- integrate.phi(model, maxT=bigT)
 
   # simulate beta and get the estimate and variance of them
-  beta_sim <- simulate.beta(phi.func=phi.func, minT=bigT, maxT=tau)
+  beta_sim <- simulate.beta(phi.func=phi.func, minT=bigT, maxT=tau,
+                            frr_mixture=frr_mixture)
 
   result <- list(mu_est=mu_sim$est,
                  mu_var=mu_sim$var,
@@ -224,9 +231,10 @@ assay.properties.sim <- function(phi.func, bigT, tau){
 #' the recency assay, and returns all of the ones that we're interested in
 #'
 #' @export
-assay.properties.nsim <- function(n_sims, phi.func, bigT, tau){
+assay.properties.nsim <- function(n_sims, phi.func, bigT, tau, frr_mixture=NULL){
   result <- replicate(n_sims,
-                      assay.properties.sim(phi.func=phi.func, bigT=bigT, tau=tau))
+                      assay.properties.sim(phi.func=phi.func, bigT=bigT, tau=tau,
+                                           frr_mixture=frr_mixture))
   result <- t(result)
   result <- data.table(result)
   columns <- colnames(result)

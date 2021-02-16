@@ -31,7 +31,9 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                       phi_norm_mu=NULL,
                       phi_norm_sd=NULL,
                       phi_norm_div=NULL,
-                      out_dir="."
+                      out_dir=".",
+                      frr_mix_start=NULL,
+                      frr_mix_end=NULL
                     ))
 
 # Capture date in the out directory
@@ -50,6 +52,8 @@ if(!is.null(a$phi_tfrr)) a$phi_tfrr <- as.numeric(a$phi_tfrr)
 if(!is.null(a$phi_norm_mu)) a$phi_norm_mu <- as.numeric(a$phi_norm_mu)
 if(!is.null(a$phi_norm_sd)) a$phi_norm_sd <- as.numeric(a$phi_norm_sd)
 if(!is.null(a$phi_norm_div)) a$phi_norm_div <- as.numeric(a$phi_norm_div)
+if(!is.null(a$frr_mix_start)) a$frr_mix_start <- as.numeric(a$frr_mix_start)
+if(!is.null(a$frr_mix_end)) a$frr_mix_end <- as.numeric(a$frr_mix_end)
 
 # Logic checks for arguments
 if(!is.null(a$phi_frr) & !is.null(a$phi_tfrr)){
@@ -114,7 +118,7 @@ sim <- simulate(n_sims=a$n_sims, n=a$n,
                 infection.function=infection.function,
                 baseline_incidence=a$inc, prevalence=a$p, rho=a$rho,
                 phi.func=phi.func,
-                bigT=a$bigT, tau=a$tau)
+                bigT=a$bigT, tau=a$tau, frr_mixture=c(a$frr_mix_start, a$frr_mix_end))
 
 df <- do.call(cbind, sim) %>% data.table
 df[, sim := .I]
