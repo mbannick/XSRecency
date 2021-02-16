@@ -57,55 +57,5 @@ lines(Year1,3.0 *exp(0.1*(2017-Year1))/100,lty=2,col='blue')
 legend('topright',c('Constant','Linear','Exponential'),lty=rep(2,3),col=c(1,2,4))
 dev.off()
 
-library(latex2exp)
 
-pdf('~/OneDrive/Documents/2020_2021/RA/RAplot.pdf',height=6,width=10)
-par(mfrow=c(1,2))
-
-for(i in 1:2){
-
-  if(i == 1){
-    mdri <- 80 # 45 # 71
-    shadow <- 25 # 250 # 237
-  } else {
-    mdri <- 248
-    shadow <- 306
-  }
-
-  t = seq(0, 12, 0.01)
-  params <- get.gamma.params(window=mdri/356.25, shadow=shadow/365.25)
-
-  phit <- function(t) 1-pgamma(t, shape = params[1], rate = params[2])
-
-  if(i == 1) ttime <- 2
-  if(i == 1) tval <- phit(2)
-
-  if(i == 2) tval <- 0.015
-  if(i == 2) ttime <- uniroot(function(t) phit(t) - tval, interval=c(0, 12))$root
-
-  phit.const <- function(t) phit(t)*(t <= ttime) + tval*(t > ttime)
-  phit.const.dnorm <- function(t) phit.const(t) + dnorm(t-7, mean=0, sd=1) / 8
-
-  ###### window period 142/365, FRR 0%: Gamma distribution with mean 142/(365.25*2)
-  plot(t, phit(t), col='black', type='l', ylab=expression(phi(t)), xlab=expression(t))
-  abline(h=tval, lty='dashed')
-
-  ###### MDRI at 2 year 142/365, FRR 1.5%: 1.5% + Gamma distribution with mean 142/365.25-1.5%
-  lines(t, phit.const(t), col='red')
-
-  ##### Non-constant FRR -- peak at 7 years
-  lines(t, phit.const.dnorm(t), col='blue')
-
-  if(i == 2){
-    pgon <- c(seq(2, ttime, 0.01))
-    pgon.phi <- 1-pgamma(pgon, shape = params[1], rate = params[2])
-    polygon(x=c(pgon, rev(pgon)), y=c(rep(tval, length(pgon)), rev(pgon.phi)), col='lightgrey')
-  }
-
-  legend('topright',c('(1)','(2)','(3)'),lty=rep(1, 4),col=c("black", "red", "blue"), cex=0.75)
-  # abline(h=0, lty='dashed')
-  abline(v=2, lty='dashed')
-}
-
-dev.off()
 
