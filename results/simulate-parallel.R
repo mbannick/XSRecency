@@ -35,7 +35,7 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                     ))
 
 # Capture date in the out directory
-date <- format(Sys.time(), "%d-%m-%y-%h")
+date <- format(Sys.time(), "%d-%m-%y-%H")
 out_dir <- paste0(a$out_dir, "/", date, "/")
 dir.create(out_dir, showWarnings=FALSE)
 
@@ -43,6 +43,13 @@ dir.create(out_dir, showWarnings=FALSE)
 a$out_dir <- NULL
 
 print(a)
+
+if(!is.null(a$rho)) a$rho <- as.numeric(a$rho)
+if(!is.null(a$phi_frr)) a$phi_frr <- as.numeric(a$phi_frr)
+if(!is.null(a$phi_tfrr)) a$phi_tfrr <- as.numeric(a$phi_tfrr)
+if(!is.null(a$phi_norm_mu)) a$phi_norm_mu <- as.numeric(a$phi_norm_mu)
+if(!is.null(a$phi_norm_sd)) a$phi_norm_sd <- as.numeric(a$phi_norm_sd)
+if(!is.null(a$phi_norm_div)) a$phi_norm_div <- as.numeric(a$phi_norm_div)
 
 # Logic checks for arguments
 if(!is.null(a$phi_frr) & !is.null(a$phi_tfrr)){
@@ -56,7 +63,7 @@ if(!is.null(a$phi_norm_mu)){
 if(is.null(a$rho) & a$itype != "constant"){
   stop("Need a rho param if not constant incidence.")
 }
-if(is.null(a$rho)) rho <- NA
+if(is.null(a$rho)) a$rho <- NA
 
 # Get the gamma parameters and baseline phi function
 params <- get.gamma.params(window=a$window/356.25, shadow=a$shadow/365.25)
