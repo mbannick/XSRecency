@@ -16,8 +16,15 @@ f <- f[!grepl("detail", f)]
 df <- lapply(f, fread) %>% rbindlist(fill=T)
 df[, V1 := NULL]
 
-id.vars <- c("truth", "n_sims", "sim", "seed", "n", "p", "inc", "tau", "bigT", "rho", "itype",
-             "window", "shadow", "phi_frr", "phi_tfrr", "phi_norm_mu", "phi_norm_sd", "phi_norm_div")
+id.vars <- c("truth", "n_sims", "sim", "seed", "n", "p", "inc", "tau", "bigT", "itype",
+             "window", "shadow")
+
+for(var in c("rho", "phi_frr", "phi_tfrr", "phi_norm_mu", "phi_norm_sd", "phi_norm_div")){
+  if(var %in% colnames(df)){
+    id.vars <- c(id.vars, var)
+  }
+}
+
 id.vars.nosim <- id.vars[!id.vars %in% c("sim")]
 id.vars.nosim.est <- c(id.vars.nosim, "estimator")
 
