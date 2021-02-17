@@ -11,6 +11,8 @@ library(xtable)
 library(ggplot2)
 library(ggh4x)
 library(RColorBrewer)
+library(magrittr)
+source("~/repos/XSRecency/R/phi-functions.R")
 
 # READ IN VERSIONED RESULTS ---------------------------------
 
@@ -30,10 +32,24 @@ detail[is.na(phi_frr) & is.na(phi_tfrr) & is.na(phi_norm_mu), pname := "Zero"]
 detail[(!is.na(phi_frr) | !is.na(phi_tfrr)) & is.na(phi_norm_mu), pname := "Constant"]
 detail[(!is.na(phi_frr) | !is.na(phi_tfrr)) & !is.na(phi_norm_mu), pname := "Non-constant"]
 
-summ[window == 71, sname := "Brookmeyer et al. 2013"]
-summ[window == 248, sname := "Laeyendecker et al. 2018"]
-detail[window == 71, sname := "Brookmeyer et al. 2013"]
-detail[window == 248, sname := "Laeyendecker et al. 2018"]
+summ[window == 71, sname := "1 A-C"]
+summ[window == 248, sname := "2 A-C"]
+detail[window == 71, sname := "1 A-C"]
+detail[window == 248, sname := "2 A-C"]
+
+summ[pname == "Zero" & sname == "1 A-C", assay := "1A"]
+summ[pname == "Constant" & sname == "1 A-C", assay := "1B"]
+summ[pname == "Non-constant" & sname == "1 A-C", assay := "1C"]
+summ[pname == "Zero" & sname == "2 A-C", assay := "2A"]
+summ[pname == "Constant" & sname == "2 A-C", assay := "2B"]
+summ[pname == "Non-constant" & sname == "2 A-C", assay := "2C"]
+
+detail[pname == "Zero" & sname == "1 A-C", assay := "1A"]
+detail[pname == "Constant" & sname == "1 A-C", assay := "1B"]
+detail[pname == "Non-constant" & sname == "1 A-C", assay := "1C"]
+detail[pname == "Zero" & sname == "2 A-C", assay := "2A"]
+detail[pname == "Constant" & sname == "2 A-C", assay := "2B"]
+detail[pname == "Non-constant" & sname == "2 A-C", assay := "2C"]
 
 settings <- summ$sname %>% unique
 phis <- summ$pname %>% unique
@@ -48,18 +64,20 @@ for(setting in settings){
       const <- 100
 
       this.row <- summ[(sname == setting) & (tname == epi) & (pname == phi)]
+      assay <- this.row[, assay][1]
 
       snap.exp <- this.row[estimator == "snap_true", expected_bias]
       adj.exp <- this.row[estimator == "adj_true", expected_bias]
 
       row <- c(
         epi,
-        phi,
+        assay,
+
         sprintf('%.2f', this.row[estimator == "snap_true", expected_bias] * 100),
-        sprintf('%.2f', this.row[estimator == "snap_true", bias] * 100),
-        sprintf('%.2f', this.row[estimator == "snap_true", se] * 100),
-        sprintf('%.2f', this.row[estimator == "snap_true", see] * 100),
-        sprintf('%05.2f', this.row[estimator == "snap_true", cover] * 100),
+        # sprintf('%.2f', this.row[estimator == "snap_true", bias] * 100),
+        # sprintf('%.2f', this.row[estimator == "snap_true", se] * 100),
+        # sprintf('%.2f', this.row[estimator == "snap_true", see] * 100),
+        # sprintf('%05.2f', this.row[estimator == "snap_true", cover] * 100),
 
         sprintf('%.2f', this.row[estimator == "snap_est", bias] * 100),
         sprintf('%.2f', this.row[estimator == "snap_est", se] * 100),
@@ -67,10 +85,10 @@ for(setting in settings){
         sprintf('%05.2f', this.row[estimator == "snap_est", cover] * 100),
 
         sprintf('%.2f', this.row[estimator == "adj_true", expected_bias] * 100),
-        sprintf('%.2f', this.row[estimator == "adj_true", bias] * 100),
-        sprintf('%.2f', this.row[estimator == "adj_true", se] * 100),
-        sprintf('%.2f', this.row[estimator == "adj_true", see] * 100),
-        sprintf('%05.2f', this.row[estimator == "adj_true", cover] * 100),
+        # sprintf('%.2f', this.row[estimator == "adj_true", bias] * 100),
+        # sprintf('%.2f', this.row[estimator == "adj_true", se] * 100),
+        # sprintf('%.2f', this.row[estimator == "adj_true", see] * 100),
+        # sprintf('%05.2f', this.row[estimator == "adj_true", cover] * 100),
 
         sprintf('%.2f', this.row[estimator == "adj_est", bias] * 100),
         sprintf('%.2f', this.row[estimator == "adj_est", se] * 100),
@@ -84,65 +102,81 @@ for(setting in settings){
 
 addtorow <- list()
 addtorow$pos <- list(0, 0, 0, 0, 0, 0, 0, 3, 6, 9, 9, 9, 12, 15, 18)
-addtorow$command <- c("\\multicolumn{2}{c}{Setting} & \\multicolumn{9}{c}{Snapshot Estimator (1)} & \\multicolumn{9}{c}{Kassanjee Estimator (2)} \\\\\n",
+addtorow$command <- c("\\multicolumn{2}{c}{Setting} & \\multicolumn{5}{c}{Snapshot Estimator (1)} & \\multicolumn{5}{c}{Kassanjee Estimator (2)} \\\\\n",
                       "\\hline ",
-                      "Incidence & FRR & \\multicolumn{5}{c}{$\\mu$} & \\multicolumn{4}{c}{$\\hat{\\mu}$} & \\multicolumn{5}{c}{$\\Omega_{T^*}$, $\\beta_{T^*}$} & \\multicolumn{4}{c}{$\\hat{\\Omega}_{T^*}$, $\\hat{\\beta}_{T^*}$} \\\\\n",
+                      "Incidence & Assay & \\multicolumn{5}{c}{$\\hat{\\mu}$} & \\multicolumn{5}{c}{$\\hat{\\Omega}_{T^*}$, $\\hat{\\beta}_{T^*}$} \\\\\n",
                       "\\hline ",
-                      "& & E[Bias] & Bias & SE & SEE & Cov & Bias & SE & SEE & Cov & E[Bias] & Bias & SE & SEE & Cov & Bias & SE & SEE & Cov \\\\\n",
+                      "& & E[Bias] & Bias & SE & SEE & Cov & E[Bias] & Bias & SE & SEE & Cov \\\\\n",
                       "\\hline ",
-                      "\\multicolumn{19}{c}{Brookmeyer et al. 2013} \\\\\n",
+                      "\\multicolumn{11}{c}{Recency Assay 1A-C} \\\\\n",
                       "\\hline ",
                       "\\hline ",
                       "\\hline ",
-                      "\\multicolumn{19}{c}{Laeyendecker et al. 2018} \\\\\n",
+                      "\\multicolumn{11}{c}{Recency Assay 2A-C} \\\\\n",
                       "\\hline ",
                       "\\hline ",
                       "\\hline ",
                       "\\hline ")
-tab <- xtable(data, align=rep("c", 21), digits=2, caption="Simulation results.")
+tab <- xtable(data, align=rep("c", 13), digits=2, caption="Simulation results.")
 print(tab, add.to.row = addtorow,
       include.colnames = FALSE, include.rownames = FALSE)
 
 # FIGURE OF RESULTS ----------------------------------------------------
 
-detail[estimator == "snap_true", name := "Snapshot Truth"]
-detail[estimator == "adj_true", name := "Adjusted Truth"]
-detail[estimator == "snap_est", name := "Snapshot Estimated"]
-detail[estimator == "adj_est", name := "Adjusted Estimated"]
+detail <- detail[estimator %in% c("snap_est", "adj_est")]
+
+detail[estimator == "snap_est", name := "Snapshot"]
+detail[estimator == "adj_est", name := "Adjusted"]
 
 detail[, name := factor(name,
-                        levels=c("Snapshot Truth",
-                                 "Snapshot Estimated",
-                                 "Adjusted Truth",
-                                 "Adjusted Estimated"))]
-detail[, pname := factor(pname,
-                         levels=c("Zero", "Constant", "Non-constant"))]
+                        levels=c("Snapshot",
+                                 "Adjusted"))]
 detail[, tname := factor(tname,
                          levels=c("Constant", "Linear", "Exponential"))]
 
 detail[, cover_pct := lapply(.SD, mean), .SDcols="cover",
        by=c("tname", "pname", "sname", "name")]
 
-detail[cover_pct < 0.98 & cover_pct >= 0.94, cover_group := "94-98"]
-detail[cover_pct < 0.94 & cover_pct >= 0.90, cover_group := "90-94"]
-detail[cover_pct < 0.90 & cover_pct >= 0.86, cover_group := "86-90"]
-detail[cover_pct < 0.86 & cover_pct >= 0.82, cover_group := "82-86"]
-detail[cover_pct < 0.82 & cover_pct >= 0.78, cover_group := "78-82"]
-detail[cover_pct < 0.78 & cover_pct >= 0.74, cover_group := "74-78"]
+detail[cover_pct < 0.99 & cover_pct >= 0.97, cover_group := "97-99"]
+detail[cover_pct < 0.97 & cover_pct >= 0.93, cover_group := "93-97"]
+detail[cover_pct < 0.93 & cover_pct >= 0.90, cover_group := "90-93"]
+detail[cover_pct < 0.90, cover_group := "<90"]
 
-pdf("boxplots.pdf", height=8, width=14)
-ggplot() + geom_boxplot(data=detail, aes(x=tname, y=estimate,
-                                         fill=cover_group, color=cover_group)) +
-  facet_nested(sname ~name + pname, scales="free_y") +
+detail[pname == "Zero" & sname == "1 A-C", assay := "A"]
+detail[pname == "Constant" & sname == "1 A-C", assay := "B"]
+detail[pname == "Non-constant" & sname == "1 A-C", assay := "C"]
+detail[pname == "Zero" & sname == "2 A-C", assay := "A"]
+detail[pname == "Constant" & sname == "2 A-C", assay := "B"]
+detail[pname == "Non-constant" & sname == "2 A-C", assay := "C"]
+
+pdf("boxplots.pdf", height=6, width=10)
+ggplot() + geom_boxplot(data=detail, aes(x=name, y=estimate,
+                                         fill=cover_group)) +
+  facet_nested(sname ~ assay + tname, scales="free_y") +
   geom_hline(yintercept=unique(detail$truth),
              color='black', linetype='dashed') +
-  scale_colour_manual(values=rev(brewer.pal(7,"BuPu"))) +
-  scale_fill_manual(values=rev(brewer.pal(7, "BuPu"))) +
-  theme_minimal() +
+  scale_fill_manual(values=(brewer.pal(7, "BuPu"))[3:7]) +
+  theme_bw() +
   theme(axis.text.x=element_text(angle = 45, vjust = 1, hjust=1)) +
   labs(color="Coverage", fill="Coverage") +
   xlab("Incidence") +
   ylab("Estimate")
+dev.off()
+
+pdf("boxplots-2.pdf", height=6, width=10)
+ggplot() + geom_boxplot(data=detail, aes(x=name, y=estimate,
+                                         color=name)) +
+  facet_nested(sname ~ assay + tname, scales="free_y") +
+  geom_hline(yintercept=unique(detail$truth),
+             color='black', linetype='dashed') +
+  scale_colour_manual(values=c("#ffa75e", "#5ea4ff")) +
+  scale_fill_manual(values=c("#ffa75e", "#5ea4ff")) +
+  theme_bw() +
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        legend.position="bottom") +
+  labs(color="Estimator") +
+  ylab("Estimate") + xlab("")
 dev.off()
 
 # PHI FIGURE ----------------------------------
