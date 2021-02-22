@@ -25,5 +25,5 @@ qsub ${BASELINE} ${SETTING1} -inc 0.030 -p 0.30 -itype constant
 qsub ${BASELINE} ${SETTING1} -inc 0.028 -p 0.32 -itype constant
 
 qsub ${BASELINE} ${SETTING1} -inc 0.032 -p 0.29 -itype constant -phi_tfrr 2
-qsub ${BASELINE} ${SETTING1} -inc 0.032 -p 0.29 -itype constant -phi_tfrr 2
-qsub ${BASELINE} ${SETTING1} -inc 0.032 -p 0.29 -itype constant -phi_tfrr 2
+qsub ${BASELINE} ${SETTING1} -inc 0.030 -p 0.30 -itype constant -phi_tfrr 2
+qsub ${BASELINE} ${SETTING1} -inc 0.028 -p 0.32 -itype constant -phi_tfrr 2
