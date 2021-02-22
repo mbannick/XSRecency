@@ -13,6 +13,7 @@ library(ggh4x)
 library(RColorBrewer)
 library(magrittr)
 source("~/repos/XSRecency/R/phi-functions.R")
+source("~/repos/XSRecency/R/data-generator.R")
 
 # READ IN VERSIONED RESULTS ---------------------------------
 
@@ -201,9 +202,11 @@ for(i in 1:2){
 
   if(i == 1) ttime <- 2
   if(i == 1) tval <- phit(2)
+  if(i == 1) name <- "Assay 1"
 
   if(i == 2) tval <- 0.02
   if(i == 2) ttime <- uniroot(function(t) phit(t) - tval, interval=c(0, 12))$root
+  if(i == 2) name <- "Assay 2"
 
   phit.const <- function(t) phit(t)*(t <= ttime) + tval*(t > ttime)
   phit.const.dnorm <- function(t) phit.const(t) + dnorm(t-7, mean=0, sd=1) / 8
@@ -223,8 +226,8 @@ for(i in 1:2){
     polygon(x=c(pgon, rev(pgon)), y=c(rep(tval, length(pgon)), rev(pgon.phi)), col='lightgrey')
   }
 
-  legend('topright',c('(1)','(2)','(3)'),lty=rep(1, 4),col=c("black", "red", "blue"), cex=0.75)
-  # abline(h=0, lty='dashed')
+  legend('topright', paste0(name, c("A", "B", "C")),
+         lty=rep(1, 4),col=c("black", "red", "blue"), cex=0.75)
   abline(v=2, lty='dashed')
 }
 
@@ -254,12 +257,25 @@ res_exp = lm(log(Incidence1)~Year1)
 Prevalence1 = Prevalence[Year>=2011]
 mean(Prevalence1) # prevalence 0.29
 
-pdf("incidence-plot.pdf",height=8,width=8)
-par(mfrow=c(1,1))
+set.seed(10)
+e <- runif(10000)
+constant.inf <- c.infections(e, t=0, p=0.29, lambda_0=0.032, rho=0.0)
+linear.inf <- l.infections(e, t=0, p=0.29, lambda_0=0.032, rho=0.0028)
+expon.inf <- e.infections(e, t=0, p=0.29, lambda_0=0.032, rho=0.07)
+
+pdf("incidence-plot.pdf",height=5,width=8)
+layout(matrix(c(1, 2, 1, 3, 1, 4), ncol=2, byrow=TRUE), c(2, 1), c(1, 1, 1))
 plot(Year1,Incidence1/100,xlab='Year',ylab='Incidence')
 lines(Year1,rep(3.2 /100,length(Year1)),lty=2)
 lines(Year1, 0.032 + 0.0028 * (2018-Year1))
 lines(Year1,(3.2 + 0.28*(2018-Year1))/100,lty=2,col='red')
 lines(Year1,3.2 *exp(0.07*(2018-Year1))/100,lty=2,col='blue')
 legend('topright',c('Constant','Linear','Exponential'),lty=rep(2,3),col=c(1,2,4))
+hist(-constant.inf, freq=TRUE, xlab="Years Infected",
+     main="Constant Incidence", xlim=c(0, 13), breaks=30, col='grey')
+hist(-linear.inf, freq=TRUE, xlab="Years Infected",
+     main="Linear Incidence", xlim=c(0, 13), breaks=30, col='#ff5454')
+hist(-expon.inf, freq=TRUE, xlab="Years Infected",
+     main="Exponential Incidence", xlim=c(0, 13), breaks=30, col='#6675ff')
 dev.off()
+

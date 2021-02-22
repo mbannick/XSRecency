@@ -15,14 +15,15 @@ BIGT=2
 ARGS="-n_sims=${NSIMS} -n=${N} -tau ${TAU} -bigT ${BIGT} -out_dir ${OUTPUT}"
 
 SETTING1="-window 071 -shadow 080"
-SETTING2="-window 248 -shadow 306"
 
 BASELINE="${CONSTANTS} ${ARGS} ${RHO} ${TYPE}"
+
+BASELINE="${CONSTANTS} ${ARGS} ${TYPE}"
 
 qsub ${BASELINE} ${SETTING1} -inc 0.032 -p 0.29 -itype constant
 qsub ${BASELINE} ${SETTING1} -inc 0.030 -p 0.30 -itype constant
 qsub ${BASELINE} ${SETTING1} -inc 0.028 -p 0.32 -itype constant
 
-qsub ${BASELINE} ${SETTING2} -inc 0.032 -p 0.29 -itype constant
-qsub ${BASELINE} ${SETTING2} -inc 0.032 -p 0.29 -itype constant
-qsub ${BASELINE} ${SETTING2} -inc 0.032 -p 0.29 -itype constant
+qsub ${BASELINE} ${SETTING1} -inc 0.032 -p 0.29 -itype constant -phi_tfrr 2
+qsub ${BASELINE} ${SETTING1} -inc 0.032 -p 0.29 -itype constant -phi_tfrr 2
+qsub ${BASELINE} ${SETTING1} -inc 0.032 -p 0.29 -itype constant -phi_tfrr 2
