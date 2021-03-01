@@ -3,11 +3,13 @@
 \name{c.infections}
 \alias{c.infections}
 \title{Function to produce infection times
-from constant incidence.}
+from constant incidence.
+Note that you can work with e or 1 - e since e is Uniform(0, 1)}
 \usage{
 \method{c}{infections}(e, t, p, lambda_0, rho = NA)
 }
 \description{
 Function to produce infection times
 from constant incidence.
+Note that you can work with e or 1 - e since e is Uniform(0, 1)
 }

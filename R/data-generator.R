@@ -2,7 +2,7 @@
 #' Generates raw data based on study parameters
 #' that can be used later to simulate infection times
 #'
-#' @export
+#' @param n_sims Number of simulations
 #' @param n Number of observations per time point
 #' @param prevalence Constant prevalence
 generate.raw.data <- function(n_sims, n, prevalence){
@@ -23,10 +23,12 @@ generate.raw.data <- function(n_sims, n, prevalence){
 #' Simulate recency indicators based on the data, true phi function,
 #' and the infection incidence function.
 #'
-#' @export
 #' @param sim_data Outputs from the `generate.raw.data` function
 #' @param infection.function Function that simulates the infection time
-#'
+#' @param phi.func Test positive function for recency assay
+#' @param baseline_incidence Baseline incidence value (time 0)
+#' @param prevalence Constant prevalence value
+#' @param rho A parameter to the `infection.function` for how quickly incidence changes
 simulate.recent <- function(sim_data, infection.function,
                             phi.func, baseline_incidence, prevalence, rho){
 
@@ -59,9 +61,16 @@ simulate.recent <- function(sim_data, infection.function,
   return(new_data)
 }
 
-#' Generate the full data set.
+#' Create simulations of data generated with past
 #'
 #' @export
+#' @param n_sims Number of simulations
+#' @param n Number of subjects screened
+#' @param infection.function Function that simulates the infection time
+#' @param phi.func Test positive function for recency assay
+#' @param baseline_incidence Baseline incidence value (time 0)
+#' @param prevalence Constant prevalence value
+#' @param rho A parameter to the `infection.function` for how quickly incidence changes
 generate.data <- function(n_sims, n, infection.function,
                           phi.func, baseline_incidence,
                           prevalence, rho){

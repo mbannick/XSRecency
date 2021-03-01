@@ -6,7 +6,7 @@
 Can instead estimate mu hat if you pass in a sufficiently
 long follow_T parameter (like 9)}
 \usage{
-integrate.phi(model, follow_T = PHI_PARAMS$FOLLOW_T)
+integrate.phi(model, maxT = maxT)
 }
 \description{
 Estimate omega_T from a model object

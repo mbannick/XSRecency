@@ -8,6 +8,8 @@ that can be used later to simulate infection times}
 generate.raw.data(n_sims, n, prevalence)
 }
 \arguments{
+\item{n_sims}{Number of simulations}
+
 \item{n}{Number of observations per time point}
 
 \item{prevalence}{Constant prevalence}
