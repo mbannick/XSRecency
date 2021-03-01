@@ -10,11 +10,12 @@ library(data.table)
 library(xtable)
 library(ggplot2)
 library(ggh4x)
+library(magrittr)
 library(RColorBrewer)
 
 # READ IN VERSIONED RESULTS ---------------------------------
 
-version <- "~/Documents/FileZilla/xs-recent/15-02-21-19/"
+version <- "~/Documents/FileZilla/xs-recent/28-02-21-16/"
 summ <- fread(paste0(version , "summary.csv"))
 
 summ[is.na(phi_frr) & is.na(phi_tfrr) & is.na(phi_norm_mu), pname := "Zero"]
@@ -25,20 +26,23 @@ summ[window == 71, sname := "Brookmeyer et al. 2013"]
 summ[window == 248, sname := "Laeyendecker et al. 2018"]
 
 summ <- summ[estimator == "adj_est"]
-summ[, mixture := !is.na(frr_mix_start)]
-setorder(summ, window, mixture)
+summ[is.na(frr_mix_start), mixtype := "Unif(2, 12)"]
+summ[frr_mix_start == 2 & frr_mix_end == 5, mixtype := "Unif(2, 12) + Unif(2, 5)"]
+summ[frr_mix_start == 2 & frr_mix_end == 9, mixtype := "Unif(2, 12) + Unif(2, 9)"]
+
+setorder(summ, window, mixtype)
 
 settings <- summ$sname %>% unique
 
 data <- data.table()
 
 for(setting in settings){
-  for(mix in c(F, T)){
+  for(mixtype in unique(summ$mixtype)){
     const <- 100
 
-    if(mix) name <- "Mixture" else name <- "Uniform"
+    name <- mixtype
 
-    this.row <- summ[(sname == setting) & (mixture == mix)]
+    this.row <- summ[(sname == setting) & (mixtype == name)]
 
     snap.exp <- this.row[estimator == "snap_true", expected_bias]
     adj.exp <- this.row[estimator == "adj_true", expected_bias]
@@ -55,13 +59,13 @@ for(setting in settings){
 }
 
 addtorow <- list()
-addtorow$pos <- list(0, 0, 0, 0, 2, 2, 2)
+addtorow$pos <- list(0, 0, 0, 0, 3, 3, 3)
 addtorow$command <- c("Setting & Bias & SE & SEE & Cover \\\\\n",
                       "\\hline ",
                       "\\hline ",
-                      "\\multicolumn{5}{c}{Brookmeyer et al. 2013} \\\\\n",
+                      "\\multicolumn{5}{c}{Recency Assay 1C} \\\\\n",
                       "\\hline ",
-                      "\\multicolumn{5}{c}{Laeyendecker et al. 2018} \\\\\n",
+                      "\\multicolumn{5}{c}{Recency Assay 2C} \\\\\n",
                       "\\hline ")
 tab <- xtable(data, align=rep("c", 6), digits=2, caption="Simulation results.")
 print(tab, add.to.row = addtorow,

@@ -272,10 +272,10 @@ lines(Year1,(3.2 + 0.28*(2018-Year1))/100,lty=2,col='red')
 lines(Year1,3.2 *exp(0.07*(2018-Year1))/100,lty=2,col='blue')
 legend('topright',c('Constant','Linear','Exponential'),lty=rep(2,3),col=c(1,2,4))
 hist(-constant.inf, freq=TRUE, xlab="Years Infected",
-     main="Constant Incidence", xlim=c(0, 13), breaks=30, col='grey')
+     main="Constant Incidence", xlim=c(0, 13), breaks=200, border="grey", col='grey')
 hist(-linear.inf, freq=TRUE, xlab="Years Infected",
-     main="Linear Incidence", xlim=c(0, 13), breaks=30, col='#ff5454')
+     main="Linear Incidence", xlim=c(0, 13), breaks=200, border="#ff5454", col='#ff5454')
 hist(-expon.inf, freq=TRUE, xlab="Years Infected",
-     main="Exponential Incidence", xlim=c(0, 13), breaks=30, col='#6675ff')
+     main="Exponential Incidence", xlim=c(0, 13), breaks=200, border='#6675ff', col='#6675ff')
 dev.off()
 
