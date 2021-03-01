@@ -8,8 +8,12 @@ This repository contains:
 
 ## Installation
 
-To download the package, simulation, and application code, you may clone the repository:
-```{r}
-git clone https://github.com/mbannick/XSReceny.git
+You can install the package with `devtools`:
+```{bash}
+devtools::install_github("mbannick/XSRecency")
 ```
 
+Or to download the package, simulation, and application code, you may clone the repository:
+```{bash}
+git clone https://github.com/mbannick/XSReceny.git
+```
