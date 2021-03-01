@@ -21,12 +21,16 @@ SETTING2="-window 248 -shadow 306"
 
 TYPE="-itype constant"
 NORMAL="-phi_norm_mu 7 -phi_norm_sd 1 -phi_norm_div 8"
-FRR="-frr_mix_start 2 -frr_mix_end 5"
+FRR1="-frr_mix_start 2 -frr_mix_end 9"
+FRR2="-frr_mix_start 2 -frr_mix_end 5"
 
 BASELINE="${CONSTANTS} ${ARGS} ${TYPE}"
 
 qsub ${BASELINE} ${SETTING1} -phi_tfrr 2 ${NORMAL}
 qsub ${BASELINE} ${SETTING2} -phi_frr 0.02 ${NORMAL}
 
-qsub ${BASELINE} ${SETTING1} -phi_tfrr 2 ${NORMAL} ${FRR}
-qsub ${BASELINE} ${SETTING2} -phi_frr 0.02 ${NORMAL} ${FRR}
+qsub ${BASELINE} ${SETTING1} -phi_tfrr 2 ${NORMAL} ${FRR1}
+qsub ${BASELINE} ${SETTING2} -phi_frr 0.02 ${NORMAL} ${FRR1}
+
+qsub ${BASELINE} ${SETTING1} -phi_tfrr 2 ${NORMAL} ${FRR2}
+qsub ${BASELINE} ${SETTING2} -phi_frr 0.02 ${NORMAL} ${FRR2}
