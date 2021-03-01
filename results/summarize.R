@@ -16,6 +16,12 @@ f <- f[!grepl("detail", f)]
 df <- lapply(f, fread) %>% rbindlist(fill=T)
 df[, V1 := NULL]
 
+# if this is summarizing the sensitivity analysis of uniform mixtures,
+# remove the single row for simulant 3905 because it just by chance
+# estimates *exactly* 0.
+bad.row <- which(df$sim == 3905 & df$frr_mix_start == 2 & df$window == 71 & df$frr_mix_end == 9)
+df <- df[!bad.row]
+
 id.vars <- c("truth", "n_sims", "sim", "seed", "n", "p", "inc", "tau", "bigT", "itype",
              "window", "shadow")
 
