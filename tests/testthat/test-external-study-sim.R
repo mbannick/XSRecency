@@ -2,24 +2,13 @@ context("External study simulation")
 
 test_that("External study simulation", {
   set.seed(10)
-  phi <- assay.properties.sim(phi.character.1)
-  expect_equal(phi$mu_est, 0.4533345, tolerance=1e-7)
-  expect_equal(phi$omega_est, 0.3590966, tolerance=1e-7)
-  expect_equal(phi$beta_est, 0.01524064, tolerance=1e-7)
+  func <- function(t) 1 - pgamma(t, 1, 2)
+  expect_warning(phi <- assay.properties.sim(func, bigT=2, tau=12))
+  expect_equal(phi$mu_est, 0.4831208, tolerance=1e-6)
+  expect_equal(phi$mu_var, 0.0003333987, tolerance=1e-6)
+  expect_equal(phi$omega_est, 0.4787885, tolerance=1e-6)
+  expect_equal(phi$omega_var, 0.0003097912, tolerance=1e-6)
+  expect_equal(phi$beta_est, 0.0007204611, tolerance=1e-6)
+  expect_equal(phi$beta_var, 5.186902e-07, tolerance=1e-6)
 })
 
-test_that("External study simulation 2", {
-  set.seed(10)
-  phi <- assay.properties.sim(phi.character.2)
-  expect_equal(phi$mu_est, 0.8880401, tolerance=1e-7)
-  expect_equal(phi$omega_est, 0.3591058, tolerance=1e-7)
-  expect_equal(phi$beta_est, 0.01524064, tolerance=1e-7)
-})
-
-test_that("External study simulation 3", {
-  set.seed(10)
-  phi <- assay.properties.sim(phi.character.1, frr=0)
-  expect_equal(phi$mu_est, 0.369737, tolerance=1e-7)
-  expect_equal(phi$omega_est, 0.349273, tolerance=1e-7)
-  expect_equal(phi$beta_est, 0.01524064, tolerance=1e-7)
-})
