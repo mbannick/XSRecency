@@ -36,19 +36,21 @@ generate.raw.data <- function(n_sims, n, prevalence, times=c(0)){
 #' @param prevalence Constant prevalence value
 #' @param rho A parameter to the `infection.function` for how quickly incidence changes
 simulate.recent <- function(sim_data, infection.function,
-                            phi.func, baseline_incidence, prevalence, rho){
+                            phi.func, baseline_incidence, prevalence, rho, summarize=TRUE){
 
   # Get dimensions
   dims <- dim(sim_data$n_p)
   n_times <- dims[1]
   n_sims <- dims[2]
 
-  # get the uniform for the cumulative distribution
-  # function for each individual
-
+  # Convert the matrices to vectors
+  # The data are ordered by simulation first, then times
   times <- as.vector(sim_data$times)
   n_p <- as.vector(sim_data$n_p)
+  n_n <- as.vector(sim_data$n_n)
 
+  # get the uniform for the cumulative distribution
+  # function for each individual
   cdfs <- lapply(n_p, runif)
 
   # infection time
@@ -58,36 +60,91 @@ simulate.recent <- function(sim_data, infection.function,
   # infection duration to pass to the phi hat function
   infect_duration <- mapply(function(t, u) t - u, t=times, u=t_infect, SIMPLIFY=F)
 
-  # probability of recent infection
-  recent_probabilities <- lapply(infect_duration, phi.func)
+  # if there is a recent test positive function provided,
+  # get the indicator of recent infection
+  if(!is.null(phi.func)){
+    # probability of recent infection
+    recent_probabilities <- lapply(infect_duration, phi.func)
+    # indicators
+    indicators <- lapply(recent_probabilities,
+                         function(x) rbinom(n=length(x), size=1, prob=x))
+  }
 
-  # indicators
-  indicators <- lapply(recent_probabilities,
-                       function(x) rbinom(n=length(x), size=1, prob=x))
+  if(summarize == TRUE){
+    # number of recents
+    n_r <- lapply(indicators, sum) %>% unlist
 
-  # number of recents
-  n_r <- lapply(indicators, sum) %>% unlist
+    # if we have multiple times, convert it back into a matrix
+    if(n_times > 1) n_r   <- matrix(n_r, nrow=n_times, ncol=n_sims, byrow=FALSE)
+    if(n_times > 1) n_p   <- sim_data$n_p
+    if(n_times > 1) n_n   <- sim_data$n_n
+    if(n_times > 1) times <- sim_data$times
+    if(n_times > 1) n     <- sim_data$n
 
-  # if we have multiple times, convert it back into a matrix
-  if(n_times > 1)  n_r <- matrix(n_r, nrow=n_times, ncol=n_sims, byrow=FALSE)
-  if(n_times > 1)  n_p <- sim_data$n_p
-  if(n_times > 1)  n_n <- sim_data$n_n
-  if(n_times > 1)  times <- sim_data$times
-  if(n_times > 1)  n <- sim_data$n
+    # if we have only one time (cross-sectional), keep everything
+    # in vector form
+    if(n_times == 1) n_p   <- as.vector(sim_data$n_p)
+    if(n_times == 1) n_n   <- as.vector(sim_data$n_n)
+    if(n_times == 1) n     <- as.vector(sim_data$n)
+    if(n_times == 1) times <- as.vector(sim_data$times)
 
-  # if we have only one time (cross-sectional), keep everything
-  # in vector form
-  if(n_times == 1) n_n <- as.vector(sim_data$n_n)
-  if(n_times == 1) n   <- as.vector(sim_data$n)
+    aspect_list <- list(
+      n=n,
+      n_p=n_p,
+      n_n=n_n,
+      n_r=n_r,
+      times=times
+    )
+    return(aspect_list)
+  } else {
 
-  aspect_list <- list(
-    n=n,
-    n_p=n_p,
-    n_n=n_n,
-    n_r=n_r,
-    times=times
-  )
-  return(aspect_list)
+    # Get the simulation number
+    sim <- rep(1:n_sims, each=n_times)
+
+    # Get the enrollment times for negative and positive
+    time_neg <- rep(times, n_n)
+    time_pos <- rep(times, n_p)
+    time <- c(time_neg, time_pos)
+
+    # Get simulation number for each negative and positive
+    sim_neg <- rep(sim, n_n)
+    sim_pos <- rep(sim, n_p)
+    sim <- c(sim_neg, sim_pos)
+
+    # Get prevalence positive indicator
+    prev_pos <- rep(1, length(sim_pos))
+    prev_neg <- rep(1, length(sim_neg))
+    prev <- c(prev_neg, prev_pos)
+
+    # Infection time
+    infect_pos <- unlist(t_infect)
+    infect_neg <- rep(NA, length(time_neg))
+    infect <- c(infect_neg, infect_pos)
+
+    df <- data.frame(
+      sim=sim,
+      time=time,
+      pos=prev,
+      itime=infect
+    )
+
+    if(!is.null(phi.func)){
+
+      # Phi function evaluated at the infection times *-1
+      probs_pos <- unlist(recent_probabilities)
+      probs_neg <- rep(NA, length(time_neg))
+      probs <- c(probs_neg, probs_pos)
+
+      # Whether or not they tested positive
+      r_pos <- unlist(indicators)
+      r_neg <- rep(NA, length(time_neg))
+      r <- c(r_neg, r_pos)
+
+      df$probs <- probs
+      df$rpos <- r
+    }
+    return(data.table(df))
+  }
 }
 
 #' Create simulations of trials based on a past infection time function
@@ -97,39 +154,43 @@ simulate.recent <- function(sim_data, infection.function,
 #' @param n_sims Number of simulations
 #' @param n Number of subjects screened
 #' @param infection.function Function that simulates the infection time
-#' @param phi.func Test positive function for recency assay
+#' @param phi.func Optional test positive function for recency assay.
+#'   If you pass `summarize=TRUE`, then you must provide a test positive function.
 #' @param baseline_incidence Baseline incidence value (time 0)
 #' @param prevalence Constant prevalence value
 #' @param rho A parameter to the `infection.function` for how quickly incidence changes
 #' @param times A vector of times at which to enroll (e.g. c(0, 1, 2, 3))
-#' @return A list of vectors for sample size screened across simulations:
-#' - n: number screened
-#' - n_p: number of positives
-#' - n_n: number of negatives
-#' - and number of recents (`n_r`)
+#' @param summarize Whether to return a summary of the dataset or unit-record data
+#' @return If `summarize=TRUE`, a list of vectors (or matrices if
+#'   length(times > 1) for summary screening quantities
+#'   across simulations (and potentially times if length(times) > 1):
+#'   \itemize{
+#'     \item - `n`: number screened
+#'     \item `times`: times screened
+#'     \item `n_p`: number of positives
+#'     \item `n_n`: number of negatives
+#'     \item `n_r`: number of recents
+#'   }
+#'   If `summarize=FALSE`, then returns a list of data frames by simulation
+#'   that have unit-record data with infection times with column names:
+#'   \itemize{
+#'     \item `time`: time screened
+#'     \item `pos`: indicator for positive
+#'     \item `itime`: infection time (reference time 0)
+#'     \itme `rpos`: indicator for recency test positive, if a phi function is passed
+#'   }
 generate.data <- function(n_sims, n, infection.function,
-                          phi.func, baseline_incidence,
-                          prevalence, rho, times=c(0)){
+                          baseline_incidence,
+                          prevalence, rho, phi.func=NULL, times=c(0), summarize=TRUE){
+
+  if(summary & is.null(phi.func)) stop("Need a phi function
+                                       to summarize recents.")
+
   data <- generate.raw.data(n_sims, n, prevalence, times=times)
   data <- simulate.recent(data, infection.function, phi.func,
-                          baseline_incidence, prevalence, rho)
+                          baseline_incidence, prevalence, rho, summarize=summarize)
   return(data)
 }
-
-#' Simulate one example data set with past infection times.
-#'
-#' @export
-#' @param n Number of subjects screened
-#' @param infection.function Optional function that simulates the infection time
-#' @param phi.func Optional duration-specific test-recent function
-#' @param baseline_incidence Baseline incidence value (time 0)
-#' @param prevalence Prevalence value (constant over time)
-#' @param rho A parameter to the infection fun
-#' @return A data frame with subject ID
-#' - n: number screened
-#' - n_p: number of positives
-#' - n_n: number of negatives
-#' - and number of recents (`n_r`)
 
 # INFECTION FUNCTIONS
 
