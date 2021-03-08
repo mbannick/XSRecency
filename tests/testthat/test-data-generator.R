@@ -74,3 +74,24 @@ test_that("Simulate full data", {
                         prevalence=0.2, rho=0.01)
   expect_equal(length(data$n_r), 10)
 })
+
+test_that("Simulate full data unit record", {
+  set.seed(10)
+  data <- generate.data(n=10, n_sims=10,
+                        infection.function=c.infections,
+                        phi.func=PHI, baseline_incidence=0.03,
+                        prevalence=0.2, rho=NA, summarize=F, times=c(0, 1))
+  expect_equal(nrow(data), 10*10*2)
+  expect_equal(length(unique(data$rpos)), 3)
+  expect_equal(length(unique(data$pos)), 2)
+  expect_equal(nrow(data[time == 1]), 10*10)
+  expect_equal(nrow(data[time == 0]), 10*10)
+  expect_equal(any(is.na(data[pos == 1, itime])), FALSE)
+  expect_equal(any(is.na(data[pos == 1, rpos])), FALSE)
+  expect_equal(any(is.na(data[pos == 1, itime])), FALSE)
+  neg.num <- nrow(data[pos == 0])
+  expect_equal(nrow(data[is.na(itime)]), neg.num)
+  expect_equal(nrow(data[is.na(rpos)]), neg.num)
+  expect_equal(nrow(data[is.na(probs)]), neg.num)
+})
+

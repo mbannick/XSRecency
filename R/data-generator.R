@@ -35,8 +35,19 @@ generate.raw.data <- function(n_sims, n, prevalence, times=c(0)){
 #' @param baseline_incidence Baseline incidence value (time 0)
 #' @param prevalence Constant prevalence value
 #' @param rho A parameter to the `infection.function` for how quickly incidence changes
-simulate.recent <- function(sim_data, infection.function,
-                            phi.func, baseline_incidence, prevalence, rho, summarize=TRUE){
+#' @param incidence.function An incidence function in place of `infection.function`.
+#'   Cannot pass both arguments.
+#' @param ... Additional arguments to the `simulate.infection.times` function if you're
+#'   passing an `incidence.function` instead of an `infection.function`.
+simulate.recent <- function(sim_data, infection.function=NULL,
+                            phi.func, baseline_incidence, prevalence, rho, summarize=TRUE,
+                            incidence.function=NULL, ...){
+
+  if(is.null(incidence.function) & is.null(infection.function)){
+    stop("Pass either an incidence or infection function.")
+  } else if(!is.null(incidence.function) & !is.null(infection.function)){
+    stop("Pass either an incidence or infection function, but not both.")
+  }
 
   # Get dimensions
   dims <- dim(sim_data$n_p)
@@ -49,13 +60,18 @@ simulate.recent <- function(sim_data, infection.function,
   n_p <- as.vector(sim_data$n_p)
   n_n <- as.vector(sim_data$n_n)
 
-  # get the uniform for the cumulative distribution
-  # function for each individual
-  cdfs <- lapply(n_p, runif)
-
   # infection time
-  t_infect <- mapply(infection.function, e=cdfs, t=times, p=prevalence,
-                     lambda_0=baseline_incidence, rho=rho, SIMPLIFY=F)
+  if(!is.null(infection.function)){
+    # get the uniform for the cumulative distribution
+    # function for each individual
+    cdfs <- lapply(n_p, runif)
+    t_infect <- mapply(infection.function, e=cdfs, t=times, p=prevalence,
+                       lambda_0=baseline_incidence, rho=rho, SIMPLIFY=F)
+  } else {
+    t_infect <- sim.infection.times(p=prevalence,
+                                    inc.function=incidence.function,
+                                    ...)
+  }
 
   # infection duration to pass to the phi hat function
   infect_duration <- mapply(function(t, u) t - u, t=times, u=t_infect, SIMPLIFY=F)
@@ -113,7 +129,7 @@ simulate.recent <- function(sim_data, infection.function,
 
     # Get prevalence positive indicator
     prev_pos <- rep(1, length(sim_pos))
-    prev_neg <- rep(1, length(sim_neg))
+    prev_neg <- rep(0, length(sim_neg))
     prev <- c(prev_neg, prev_pos)
 
     # Infection time
@@ -121,7 +137,7 @@ simulate.recent <- function(sim_data, infection.function,
     infect_neg <- rep(NA, length(time_neg))
     infect <- c(infect_neg, infect_pos)
 
-    df <- data.frame(
+    df <- data.table(
       sim=sim,
       time=time,
       pos=prev,
@@ -143,7 +159,8 @@ simulate.recent <- function(sim_data, infection.function,
       df$probs <- probs
       df$rpos <- r
     }
-    return(data.table(df))
+    setorder(df, sim, time, pos, itime)
+    return(df)
   }
 }
 
@@ -165,25 +182,40 @@ simulate.recent <- function(sim_data, infection.function,
 #'   length(times > 1) for summary screening quantities
 #'   across simulations (and potentially times if length(times) > 1):
 #'   \itemize{
-#'     \item - `n`: number screened
-#'     \item `times`: times screened
-#'     \item `n_p`: number of positives
-#'     \item `n_n`: number of negatives
-#'     \item `n_r`: number of recents
+#'     \item n: number screened
+#'     \item times: times screened
+#'     \item n_p: number of positives
+#'     \item n_n: number of negatives
+#'     \item n_r: number of recents
 #'   }
 #'   If `summarize=FALSE`, then returns a list of data frames by simulation
 #'   that have unit-record data with infection times with column names:
 #'   \itemize{
-#'     \item `time`: time screened
-#'     \item `pos`: indicator for positive
-#'     \item `itime`: infection time (reference time 0)
-#'     \itme `rpos`: indicator for recency test positive, if a phi function is passed
+#'     \item time: time screened
+#'     \item pos: indicator for positive
+#'     \item itime: infection time (reference time 0)
+#'     \item probs: recency test positive probability based on infection time
+#'     \item rpos: indicator for recency test positive, if a phi function is passed
 #'   }
+#' @examples
+#' set.seed(1)
+#' generate.data(n_sims=3, n=2, infection.function=c.infections,
+#'               baseline_incidence=0.05, prevalence=0.5, rho=NA,
+#'               phi.func=function(t) 1 - pgamma(t, 1, 2),
+#'               times=c(0, 1), summarize=FALSE)
+#' generate.data(n_sims=3, n=100, infection.function=c.infections,
+#'               baseline_incidence=0.05, prevalence=0.3, rho=NA,
+#'               phi.func=function(t) 1 - pgamma(t, 1, 2),
+#'               times=c(0, 1), summarize=TRUE)
+#' generate.data(n_sims=3, n=100, infection.function=c.infections,
+#'               baseline_incidence=0.05, prevalence=0.3, rho=NA,
+#'               phi.func=function(t) 1 - pgamma(t, 1, 2),
+#'               times=c(0), summarize=TRUE)
 generate.data <- function(n_sims, n, infection.function,
                           baseline_incidence,
                           prevalence, rho, phi.func=NULL, times=c(0), summarize=TRUE){
 
-  if(summary & is.null(phi.func)) stop("Need a phi function
+  if(summarize & is.null(phi.func)) stop("Need a phi function
                                        to summarize recents.")
 
   data <- generate.raw.data(n_sims, n, prevalence, times=times)
@@ -237,10 +269,17 @@ e.infections <- function(e, t, p, lambda_0, rho){
 #'
 #' @export
 #' @param p Constant prevalence value
-#' @param inc.function A function that gives incidence for its single argument time
-#' @param nsims Number of infection times to return
-#' @param dt The precision for numerical integration
-sim.infection.times <- function(p, inc.function, nsims=1000, dt=0.01){
+#' @param inc.function A function of time that returns incidence
+#' @param nsims Number of infection times to simulate
+#' @param dt The precision for numerical integration. May need to increase.
+#' @return A vector of infection durations
+#' @examples
+#' set.seed(1)
+#' sim.infection.times(p=0.2, nsims=15,
+#'                     inc.function=function(t) c.incidence(t, 0.5))
+#' sim.infection.times(p=0.2, nsims=15,
+#'                     inc.function=function(t) c.incidence(t, 0.05))
+sim.infection.times <- function(p, inc.function, nsims=1000, dt=0.001){
   # Need to vectorize a scalar function
   if(length(inc.function(c(1, 2))) == 1) inc.function <- Vectorize(inc.function)
 
@@ -250,6 +289,7 @@ sim.infection.times <- function(p, inc.function, nsims=1000, dt=0.01){
   ds <- seq(0, 100, by=dt)
   vals <- inc.function(ds)
   int <- cumsum(vals*dt)
+  if(min(lh) < min(int)) stop("Pick a larger dt for the integration")
   indexes <- sapply(lh, function(x) max(which(int < x)))
   times <- ds[indexes]
   return(times)
