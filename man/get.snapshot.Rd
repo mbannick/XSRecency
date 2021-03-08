@@ -2,10 +2,39 @@
 % Please edit documentation in R/estimators.R
 \name{get.snapshot}
 \alias{get.snapshot}
-\title{Get snapshot estimate and variance.}
+\title{Snapshot estimator and variance (Kaplan and Brookmeyer 1999)}
 \usage{
 get.snapshot(n_r, n_n, n_p, n, mu, mu_var)
 }
+\arguments{
+\item{n_r}{Number of recent positives}
+
+\item{n_n}{Number of negatives}
+
+\item{n_p}{Number of positives}
+
+\item{n}{Total number of observations (\eqn{n_n + n_p = n})}
+
+\item{mu}{Mean window period (in years, not days)}
+
+\item{mu_var}{Variance of the estimator for mean window period.
+If \eqn{\mu} is known, input 0.}
+}
+\value{
+Returns a list of the estimate and the variance for \eqn{\lambda}.
+}
 \description{
-Get snapshot estimate and variance.
+\deqn{
+    \hat{\lambda} = \frac{N_{rec}}{\hat{\mu} N_{neg}}
+  }
+  where \eqn{\hat{\mu}} is an estimate of the mean window period.
+  Function is vectorized, so you can pass a vector of \eqn{\mu},
+  a vector of the counts \eqn{n} or both
+  (as long as they have the same length).
+}
+\examples{
+get.snapshot(n_r=2, n_n=50, n_p=10, n=60,
+             mu=0.36, mu_var=0)
+get.snapshot(n_r=c(2, 3), n_n=c(50, 48), n_p=c(10, 12), n=c(60, 60),
+             mu=0.36, mu_var=0)
 }

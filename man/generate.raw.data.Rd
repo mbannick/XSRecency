@@ -2,10 +2,11 @@
 % Please edit documentation in R/data-generator.R
 \name{generate.raw.data}
 \alias{generate.raw.data}
-\title{Generates raw data based on study parameters
-that can be used later to simulate infection times}
+\title{Generates raw data of number positive, negative, and screened
+based on study parameters
+that can be used later to simulate infection times.}
 \usage{
-generate.raw.data(n_sims, n, prevalence)
+generate.raw.data(n_sims, n, prevalence, times = c(0))
 }
 \arguments{
 \item{n_sims}{Number of simulations}
@@ -13,8 +14,11 @@ generate.raw.data(n_sims, n, prevalence)
 \item{n}{Number of observations per time point}
 
 \item{prevalence}{Constant prevalence}
+
+\item{times}{Times at which enrollment happens}
 }
 \description{
-Generates raw data based on study parameters
-that can be used later to simulate infection times
+Generates raw data of number positive, negative, and screened
+based on study parameters
+that can be used later to simulate infection times.
 }

@@ -198,10 +198,30 @@ integrate.phi <- function(model, maxT=maxT){
   return(list(est=estimate, var=variance))
 }
 
-#' Function that simulates all the properties of
-#' the recency assay, and returns all of the ones that we're interested in
+#' Function that simulates the mean window period, mean duration of recent
+#' infection, and false recent rate (FRR) based on external study data.
 #'
 #' @export
+#' @param phi.func A test-recent positive function of t
+#' @param bigT The time cutoff value designating true recent versus false recent
+#' @param tau The maximum duration of infection where a subject
+#'   could have a false-positive for recent infection
+#' @param frr_mixture Vector of two values.
+#'   To simulate data for FRR, we need a sample of long infected
+#'   subjects. If \code{frr_mixture} is \code{NULL}, then the sample of infection times is
+#'   \eqn{Uniform(2, 12)}. If \code{frr_mixture} is not \code{NULL},
+#'   then the sample is an equal mixture of \eqn{Uniform(2, 12)}
+#'   and \eqn{Uniform(x[1], x[2])} where \eqn{x} is \code{frr_mixture}.
+#' @return A list of estimated mean window period \eqn{\mu} and its variance,
+#'   estimated MDRI \eqn{\Omega_{T^*}} and its variance, and
+#'   estimated FRR \eqn{\beta_{T^*}} and its variance.
+#' @examples
+#' set.seed(0)
+#' assay.properties.sim(phi.func=function(t) 1 - pgamma(t, 1, 1.5),
+#'                      bigT=2, tau=12)
+#' set.seed(0)
+#' assay.properties.sim(phi.func=function(t) 1 - pgamma(t, 1, 1.5),
+#'                      bigT=2, tau=12, frr_mixture=c(5, 8))
 assay.properties.sim <- function(phi.func, bigT, tau, frr_mixture=NULL){
   # SIMULATIONS -----------------------------
 

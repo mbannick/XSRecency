@@ -99,14 +99,14 @@ if(!is.null(a$phi_norm_mu)){
 }
 
 if(a$itype == "constant"){
-  inc.function <- c.incidence
-  infection.function <- c.infections
+  inc.function <- con.incidence
+  infection.function <- con.infections
 } else if(a$itype == "linear"){
-  inc.function <- l.incidence
-  infection.function <- l.infections
+  inc.function <- lin.incidence
+  infection.function <- lin.infections
 } else if(a$itype == "exponential"){
-  inc.function <- e.incidence
-  infection.function <- e.infections
+  inc.function <- exn.incidence
+  infection.function <- exn.infections
 } else {
   stop("Unknown incidence function.")
 }

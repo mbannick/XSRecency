@@ -172,13 +172,13 @@ simulate.recent <- function(sim_data, infection.function=NULL,
 #' @param n Number of subjects screened
 #' @param infection.function Function that simulates the infection time
 #' @param phi.func Optional test positive function for recency assay.
-#'   If you pass `summarize=TRUE`, then you must provide a test positive function.
+#'   If you pass \code{summarize=TRUE}, then you must provide a test positive function.
 #' @param baseline_incidence Baseline incidence value (time 0)
 #' @param prevalence Constant prevalence value
-#' @param rho A parameter to the `infection.function` for how quickly incidence changes
+#' @param rho A parameter to the \code{infection.function} for how quickly incidence changes
 #' @param times A vector of times at which to enroll (e.g. c(0, 1, 2, 3))
 #' @param summarize Whether to return a summary of the dataset or unit-record data
-#' @return If `summarize=TRUE`, a list of vectors (or matrices if
+#' @return If \code{summarize=TRUE}, a list of vectors (or matrices if
 #'   length(times > 1) for summary screening quantities
 #'   across simulations (and potentially times if length(times) > 1):
 #'   \itemize{
@@ -188,7 +188,7 @@ simulate.recent <- function(sim_data, infection.function=NULL,
 #'     \item n_n: number of negatives
 #'     \item n_r: number of recents
 #'   }
-#'   If `summarize=FALSE`, then returns a list of data frames by simulation
+#'   If \code{summarize=FALSE}, then returns a list of data frames by simulation
 #'   that have unit-record data with infection times with column names:
 #'   \itemize{
 #'     \item time: time screened
@@ -199,15 +199,15 @@ simulate.recent <- function(sim_data, infection.function=NULL,
 #'   }
 #' @examples
 #' set.seed(1)
-#' generate.data(n_sims=3, n=2, infection.function=c.infections,
+#' generate.data(n_sims=3, n=2, infection.function=con.infections,
 #'               baseline_incidence=0.05, prevalence=0.5, rho=NA,
 #'               phi.func=function(t) 1 - pgamma(t, 1, 2),
 #'               times=c(0, 1), summarize=FALSE)
-#' generate.data(n_sims=3, n=100, infection.function=c.infections,
+#' generate.data(n_sims=3, n=100, infection.function=con.infections,
 #'               baseline_incidence=0.05, prevalence=0.3, rho=NA,
 #'               phi.func=function(t) 1 - pgamma(t, 1, 2),
 #'               times=c(0, 1), summarize=TRUE)
-#' generate.data(n_sims=3, n=100, infection.function=c.infections,
+#' generate.data(n_sims=3, n=100, infection.function=con.infections,
 #'               baseline_incidence=0.05, prevalence=0.3, rho=NA,
 #'               phi.func=function(t) 1 - pgamma(t, 1, 2),
 #'               times=c(0), summarize=TRUE)
@@ -227,25 +227,73 @@ generate.data <- function(n_sims, n, infection.function,
 # INFECTION FUNCTIONS
 
 #' Constant incidence function
-c.incidence <- function(t, lambda_0, rho=NA) lambda_0
+#'
+#' @param t Time, float or vector
+#' @param lambda_0 Incidence constant value
+#' @return Incidence at time t
+#' @examples
+#' con.incidence(0, lambda_0=0.05)
+#' con.incidence(c(-1, 0, 0), lambda_0=0.05)
+con.incidence <- Vectorize(function(t, lambda_0, rho=NA) lambda_0)
 
 #' Linearly decreasing incidence function
-l.incidence <- function(t, lambda_0, rho=1) lambda_0 - rho * t
+#'
+#' \deqn{
+#'   \lambda(t) = \lambda_0 - \rho t
+#' }
+#'
+#' @param t Time, float or vector
+#' @param lambda_0 Incidence at time 0
+#' @param rho Linear decrease in incidence
+#' @return Incidence at time t
+#' @examples
+#' lin.incidence(0, lambda_0=0.05, rho=1e-3)
+#' lin.incidence(c(-1, 0, 1), lambda_0=0.05, rho=1e-3)
+lin.incidence <- function(t, lambda_0, rho=1) lambda_0 - rho * t
 
-# Exponentially decreasing incidence function
-e.incidence <- function(t, lambda_0, rho=1) lambda_0 * exp(-rho * t)
+#' Exponentially decreasing incidence function
+#'
+#' \deqn{
+#'   \lambda(t) = \lambda_0 \exp(-\rho t)
+#' }
+#'
+#' @param t Time, float or vector
+#' @param lambda_0 Incidence at time 0
+#' @param rho Exponential decrease in incidence
+#' @return Incidence at time t
+#' @examples
+#' exn.incidence(0, lambda_0=0.05, rho=0.07)
+#' exn.incidence(c(-1, 0, 1), lambda_0=0.05, rho=0.07)
+exn.incidence <- function(t, lambda_0, rho=1) lambda_0 * exp(-rho * t)
 
-#' Function to produce infection times
-#' from constant incidence.
-#' Note that you can work with e or 1 - e since e is Uniform(0, 1)
-c.infections <- function(e, t, p, lambda_0, rho=NA){
+#' Infection times function based on constant incidence.
+#'
+#' @param e A number between 0 and 1 (randomly generated), float or vector
+#' @param t Time, float
+#' @param p Constant prevalence
+#' @param lambda_0 Baseline incidence
+#' @return Infection time
+#' @examples
+#' e <- runif(10)
+#' con.infections(e, t=0, p=0.2, lambda_0=0.05)
+con.infections <- function(e, t, p, lambda_0, rho=NA){
+  # Note that you can work with e or 1 - e since e is Uniform(0, 1)
   infections <- t - p*e / ((1 - p) * lambda_0)
   return(infections)
 }
 
-#' Function to produce infection times
-#' from linear incidence.
-l.infections <- function(e, t, p, lambda_0, rho){
+#' Infection times function based on linearly decreasing incidence.
+#'
+#' @param e A number between 0 and 1 (randomly generated), float or vector
+#' @param t Time, float
+#' @param p Constant prevalence
+#' @param lambda_0 Baseline incidence
+#' @param rho Linearly decreasing incidence parameter
+#' @return Infection time
+#' @examples
+#' e <- runif(10)
+#' lin.infections(e, t=0, p=0.2, lambda_0=0.05, rho=1e-3)
+lin.infections <- function(e, t, p, lambda_0, rho){
   incidence <- lambda_0
   numerator <- incidence**2 + 2 * rho * p * e / (1 - p)
   numerator <- sqrt(numerator) - incidence
@@ -254,9 +302,18 @@ l.infections <- function(e, t, p, lambda_0, rho){
   return(infections)
 }
 
-#' Function to produce infection times
-#' from exponential incidence.
-e.infections <- function(e, t, p, lambda_0, rho){
+#' Infection times function based on exponential decreasing incidence.
+#'
+#' @param e A number between 0 and 1 (randomly generated), float or vector
+#' @param t Time, float
+#' @param p Constant prevalence
+#' @param lambda_0 Baseline incidence
+#' @param rho Linearly decreasing incidence parameter
+#' @return Infection time
+#' @examples
+#' e <- runif(10)
+#' exn.infections(e, t=0, p=0.2, lambda_0=0.05, rho=0.07)
+exn.infections <- function(e, t, p, lambda_0, rho){
   incidence <- lambda_0
   infections <- t - (1/rho) * log(rho*p*e/((1-p)*incidence) + 1)
   return(infections)
@@ -276,9 +333,9 @@ e.infections <- function(e, t, p, lambda_0, rho){
 #' @examples
 #' set.seed(1)
 #' sim.infection.times(p=0.2, nsims=15,
-#'                     inc.function=function(t) c.incidence(t, 0.5))
+#'                     inc.function=function(t) con.incidence(t, 0.5))
 #' sim.infection.times(p=0.2, nsims=15,
-#'                     inc.function=function(t) c.incidence(t, 0.05))
+#'                     inc.function=function(t) con.incidence(t, 0.05))
 sim.infection.times <- function(p, inc.function, nsims=1000, dt=0.001){
   # Need to vectorize a scalar function
   if(length(inc.function(c(1, 2))) == 1) inc.function <- Vectorize(inc.function)

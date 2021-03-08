@@ -2,10 +2,46 @@
 % Please edit documentation in R/estimators.R
 \name{get.adjusted}
 \alias{get.adjusted}
-\title{Get adjusted estimate and variance.}
+\title{Adjusted estimator and variance (Kassanjee et al. 2012)}
 \usage{
 get.adjusted(n_r, n_n, n_p, n, omega, omega_var, beta, beta_var, big_T)
 }
+\arguments{
+\item{n_r}{Number of recent positives}
+
+\item{n_n}{Number of negatives}
+
+\item{n_p}{Number of positives}
+
+\item{n}{Total number of observations (\eqn{n_n + n_p = n})}
+
+\item{omega}{Mean duration of recent infection (MDRI) (in years, not days)}
+
+\item{omega_var}{Variance of the estimator for MDRI (or 0 if MDRI known)}
+
+\item{beta}{False recency rate (FRR)}
+
+\item{beta_var}{Variance of the estimator for FRR (or 0 if FRR known)}
+
+\item{big_T}{The \eqn{T^*} in the equation above}
+}
+\value{
+Returns a list of the estimate and the variance.
+}
 \description{
-Get adjusted estimate and variance.
+\deqn{
+    \hat{\lambda} = \frac{N_{rec} - N_{pos} \hat{\beta}_{T^*}}{N_{neg} (\hat{\Omega}_{T^*} - \hat{\beta}_{T^*} T^*)}
+  }
+  where \eqn{\hat{\Omega}_{T^*}} is an estimate of the mean duration of recent infection (MDRI),
+  \eqn{\hat{\beta}_{T^*}} is an estimate of the false recency rate, and \eqn{T^*} is the time cutoff for beign
+  a recent infected or not.
+  Function is vectorized, so you can pass a vector of \eqn{\Omega} and \eqn{\beta},
+  a vector of the counts \eqn{n_} or both
+  (as long as they have the same length).
+}
+\examples{
+get.adjusted(n_r=2, n_n=50, n_p=10, n=60,
+             omega=0.36, omega_var=0, beta=0.02, beta_var=0, big_T=2)
+get.adjusted(n_r=c(2, 3), n_n=c(50, 48), n_p=c(10, 12), n=c(60, 60),
+             omega=0.36, omega_var=0, beta=0.02, beta_var=0, big_T=2)
 }

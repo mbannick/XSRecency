@@ -2,16 +2,19 @@
 % Please edit documentation in R/data-generator.R
 \name{generate.data}
 \alias{generate.data}
-\title{Create simulations of data generated with past}
+\title{Create simulations of trials based on a past infection time function
+and a prevalence and baseline incidence (time 0).}
 \usage{
 generate.data(
   n_sims,
   n,
   infection.function,
-  phi.func,
   baseline_incidence,
   prevalence,
-  rho
+  rho,
+  phi.func = NULL,
+  times = c(0),
+  summarize = TRUE
 )
 }
 \arguments{
@@ -21,14 +24,56 @@ generate.data(
 
 \item{infection.function}{Function that simulates the infection time}
 
-\item{phi.func}{Test positive function for recency assay}
-
 \item{baseline_incidence}{Baseline incidence value (time 0)}
 
 \item{prevalence}{Constant prevalence value}
 
-\item{rho}{A parameter to the `infection.function` for how quickly incidence changes}
+\item{rho}{A parameter to the \code{infection.function} for how quickly incidence changes}
+
+\item{phi.func}{Optional test positive function for recency assay.
+If you pass \code{summarize=TRUE}, then you must provide a test positive function.}
+
+\item{times}{A vector of times at which to enroll (e.g. c(0, 1, 2, 3))}
+
+\item{summarize}{Whether to return a summary of the dataset or unit-record data}
+}
+\value{
+If \code{summarize=TRUE}, a list of vectors (or matrices if
+  length(times > 1) for summary screening quantities
+  across simulations (and potentially times if length(times) > 1):
+  \itemize{
+    \item n: number screened
+    \item times: times screened
+    \item n_p: number of positives
+    \item n_n: number of negatives
+    \item n_r: number of recents
+  }
+  If \code{summarize=FALSE}, then returns a list of data frames by simulation
+  that have unit-record data with infection times with column names:
+  \itemize{
+    \item time: time screened
+    \item pos: indicator for positive
+    \item itime: infection time (reference time 0)
+    \item probs: recency test positive probability based on infection time
+    \item rpos: indicator for recency test positive, if a phi function is passed
+  }
 }
 \description{
-Create simulations of data generated with past
+Create simulations of trials based on a past infection time function
+and a prevalence and baseline incidence (time 0).
+}
+\examples{
+set.seed(1)
+generate.data(n_sims=3, n=2, infection.function=con.infections,
+              baseline_incidence=0.05, prevalence=0.5, rho=NA,
+              phi.func=function(t) 1 - pgamma(t, 1, 2),
+              times=c(0, 1), summarize=FALSE)
+generate.data(n_sims=3, n=100, infection.function=con.infections,
+              baseline_incidence=0.05, prevalence=0.3, rho=NA,
+              phi.func=function(t) 1 - pgamma(t, 1, 2),
+              times=c(0, 1), summarize=TRUE)
+generate.data(n_sims=3, n=100, infection.function=con.infections,
+              baseline_incidence=0.05, prevalence=0.3, rho=NA,
+              phi.func=function(t) 1 - pgamma(t, 1, 2),
+              times=c(0), summarize=TRUE)
 }

@@ -3,3 +3,4 @@ importFrom("stats", "binomial", "coef", "glm", "pgamma", "rbinom",
                "rmultinom", "runif", "vcov")
 importFrom("utils", "data")
 importFrom("magrittr", "%>%")
+importFrom("data.table", "data.table", "setorder")

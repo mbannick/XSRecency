@@ -7,11 +7,14 @@ and the infection incidence function.}
 \usage{
 \method{simulate}{recent}(
   sim_data,
-  infection.function,
+  infection.function = NULL,
   phi.func,
   baseline_incidence,
   prevalence,
-  rho
+  rho,
+  summarize = TRUE,
+  incidence.function = NULL,
+  ...
 )
 }
 \arguments{
@@ -26,6 +29,12 @@ and the infection incidence function.}
 \item{prevalence}{Constant prevalence value}
 
 \item{rho}{A parameter to the `infection.function` for how quickly incidence changes}
+
+\item{incidence.function}{An incidence function in place of `infection.function`.
+Cannot pass both arguments.}
+
+\item{...}{Additional arguments to the `simulate.infection.times` function if you're
+passing an `incidence.function` instead of an `infection.function`.}
 }
 \description{
 Simulate recency indicators based on the data, true phi function,
