@@ -132,3 +132,31 @@ dev.off()
 pdf("duong-trajectories.pdf", width=6, height=6)
 grid.arrange(grobs=ps)
 dev.off()
+
+
+
+
+
+# GAP TIMES
+df[, last.time := shift(days), by="id.key"]
+df[, gap := days - last.time]
+
+hist(df$gap)
+
+df[, num.samples := .N, by="id.key"]
+
+small <- df[num.samples < 10]
+large <- df[num.samples >= 10]
+
+par(mfrow=c(1, 2))
+hist(small$gap)
+hist(large$gap)
+
+ggplot(data=df) + geom_jitter(aes(x=num.samples, y=gap), alpha=0.3)
+
+mod <- gee(gap ~ 1, id=id.key, data=df,
+    family=poisson(link="log"))
+exp(mod$coefficients)
+
+
+

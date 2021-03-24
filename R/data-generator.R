@@ -215,6 +215,7 @@ generate.data <- function(n_sims, n, infection.function,
                           baseline_incidence,
                           prevalence, rho, phi.func=NULL, times=c(0), summarize=TRUE){
 
+  # TODO: include some sanity checks
   if(summarize & is.null(phi.func)) stop("Need a phi function
                                        to summarize recents.")
 
@@ -337,6 +338,7 @@ exn.infections <- function(e, t, p, lambda_0, rho){
 #' sim.infection.times(p=0.2, nsims=15,
 #'                     inc.function=function(t) con.incidence(t, 0.05))
 sim.infection.times <- function(p, inc.function, nsims=1000, dt=0.001){
+  # TODO: Change this to infection duration in the generate.data function
   # Need to vectorize a scalar function
   if(length(inc.function(c(1, 2))) == 1) inc.function <- Vectorize(inc.function)
 
@@ -344,7 +346,7 @@ sim.infection.times <- function(p, inc.function, nsims=1000, dt=0.001){
   e <- runif(nsims)
   lh <- e * p/(1-p)
   ds <- seq(0, 100, by=dt)
-  vals <- inc.function(ds)
+  vals <- inc.function(ds) # TODO: Shift lambda for longitudinal
   int <- cumsum(vals*dt)
   if(min(lh) < min(int)) stop("Pick a larger dt for the integration")
   indexes <- sapply(lh, function(x) max(which(int < x)))
