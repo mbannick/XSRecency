@@ -2,44 +2,9 @@
 # EXTERNAL STUDY DATA SIMULATION TO ESTIMATE MU, OMEGA, BETA
 # -------------------------------------------------------------------------
 
-#' External study data parameters for estimating
-#' omega, mu, and beta through simulation.
-#'
-#' @export
-#'
-PHI_PARAMS <- list(
-
-  # number of long infecteds for beta study
-  N_LONG_INFECT=1388,
-
-  # cohorts
-  coh=c(1, 2, 3),
-
-  # number of people in each cohort
-  coh_n=c(90, 162, 25),
-
-  # mean number of samples per cohort
-  mean_samp=c(6, 12, 4),
-
-  # max number of samples per cohort
-  max_samp=c(7, 20, 4),
-
-  # multinomial probabilities buckets
-  duration_years=list(c(0.0, 0.5),
-                      c(0.5, 1.0),
-                      c(1.0, 2.0),
-                      c(2.0, 3.0),
-                      c(3.0, 5.0),
-                      c(5.0, 9.9)),
-
-  # number of people in each duration of infection years category above
-  # per cohort
-  coh_buckets=list(
-    c(159, 173, 088, 076, 022, 000),
-    c(306, 262, 448, 105, 347, 371),
-    c(042, 043, 000, 000, 000, 000)
-  )
-)
+# number of long infecteds for beta study
+N_LONG_INFECT=1388
+YEAR2DAY=365.25
 
 #' This simulates the false recency rate using
 #' tail probabilities from the phi parameters
@@ -47,100 +12,131 @@ PHI_PARAMS <- list(
 #' given in the study.
 #'
 #' @export
-simulate.beta <- function(phi.func, minT, maxT, frr_mixture=NULL){
-  if(!is.null(frr_mixture)){
-    N <- PHI_PARAMS$N_LONG_INFECT / 2
-  } else {
-    N <- PHI_PARAMS$N_LONG_INFECT
-  }
-  infected_times <- runif(n=N, min=minT, max=maxT)
-  if(!is.null(frr_mixture)){
-    infected_times2 <- runif(n=N, min=frr_mixture[1], max=frr_mixture[2])
-    infected_times <- c(infected_times, infected_times2)
-  }
+simulate.beta <- function(phi.func, minT, maxT){
+  infected_times <- runif(n=N_LONG_INFECT, min=minT, max=maxT)
 
-  recent <- rbinom(n=PHI_PARAMS$N_LONG_INFECT, size=1, p=phi.func(infected_times))
-  beta <- sum(recent) / PHI_PARAMS$N_LONG_INFECT
-  beta_var <- beta * (1 - beta) / PHI_PARAMS$N_LONG_INFECT
+  recent <- rbinom(n=N_LONG_INFECT, size=1, p=phi.func(infected_times))
+  beta <- sum(recent) / N_LONG_INFECT
+  beta_var <- beta * (1 - beta) / N_LONG_INFECT
   return(list(est=beta, var=beta_var))
 }
 
-#' Simulate infection duration and recency indicators
-#' from the study.
+#' This simulates many false recency rates using
+#' tail probabilities from the phi parameters
+#' by sampling from a binomial with a sample size
+#' given in the study.
 #'
 #' @export
-simulate.study <- function(phi.func){
+simulate.nbeta <- function(nsims, phi.func, minT, maxT){
+  result <- replicate(nsims, simulate.beta(phi.func=phi.func,
+                                           minT=minT, maxT=maxT))
+}
 
-  # probability of sampling in each cohort
-  p_samp <- (PHI_PARAMS$mean_samp - 1) / (PHI_PARAMS$max_samp - 1)
+#' Helper function for simulating many studies
+#' that mimic the data from Duong et al. 2015.
+#' Fits a GEE model with piece-wise linear
+#' parameterization and Poisson marginal mean / variance.
+#'
+#' @param df Data frame with sample number column (samp),
+#'   days column, and num.samples column.
+#' @param knot Knot location for piecewise-linear function
+#' @return List of start durations, numbers of samples, and model coefficients
+fit.model <- function(df, knot=5){
 
-  # simulate the number of samples per individual in each cohort
-  coh_samples <- mapply(rbinom, n=PHI_PARAMS$coh_n,
-                        size=PHI_PARAMS$mean_samp,
-                        p=p_samp, SIMPLIFY=FALSE)
+  # Indicator variable for sample 5+
+  df[, samp.5 := samp >= knot]
 
-  # add one to each of the samples in the list
-  coh_samples <- lapply(coh_samples, function(x) x + 1)
+  # Fit GEE model for the gap times
+  mod <- gee(gap ~ samp + samp.5 + samp.5*samp, id=id.key, data=df,
+             family=poisson(link="log"), corstr="exchangeable")
 
-  # this loops through each cohort to sample the infection durations
-  infection_durations <- list()
-  for(i in 1:length(PHI_PARAMS$coh)){
+  # Get only the first days of sampling
+  first.day <- df[samp == 1]
 
-    # this is where we'll put all of the infection durations
-    # for this cohort
-    durations <- c()
+  return(list(days=first.day$days,
+              num.samples=first.day$num.samples,
+              rate=coef(mod)))
+}
 
-    # this gets an array for each person by looping over each person
-    # as a num. of samples, and pulling that many observations of a
-    # multinomial with the correct bucket probabilities
-    people <- lapply(coh_samples[[i]], rmultinom, size=1,
-                     prob=PHI_PARAMS$coh_buckets[[i]])
+#' Function to simulate one study
+#' that mimics the data from Duong et al. 2015
+#'
+#' @param days Duration on date of first sample
+#' @param num.samples Distribution of number of samples
+#' @param coefs Coefficients from the piecewise linear model
+#' @param knot Knot location for piecewise linear model
+#' @param phi.func Optional recency test-positive function
+#' @return List of data frames with an id, time, and recency indicator
+simulate.study <- function(days, num.samples, coefs, knot=5,
+                           phi.func=NULL){
 
-    # this loops through each person in the cohort
-    for(person in people){
+  # Sample the first day
+  day1 <- sample(days, size=length(days), replace=TRUE)
 
-      # this loops through each person's sample
-      # there are ncol(person) number of samples
-      for(sample in 1:ncol(person)){
+  # Sample the number of samples
+  nums <- sample(num.samples, size=length(days), replace=TRUE)
 
-        # this gets which bin the infection duration is in for person/sample
-        # and maps that to the duration (lower, upper)
-        duration_bin <- PHI_PARAMS$duration_years[[which(person[, sample] == 1)]]
+  # Get a vector of the sample numbers, starting from the second one
+  samp.num <- lapply(nums, function(x) 2:x)
 
-        # this samples the duration from the uniform distribution
-        # with lower and upper specified by the duration bin
-        duration <- runif(n=1, min=duration_bin[1], max=duration_bin[2])
+  # Get a sample design matrix
+  get.samp.dmat <- function(samp) return(cbind(1, samp, samp>=knot, (samp>=knot)*samp))
+  dmats <- lapply(samp.num, get.samp.dmat)
 
-        # append the current duration to the vector of infection
-        # durations, since the person and sample index don't matter
-        # at this point
-        durations <- append(durations, duration)
-      }
-    }
-    infection_durations[[i]] <- durations
+  # Compute the predicted rates
+  rates <- lapply(dmats, function(x) exp(x %*% coefs)[, 1])
+
+  # Get the gap-times for each
+  gaps <- lapply(rates, function(x) rpois(n=length(x), lambda=x))
+
+  # Add on the start day
+  days.gap <- mapply(function(x, y) c(x, y), x=day1, y=gaps)
+
+  # Calculate sampling times
+  days.tot <- lapply(days.gap, cumsum) %>% unlist
+  time.tot <- days.tot/YEAR2DAY
+
+  # Get ids and put into data frame
+  ids <- 1:length(days)
+  ids <- rep(ids, nums)
+
+  df <- data.frame(id=ids,
+                   durations=time.tot)
+
+  # If there is a phi function, apply it to the durations
+  if(!is.null(phi.func)){
+    recent <- phi.func(time.tot)
+    df$recent <- recent
   }
+  return(df)
+}
 
-  # generate the recency indicator for the infection duration
-  # based on the true phi() function
-  indicators <- lapply(infection_durations, function(x) rbinom(n=length(x),
-                       size=1, prob=phi.func(x)))
-  return(list(
-    recent=unlist(indicators),
-    durations=unlist(infection_durations)
-  ))
+#' Function to simulate many studies
+#' that mimic the data from Duong et al. 2015
+#'
+#' @export
+#' @param nsims Number of study simulations
+#' @param phi.func Optional recency test-positive function
+#' @return List of data frames with an id, time, and recency indicator
+simulate.studies <- function(nsims, phi.func=NULL){
+  mod <- fit.model(duong)
+  sims <- replicate(nsims, simulate.study(mod$days, mod$num.samples, mod$rate,
+                                          phi.func=phi.func),
+                    simplify=FALSE)
+  return(sims)
 }
 
 #' Fits a cubic model to indicators and durations
 #' and returns the model object.
 #'
 #' @export
-fit.cubic <- function(recent, durations){
+fit.cubic <- function(recent, durations, id){
   durations2 <- durations**2
   durations3 <- durations**3
 
   # fit a logistic regression with cubic polynomials
-  model <- glm(recent ~ durations + durations2 + durations3,
-               family=binomial(link="logit"))
+  model <- gee(recent ~ durations + durations2 + durations3,
+               family=binomial(link="logit"), id=id)
   return(model)
 }
 
@@ -162,13 +158,13 @@ phi.hat <- function(d, model){
 #' long follow_T parameter (like 9)
 #'
 #' @export
-integrate.phi <- function(model, maxT=maxT){
+integrate.phi <- function(model, minT=0, maxT=12, average=FALSE){
 
   # generate a sequence of duration times, starting at 0 and
   # up to max t, just to get the phi_hat
   dt <- 0.001
 
-  ts <- seq(0, maxT, by=dt)
+  ts <- seq(minT, maxT, by=dt)
   ts <- cbind(rep(1, length(ts)),
               ts,
               ts**2,
@@ -182,6 +178,7 @@ integrate.phi <- function(model, maxT=maxT){
 
   # integrate the linear predictor over the times
   estimate <- sum(phi * dt)
+  if(average) estimate <- estimate / (maxT - minT)
 
   # get the variance of omega_t
   # get the gradient of the linear predictor and then multiply
@@ -189,8 +186,9 @@ integrate.phi <- function(model, maxT=maxT){
   grad <- exp(lin_predictor) / (1 + exp(lin_predictor))**2
   grad <- t(ts) %*% grad
   grad <- grad * dt
+  if(average) grad <- grad / (maxT - minT)
 
-  vc <- vcov(model)
+  vc <- model$robust.variance
 
   # the variance of omega_t
   variance <- c(t(grad) %*% vc %*% grad)
@@ -198,47 +196,27 @@ integrate.phi <- function(model, maxT=maxT){
   return(list(est=estimate, var=variance))
 }
 
-#' Function that simulates the mean window period, mean duration of recent
-#' infection, and false recent rate (FRR) based on external study data.
+#' Use an assay df with recent and durations to calculate the properties
+#' of the assay simulation.
 #'
 #' @export
-#' @param phi.func A test-recent positive function of t
-#' @param bigT The time cutoff value designating true recent versus false recent
-#' @param tau The maximum duration of infection where a subject
-#'   could have a false-positive for recent infection
-#' @param frr_mixture Vector of two values.
-#'   To simulate data for FRR, we need a sample of long infected
-#'   subjects. If \code{frr_mixture} is \code{NULL}, then the sample of infection times is
-#'   \eqn{Uniform(2, 12)}. If \code{frr_mixture} is not \code{NULL},
-#'   then the sample is an equal mixture of \eqn{Uniform(2, 12)}
-#'   and \eqn{Uniform(x[1], x[2])} where \eqn{x} is \code{frr_mixture}.
-#' @return A list of estimated mean window period \eqn{\mu} and its variance,
-#'   estimated MDRI \eqn{\Omega_{T^*}} and its variance, and
-#'   estimated FRR \eqn{\beta_{T^*}} and its variance.
-#' @examples
-#' set.seed(0)
-#' assay.properties.sim(phi.func=function(t) 1 - pgamma(t, 1, 1.5),
-#'                      bigT=2, tau=12)
-#' set.seed(0)
-#' assay.properties.sim(phi.func=function(t) 1 - pgamma(t, 1, 1.5),
-#'                      bigT=2, tau=12, frr_mixture=c(5, 8))
-assay.properties.sim <- function(phi.func, bigT, tau, frr_mixture=NULL){
-  # SIMULATIONS -----------------------------
-
-  # simulate one phi function and
-  # get the estimate and variance
-  study <- simulate.study(phi.func)
+#' @param study Data frame with recent and durations variables
+#' @param phi.func Phi function
+#' @param bigT The T^* time
+#' @param tau The maximum time
+#' @returns List of properties and their variances
+assay.properties.sim <- function(study, phi.func, bigT, tau){
 
   model <- fit.cubic(recent=study$recent,
-                     durations=study$durations)
+                     durations=study$durations,
+                     id=study$id)
 
   # get mu and omega
-  mu_sim <- integrate.phi(model, maxT=tau)
-  omega_sim <- integrate.phi(model, maxT=bigT)
+  mu_sim <- integrate.phi(model, minT=0, maxT=tau, average=FALSE)
+  omega_sim <- integrate.phi(model, minT=0, maxT=bigT, average=FALSE)
 
-  # simulate beta and get the estimate and variance of them
-  beta_sim <- simulate.beta(phi.func=phi.func, minT=bigT, maxT=tau,
-                            frr_mixture=frr_mixture)
+  # get beta
+  beta_sim <- integrate.phi(model, minT=bigT, maxT=tau, average=TRUE)
 
   result <- list(mu_est=mu_sim$est,
                  mu_var=mu_sim$var,
@@ -249,14 +227,42 @@ assay.properties.sim <- function(phi.func, bigT, tau, frr_mixture=NULL){
   return(result)
 }
 
-#' Function that simulates all the properties of
-#' the recency assay, and returns all of the ones that we're interested in
+#' Function that simulates the mean window period, mean duration of recent
+#' infection, and false recent rate (FRR) based on external study data.
 #'
 #' @export
-assay.properties.nsim <- function(n_sims, phi.func, bigT, tau, frr_mixture=NULL){
-  result <- replicate(n_sims,
-                      assay.properties.sim(phi.func=phi.func, bigT=bigT, tau=tau,
-                                           frr_mixture=frr_mixture))
+#' @param n_sims Number of simulations
+#' @param phi.func A test-recent positive function of t
+#' @param bigT The time cutoff value designating true recent versus false recent
+#' @param tau The maximum duration of infection where a subject
+#'   could have a false-positive for recent infection
+#' @param integrate.FRR Whether or not to get FRR integrated from the Duong et al. 2015
+#'   study or to calculate it from a simpler, separate study.
+#' @return A list of estimated mean window period \eqn{\mu} and its variance,
+#'   estimated MDRI \eqn{\Omega_{T^*}} and its variance, and
+#'   estimated FRR \eqn{\beta_{T^*}} and its variance.
+#' @examples
+#' set.seed(0)
+#' assay.properties.sim(n_sims=1, phi.func=function(t) 1 - pgamma(t, 1, 1.5),
+#'                      bigT=2, tau=12)
+#' set.seed(0)
+#' assay.properties.sim(n_sims=1, phi.func=function(t) 1 - pgamma(t, 1, 1.5),
+#'                      bigT=2, tau=12, integrate.FRR=TRUE)
+assay.properties.nsim <- function(n_sims, phi.func, bigT, tau,
+                                  integrate.FRR=FALSE){
+
+  studies <- simulate.studies(n_sims, phi.func)
+  result <- sapply(studies, function(x) assay.properties.sim(study=x,
+                                                             phi.func=phi.func,
+                                                             bigT=bigT,
+                                                             tau=tau))
+
+  if(!integrate.FRR){
+    beta_sim <- simulate.nbeta(nsims=n_sims, phi.func=phi.func,
+                               minT=bigT, maxT=tau)
+    result[c("beta_est", "beta_var"), ] <- beta_sim
+  }
+
   result <- t(result)
   result <- data.table(result)
   columns <- colnames(result)

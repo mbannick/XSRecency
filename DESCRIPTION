@@ -8,9 +8,11 @@ Description: More about what it does (maybe more than one line)
     Use four spaces when indenting paragraphs within the Description.
 License: What license is it under?
 Encoding: UTF-8
-LazyData: true
+LazyData: false
 RoxygenNote: 7.1.1
 Imports: 
     stats,
     utils,
     magrittr
+Depends: 
+    R (>= 2.10)

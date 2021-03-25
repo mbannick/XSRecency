@@ -5,7 +5,7 @@ PHI <- function(t) 1 - pgamma(t, 1, 2.7)
 test_that("Snapshot estimator", {
   set.seed(10)
   data <- generate.data(n=10000, n_sims=100,
-                        infection.function=c.infections,
+                        infection.function=infections.con,
                         phi.func=PHI, baseline_incidence=0.05,
                         prevalence=0.3, rho=NA)
   snap <- get.snapshot(n_r=data$n_r, n_n=data$n_n, n_p=data$n_p,
@@ -17,7 +17,7 @@ test_that("Snapshot estimator plus sim mu", {
   set.seed(10)
   expect_warning(assay <- assay.properties.nsim(100, PHI, bigT=2, tau=12))
   data <- generate.data(n=10000, n_sims=100,
-                        infection.function=c.infections,
+                        infection.function=infections.con,
                         phi.func=PHI, baseline_incidence=0.05,
                         prevalence=0.3, rho=NA)
   snap <- get.snapshot(n_r=data$n_r, n_n=data$n_n, n_p=data$n_p,
@@ -28,7 +28,7 @@ test_that("Snapshot estimator plus sim mu", {
 test_that("Adjusted estimator", {
   set.seed(10)
   data <- generate.data(n=10000, n_sims=100,
-                        infection.function=c.infections,
+                        infection.function=infections.con,
                         phi.func=PHI, baseline_incidence=0.05,
                         prevalence=0.3, rho=NA)
   adj <- get.adjusted(n_r=data$n_r, n_n=data$n_n, n_p=data$n_p,
@@ -41,7 +41,7 @@ test_that("Adjusted estimator plus sim omega, beta", {
   set.seed(10)
   expect_warning(assay <- assay.properties.nsim(n_sims=100, PHI, bigT=2, tau=12))
   data <- generate.data(n=10000, n_sims=100,
-                        infection.function=c.infections,
+                        infection.function=infections.con,
                         phi.func=PHI, baseline_incidence=0.05,
                         prevalence=0.3, rho=NA)
   adj <- get.adjusted(n_r=data$n_r, n_n=data$n_n, n_p=data$n_p,

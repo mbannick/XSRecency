@@ -4,3 +4,4 @@ importFrom("stats", "binomial", "coef", "glm", "pgamma", "rbinom",
 importFrom("utils", "data")
 importFrom("magrittr", "%>%")
 importFrom("data.table", "data.table", "setorder")
+importFrom("gee", "gee")
