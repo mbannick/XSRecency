@@ -32,8 +32,7 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                       phi_norm_sd=NULL,
                       phi_norm_div=NULL,
                       out_dir=".",
-                      frr_mix_start=NULL,
-                      frr_mix_end=NULL
+                      integrate_frr=FALSE
                     ))
 
 # Capture date in the out directory
@@ -52,8 +51,6 @@ if(!is.null(a$phi_tfrr)) a$phi_tfrr <- as.numeric(a$phi_tfrr)
 if(!is.null(a$phi_norm_mu)) a$phi_norm_mu <- as.numeric(a$phi_norm_mu)
 if(!is.null(a$phi_norm_sd)) a$phi_norm_sd <- as.numeric(a$phi_norm_sd)
 if(!is.null(a$phi_norm_div)) a$phi_norm_div <- as.numeric(a$phi_norm_div)
-if(!is.null(a$frr_mix_start)) a$frr_mix_start <- as.numeric(a$frr_mix_start)
-if(!is.null(a$frr_mix_end)) a$frr_mix_end <- as.numeric(a$frr_mix_end)
 
 # Logic checks for arguments
 if(!is.null(a$phi_frr) & !is.null(a$phi_tfrr)){
@@ -99,14 +96,14 @@ if(!is.null(a$phi_norm_mu)){
 }
 
 if(a$itype == "constant"){
-  inc.function <- con.incidence
-  infection.function <- con.infections
+  inc.function <- incidence.con
+  infection.function <- infections.con
 } else if(a$itype == "linear"){
-  inc.function <- lin.incidence
-  infection.function <- lin.infections
+  inc.function <- incidence.lin
+  infection.function <- infections.lin
 } else if(a$itype == "exponential"){
-  inc.function <- exn.incidence
-  infection.function <- exn.infections
+  inc.function <- incidence.exp
+  infection.function <- infections.exp
 } else {
   stop("Unknown incidence function.")
 }
@@ -118,7 +115,7 @@ sim <- simulate(n_sims=a$n_sims, n=a$n,
                 infection.function=infection.function,
                 baseline_incidence=a$inc, prevalence=a$p, rho=a$rho,
                 phi.func=phi.func,
-                bigT=a$bigT, tau=a$tau, frr_mixture=c(a$frr_mix_start, a$frr_mix_end))
+                bigT=a$bigT, tau=a$tau, integrate_frr=a$integrate_frr)
 
 df <- do.call(cbind, sim) %>% data.table
 df[, sim := .I]
