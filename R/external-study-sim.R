@@ -119,7 +119,7 @@ simulate.study <- function(days, num.samples, coefs, knot=5,
 #' @param phi.func Optional recency test-positive function
 #' @return List of data frames with an id, time, and recency indicator
 simulate.studies <- function(nsims, phi.func=NULL){
-  mod <- fit.model(duong)
+  mod <- fit.model(XSRecency:::duong)
   sims <- replicate(nsims, simulate.study(mod$days, mod$num.samples, mod$rate,
                                           phi.func=phi.func),
                     simplify=FALSE)
