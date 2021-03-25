@@ -1,8 +1,8 @@
 #!/bin/sh
 
 OUT="/home/students/mnorwood/hutch/sgeout/"
-SHELL="/home/students/mnorwood/repos/XSRecency/results/shell.sh"
-SCRIPT="simulate-parallel.R"
+SHELL="/home/students/mnorwood/repos/XSRecency/results/parallel/shell.sh"
+SCRIPT="/home/students/mnorwood/repos/XSRecency/results/simulate-parallel.R"
 OUTPUT="/home/students/mnorwood/hutch/xs-recent"
 
 CONSTANTS="-cwd -N recency_sim -j y -o ${OUT} -pe smp 1 -q normal.q ${SHELL} ${SCRIPT}"
