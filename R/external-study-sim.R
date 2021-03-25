@@ -2,6 +2,8 @@
 # EXTERNAL STUDY DATA SIMULATION TO ESTIMATE MU, OMEGA, BETA
 # -------------------------------------------------------------------------
 
+library(geepack)
+
 # number of long infecteds for beta study
 N_LONG_INFECT=1388
 YEAR2DAY=365.25
@@ -47,15 +49,14 @@ fit.model <- function(df, knot=5){
   df[, samp.5 := samp >= knot]
 
   # Fit GEE model for the gap times
-  mod <- gee(gap ~ samp + samp.5 + samp.5*samp, id=id.key, data=df,
+  mod <- geese(gap ~ samp + samp.5 + samp.5*samp, id=id.key, data=df,
              family=poisson(link="log"), corstr="exchangeable")
-
   # Get only the first days of sampling
   first.day <- df[samp == 1]
 
   return(list(days=first.day$days,
               num.samples=first.day$num.samples,
-              rate=coef(mod)))
+              rate=mod$beta))
 }
 
 #' Function to simulate one study
@@ -105,7 +106,7 @@ simulate.study <- function(days, num.samples, coefs, knot=5,
 
   # If there is a phi function, apply it to the durations
   if(!is.null(phi.func)){
-    recent <- phi.func(time.tot)
+    recent <- rbinom(n=length(time.tot), size=1, prob=phi.func(time.tot))
     df$recent <- recent
   }
   return(df)
@@ -135,8 +136,8 @@ fit.cubic <- function(recent, durations, id){
   durations3 <- durations**3
 
   # fit a logistic regression with cubic polynomials
-  model <- gee(recent ~ durations + durations2 + durations3,
-               family=binomial(link="logit"), id=id)
+  model <- geese(recent ~ durations + durations2 + durations3,
+                 family=binomial(link="logit"), id=id, corstr="exchangeable")
   return(model)
 }
 
@@ -149,7 +150,7 @@ phi.hat <- function(d, model){
     rep(1, length(d)),
     d, d**2, d**3
   )
-  lin <- dmat %*% matrix(coef(model))
+  lin <- dmat %*% matrix(model$beta)
   return(exp(lin) / (1 + exp(lin)))
 }
 
@@ -171,7 +172,7 @@ integrate.phi <- function(model, minT=0, maxT=12, average=FALSE){
               ts**3)
 
   # get the linear predictor
-  lin_predictor <- ts %*% matrix(coef(model))
+  lin_predictor <- ts %*% matrix(model$beta)
 
   # expit the linear predictor
   phi <- exp(lin_predictor) / (1 + exp(lin_predictor))
@@ -188,7 +189,7 @@ integrate.phi <- function(model, minT=0, maxT=12, average=FALSE){
   grad <- grad * dt
   if(average) grad <- grad / (maxT - minT)
 
-  vc <- model$robust.variance
+  vc <- model$vbeta
 
   # the variance of omega_t
   variance <- c(t(grad) %*% vc %*% grad)
@@ -206,7 +207,6 @@ integrate.phi <- function(model, minT=0, maxT=12, average=FALSE){
 #' @param tau The maximum time
 #' @returns List of properties and their variances
 assay.properties.sim <- function(study, phi.func, bigT, tau){
-
   model <- fit.cubic(recent=study$recent,
                      durations=study$durations,
                      id=study$id)
@@ -250,7 +250,6 @@ assay.properties.sim <- function(study, phi.func, bigT, tau){
 #'                      bigT=2, tau=12, integrate.FRR=TRUE)
 assay.properties.nsim <- function(n_sims, phi.func, bigT, tau,
                                   integrate.FRR=FALSE){
-
   studies <- simulate.studies(n_sims, phi.func)
   result <- sapply(studies, function(x) assay.properties.sim(study=x,
                                                              phi.func=phi.func,
