@@ -70,7 +70,7 @@ if(is.null(a$rho) & a$itype != "constant"){
 if(is.null(a$rho)) a$rho <- NA
 
 # Get the gamma parameters and baseline phi function
-params <- get.gamma.params(window=a$window/356.25, shadow=a$shadow/365.25)
+params <- get.gamma.params(window=a$window/365.25, shadow=a$shadow/365.25)
 
 # Set up each type of phi function, will be overwritten
 phi.none <- function(t) 1-pgamma(t, shape = params[1], rate = params[2])
