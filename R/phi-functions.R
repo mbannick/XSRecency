@@ -6,8 +6,8 @@ DELTA <- 1e-3
 #' for a given mean window period and shadow
 #' @export
 get.gamma.params <- function(window, shadow){
-  alpha <- window ** 2 / (2 * shadow - window ** 2)
-  beta <- window / (2 * shadow - window ** 2)
+  alpha <- window / (2 * shadow - window)
+  beta <- 1 / (2 * shadow - window)
   return(c(alpha, beta))
 }
 
@@ -30,14 +30,15 @@ true.window.mdri <- function(phi.function, maxT){
 #' @export
 true.shadow.snap <- function(phi.function, tau){
   ts <- seq(0, tau, DELTA)
-  window <- true.window(phi.function)
+  window <- true.window.mdri(phi.function, maxT=tau)
+  print(window)
   return(sum(phi.function(ts) * ts / window * DELTA))
 }
 
 #' @export
 true.shadow.adj <- function(phi.function, bigT, tau, rho){
   ts <- seq(0, bigT, DELTA)
-  omega <- true.mdri(phi.function)
+  omega <- true.window.mdri(phi.function)
   beta <- true.frr(phi.function, bigT=bigT, tau=tau)
   return(sum(ts * (phi.function(ts) - beta)/(omega - beta) * DELTA))
 }
