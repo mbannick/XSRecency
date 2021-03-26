@@ -16,7 +16,7 @@ BIGT=2
 
 ARGS="-n_sims=${NSIMS} -n=${N} -p ${P} -inc ${INC} -tau ${TAU} -bigT ${BIGT} -out_dir ${OUTPUT}"
 
-SETTING1="-window 071 -shadow 080"
+SETTING1="-window 101 -shadow 194"
 SETTING2="-window 248 -shadow 306"
 
 NORMAL="-phi_norm_mu 7 -phi_norm_sd 1 -phi_norm_div 8"
