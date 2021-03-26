@@ -17,7 +17,9 @@ source("~/repos/XSRecency/R/data-generator.R")
 
 # READ IN VERSIONED RESULTS ---------------------------------
 
-version <- "~/Documents/FileZilla/xs-recent/15-02-21-Feb/"
+# version <- "~/Documents/FileZilla/xs-recent/15-02-21-Feb/"
+version <- "~/Documents/FileZilla/xs-recent/24-03-21-21/"
+
 detail <- fread(paste0(version, "detail.csv"))
 summ <- fread(paste0(version , "summary.csv"))
 
