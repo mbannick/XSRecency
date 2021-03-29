@@ -32,7 +32,8 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                       phi_norm_sd=NULL,
                       phi_norm_div=NULL,
                       out_dir=".",
-                      integrate_frr=FALSE
+                      integrate_frr=FALSE,
+                      duong_scale=NULL
                     ))
 
 # Capture date in the out directory
@@ -106,6 +107,12 @@ if(a$itype == "constant"){
   infection.function <- infections.exp
 } else {
   stop("Unknown incidence function.")
+}
+
+if(!is.null(args$duong_scale)){
+  duong[, days := days * as.numeric(args$duong_scale)]
+  duong[, last.time := shift(days), by="id.key"]
+  duong[, gap := days - last.time]
 }
 
 set.seed(a$seed)
