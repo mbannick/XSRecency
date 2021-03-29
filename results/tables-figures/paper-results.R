@@ -17,8 +17,14 @@ source("~/repos/XSRecency/R/data-generator.R")
 
 # READ IN VERSIONED RESULTS ---------------------------------
 
+# ORIGINAL
 # version <- "~/Documents/FileZilla/xs-recent/15-02-21-Feb/"
-version <- "~/Documents/FileZilla/xs-recent/24-03-21-21/"
+
+# GAMMA PHI FIX
+version <- "~/Documents/FileZilla/xs-recent/25-03-21-21-3/"
+
+# DUONG + GAMMA PHI FIX
+# version <- "~/Documents/FileZilla/xs-recent/25-03-21-21-2/"
 
 detail <- fread(paste0(version, "detail.csv"))
 summ <- fread(paste0(version , "summary.csv"))
@@ -35,9 +41,9 @@ detail[is.na(phi_frr) & is.na(phi_tfrr) & is.na(phi_norm_mu), pname := "Zero"]
 detail[(!is.na(phi_frr) | !is.na(phi_tfrr)) & is.na(phi_norm_mu), pname := "Constant"]
 detail[(!is.na(phi_frr) | !is.na(phi_tfrr)) & !is.na(phi_norm_mu), pname := "Non-constant"]
 
-summ[window == 71, sname := "1 A-C"]
+summ[window == 101, sname := "1 A-C"]
 summ[window == 248, sname := "2 A-C"]
-detail[window == 71, sname := "1 A-C"]
+detail[window == 101, sname := "1 A-C"]
 detail[window == 248, sname := "2 A-C"]
 
 summ[pname == "Zero" & sname == "1 A-C", assay := "1A"]
@@ -76,7 +82,7 @@ for(setting in settings){
         epi,
         assay,
 
-        sprintf('%.2f', this.row[estimator == "snap_true", expected_bias] * 100),
+        "$\\times$",
         # sprintf('%.2f', this.row[estimator == "snap_true", bias] * 100),
         # sprintf('%.2f', this.row[estimator == "snap_true", se] * 100),
         # sprintf('%.2f', this.row[estimator == "snap_true", see] * 100),
@@ -87,7 +93,7 @@ for(setting in settings){
         sprintf('%.2f', this.row[estimator == "snap_est", see] * 100),
         sprintf('%05.2f', this.row[estimator == "snap_est", cover] * 100),
 
-        sprintf('%.2f', this.row[estimator == "adj_true", expected_bias] * 100),
+        "$\\times$",
         # sprintf('%.2f', this.row[estimator == "adj_true", bias] * 100),
         # sprintf('%.2f', this.row[estimator == "adj_true", se] * 100),
         # sprintf('%.2f', this.row[estimator == "adj_true", see] * 100),
@@ -104,12 +110,13 @@ for(setting in settings){
 }
 
 addtorow <- list()
-addtorow$pos <- list(0, 0, 0, 0, 0, 0, 0, 3, 6, 9, 9, 9, 12, 15, 18)
+addtorow$pos <- list(0, 0, 0, 0, 0, 0, 0, 0, 3, 6, 9, 9, 9, 12, 15)
 addtorow$command <- c("\\multicolumn{2}{c}{Setting} & \\multicolumn{5}{c}{Snapshot Estimator (1)} & \\multicolumn{5}{c}{Kassanjee Estimator (2)} \\\\\n",
                       "\\hline ",
                       "Incidence & Assay & \\multicolumn{5}{c}{$\\hat{\\mu}$} & \\multicolumn{5}{c}{$\\hat{\\Omega}_{T^*}$, $\\hat{\\beta}_{T^*}$} \\\\\n",
                       "\\hline ",
-                      "& & E[Bias] & Bias & SE & SEE & Cov & E[Bias] & Bias & SE & SEE & Cov \\\\\n",
+                      "& & Asm. & Bias & SE & SEE & Cov & Asm. & Bias & SE & SEE & Cov \\\\\n",
+                      "\\hline ",
                       "\\hline ",
                       "\\multicolumn{11}{c}{Recency Assay 1A-C} \\\\\n",
                       "\\hline ",
@@ -118,11 +125,11 @@ addtorow$command <- c("\\multicolumn{2}{c}{Setting} & \\multicolumn{5}{c}{Snapsh
                       "\\multicolumn{11}{c}{Recency Assay 2A-C} \\\\\n",
                       "\\hline ",
                       "\\hline ",
-                      "\\hline ",
                       "\\hline ")
 tab <- xtable(data, align=rep("c", 13), digits=2, caption="Simulation results.")
 print(tab, add.to.row = addtorow,
-      include.colnames = FALSE, include.rownames = FALSE)
+      include.colnames = FALSE, include.rownames = FALSE,
+      sanitize.text.function=identity)
 
 # FIGURE OF RESULTS ----------------------------------------------------
 
@@ -190,15 +197,15 @@ par(mfrow=c(1,2))
 for(i in 1:2){
 
   if(i == 1){
-    mdri <- 71 # 45 # 71
-    shadow <- 80 # 250 # 237
+    mdri <- 101 # 45 # 71
+    shadow <- 194 # 250 # 237
   } else {
     mdri <- 248
     shadow <- 306
   }
 
-  t = seq(0, 12, 0.01)
-  params <- get.gamma.params(window=mdri/356.25, shadow=shadow/365.25)
+  t = seq(0, 12, 1e-3)
+  params <- get.gamma.params(window=mdri/365.25, shadow=shadow/365.25)
 
   phit <- function(t) 1-pgamma(t, shape = params[1], rate = params[2])
 
@@ -261,9 +268,9 @@ mean(Prevalence1) # prevalence 0.29
 
 set.seed(10)
 e <- runif(10000)
-constant.inf <- c.infections(e, t=0, p=0.29, lambda_0=0.032, rho=0.0)
-linear.inf <- l.infections(e, t=0, p=0.29, lambda_0=0.032, rho=0.0028)
-expon.inf <- e.infections(e, t=0, p=0.29, lambda_0=0.032, rho=0.07)
+constant.inf <- infections.con(e, t=0, p=0.29, lambda_0=0.032, rho=0.0)
+linear.inf <- infections.lin(e, t=0, p=0.29, lambda_0=0.032, rho=0.0028)
+expon.inf <- infections.exp(e, t=0, p=0.29, lambda_0=0.032, rho=0.07)
 
 pdf("incidence-plot.pdf",height=5,width=8)
 layout(matrix(c(1, 2, 1, 3, 1, 4), ncol=2, byrow=TRUE), c(2, 1), c(1, 1, 1))
@@ -281,3 +288,22 @@ hist(-expon.inf, freq=TRUE, xlab="Years Infected",
      main="Exponential Incidence", xlim=c(0, 13), breaks=200, border='#6675ff', col='#6675ff')
 dev.off()
 
+pdf("incidence-plot.pdf",height=8,width=8)
+par(mfrow=c(1, 1))
+plot(Year1,Incidence1/100,xlab='Year',ylab='Incidence')
+lines(Year1,rep(3.2 /100,length(Year1)),lty=2)
+lines(Year1, 0.032 + 0.0028 * (2018-Year1))
+lines(Year1,(3.2 + 0.28*(2018-Year1))/100,lty=2,col='red')
+lines(Year1,3.2 *exp(0.07*(2018-Year1))/100,lty=2,col='blue')
+legend('topright',c('Constant','Linear','Exponential'),lty=rep(2,3),col=c(1,2,4))
+dev.off()
+
+pdf("infection-plot.pdf", height=6, width=6)
+par(mfrow=c(3, 1))
+hist(-constant.inf, freq=TRUE, xlab="Years Infected",
+     main="Constant Incidence", xlim=c(0, 13), breaks=200, border="grey", col='grey')
+hist(-linear.inf, freq=TRUE, xlab="Years Infected",
+     main="Linear Incidence", xlim=c(0, 13), breaks=200, border="#ff5454", col='#ff5454')
+hist(-expon.inf, freq=TRUE, xlab="Years Infected",
+     main="Exponential Incidence", xlim=c(0, 13), breaks=200, border='#6675ff', col='#6675ff')
+dev.off()
