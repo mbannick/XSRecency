@@ -109,10 +109,13 @@ if(a$itype == "constant"){
   stop("Unknown incidence function.")
 }
 
-if(!is.null(args$duong_scale)){
-  duong[, days := days * as.numeric(args$duong_scale)]
-  duong[, last.time := shift(days), by="id.key"]
-  duong[, gap := days - last.time]
+if(!is.null(a$duong_scale)){
+  df <- copy(XSRecency:::duong)
+  df <- df[, days := days * as.numeric(a$duong_scale)]
+  df <- df[, last.time := shift(days), by="id.key"]
+  df <- df[, gap := days - last.time]
+} else {
+  df <- NULL
 }
 
 set.seed(a$seed)
@@ -122,7 +125,8 @@ sim <- simulate(n_sims=a$n_sims, n=a$n,
                 infection.function=infection.function,
                 baseline_incidence=a$inc, prevalence=a$p, rho=a$rho,
                 phi.func=phi.func,
-                bigT=a$bigT, tau=a$tau, integrate_frr=a$integrate_frr)
+                bigT=a$bigT, tau=a$tau, integrate_frr=a$integrate_frr,
+                ext_df=df)
 
 df <- do.call(cbind, sim) %>% data.table
 df[, sim := .I]

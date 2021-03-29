@@ -119,8 +119,13 @@ simulate.study <- function(days, num.samples, coefs, knot=5,
 #' @param nsims Number of study simulations
 #' @param phi.func Optional recency test-positive function
 #' @return List of data frames with an id, time, and recency indicator
-simulate.studies <- function(nsims, phi.func=NULL){
-  mod <- fit.model(XSRecency:::duong)
+simulate.studies <- function(nsims, phi.func=NULL, ext_df=NULL){
+  if(!is.null(ext_df)){
+    df <- ext_df
+  } else {
+    df <- XSRecency:::duong
+  }
+  mod <- fit.model(df)
   sims <- replicate(nsims, simulate.study(mod$days, mod$num.samples, mod$rate,
                                           phi.func=phi.func),
                     simplify=FALSE)
@@ -249,8 +254,8 @@ assay.properties.sim <- function(study, phi.func, bigT, tau){
 #' assay.properties.sim(n_sims=1, phi.func=function(t) 1 - pgamma(t, 1, 1.5),
 #'                      bigT=2, tau=12, integrate.FRR=TRUE)
 assay.properties.nsim <- function(n_sims, phi.func, bigT, tau,
-                                  integrate.FRR=FALSE){
-  studies <- simulate.studies(n_sims, phi.func)
+                                  integrate.FRR=FALSE, ext_df=NULL){
+  studies <- simulate.studies(n_sims, phi.func, ext_df=ext_df)
   result <- sapply(studies, function(x) assay.properties.sim(study=x,
                                                              phi.func=phi.func,
                                                              bigT=bigT,

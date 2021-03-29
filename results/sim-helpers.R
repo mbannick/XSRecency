@@ -8,11 +8,11 @@ library(magrittr)
 
 simulate <- function(n_sims, n, inc.function, infection.function, phi.func,
                      baseline_incidence, prevalence, rho, bigT, tau,
-                     integrate_frr){
+                     integrate_frr, ext_df=NULL){
 
   # Get assay parameters simulation based on external data simulation
   assay <- assay.properties.nsim(n_sims, phi.func=phi.func, bigT=bigT, tau=tau,
-                                 integrate.FRR=integrate_frr)
+                                 integrate.FRR=integrate_frr, ext_df=ext_df)
 
   # Calculate true assay parameters
   true_frr <- true.frr(phi.func=phi.func, bigT=bigT, tau=tau)
