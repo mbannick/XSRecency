@@ -2,7 +2,7 @@ rm(list=ls())
 
 library(data.table)
 library(ggplot2)
-library(gee)
+library(geepack)
 library(lme4)
 library(gridExtra)
 library(magrittr)
@@ -50,13 +50,37 @@ process.study <- function(file){
 
 # Simulation ---------------------------------------------------
 set.seed(365)
-sims <- simulate.studies(file=FILE, nsims=3)
+sims <- simulate.studies(nsims=3)
 
 pdf("duong-hist-fig.pdf", width=8, height=5)
 par(mfrow=c(1, 2))
 hist(XSRecency:::duong$days, main="Days Post Seroconversion \n(Observed)",
      xlab="Days", breaks=50, ylim=c(0, 205))
-hist(sims[[1]]$days, main="Days Post Seroconversion \n(One Simulation)",
+hist(sims[[1]]$durations, main="Days Post Seroconversion \n(One Simulation)",
      xlab="Days", breaks=50, col='lightblue',
      ylim=c(0, 205))
 dev.off()
+
+# EXPLANATION OF METHOD ---------------
+
+df <- copy(duong)
+df[, days := days * 10/8]
+df[, last.time := shift(days), by="id.key"]
+df[, gap := days - last.time]
+
+ggplot(data=df, aes(y=gap, x=num.samples)) + geom_jitter()
+ggplot(data=df, aes(y=gap, x=samp)) + geom_jitter()
+
+df[, samp.5 := samp >= 5]
+mod <- geese(gap ~ samp + samp.5 + samp.5*samp, id=id.key, data=df,
+             family=poisson(link="log"), corstr="exchangeable")
+
+samp.num <- 0:25
+get.samp.dmat <- function(samp) return(cbind(1, samp, samp>=5, (samp>=5)*samp))
+dmats <- lapply(samp.num, get.samp.dmat)
+
+# Compute the predicted rates
+rates <- lapply(dmats, function(x) exp(x %*% mod$beta)[, 1]) %>% unlist
+df2 <- data.frame(samp=samp.num, gaps=rates)
+ggplot(data=df, aes(y=gap, x=samp)) + geom_jitter() +
+  geom_line(data=df2, aes(y=gaps, x=samp), color='red')

@@ -16,10 +16,12 @@ BIGT=2
 
 ARGS="-n_sims=${NSIMS} -n=${N} -p ${P} -inc ${INC} -tau ${TAU} -bigT ${BIGT} -out_dir ${OUTPUT}"
 
-SETTING1="-window 101 -shadow 194"
+SETTING1="-window 071 -shadow 080"
 SETTING2="-window 248 -shadow 306"
 
 NORMAL="-phi_norm_mu 7 -phi_norm_sd 1 -phi_norm_div 8"
+
+DUONG="-duong_scale 1.25"
 
 for t in constant linear exponential
 do
@@ -40,7 +42,7 @@ do
 
   TYPE="-itype ${t}"
 
-  BASELINE="${CONSTANTS} ${ARGS} ${RHO} ${TYPE}"
+  BASELINE="${CONSTANTS} ${ARGS} ${RHO} ${TYPE} ${DUONG}"
 
   # echo qsub ${BASELINE} ${SETTING1}
   qsub ${BASELINE} ${SETTING1}
