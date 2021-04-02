@@ -26,7 +26,8 @@ id.vars <- c("truth", "n_sims", "sim", "seed", "n", "p", "inc", "tau", "bigT", "
              "window", "shadow")
 
 for(var in c("rho", "phi_frr", "phi_tfrr", "phi_norm_mu",
-             "phi_norm_sd", "phi_norm_div", "frr_mix_start", "frr_mix_end")){
+             "phi_norm_sd", "phi_norm_div", "frr_mix_start", "frr_mix_end",
+             "integrate_frr", "duong_scale")){
   if(var %in% colnames(df)){
     id.vars <- c(id.vars, var)
   }

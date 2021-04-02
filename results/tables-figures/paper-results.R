@@ -21,10 +21,21 @@ source("~/repos/XSRecency/R/data-generator.R")
 # version <- "~/Documents/FileZilla/xs-recent/15-02-21-Feb/"
 
 # GAMMA PHI FIX
-version <- "~/Documents/FileZilla/xs-recent/25-03-21-21-3/"
+# version <- "~/Documents/FileZilla/xs-recent/25-03-21-21-3/"
 
 # DUONG + GAMMA PHI FIX
 # version <- "~/Documents/FileZilla/xs-recent/25-03-21-21-2/"
+# These are identical versions
+# version <- "~/Documents/FileZilla/xs-recent/29-03-21-18-5000/"
+
+# DUONG + GAMMA PHI FIX + 10 YEAR DUONG
+# version <- "~/Documents/FileZilla/xs-recent/29-03-21-16-2/"
+
+# DUONG + GAMMA PHI FIX + N 2000
+# version <- "~/Documents/FileZilla/xs-recent/29-03-21-16-2000/"
+
+# DUONG + GAMMA PHI FIX + N 10000
+version <- "~/Documents/FileZilla/xs-recent/29-03-21-16-10000/"
 
 detail <- fread(paste0(version, "detail.csv"))
 summ <- fread(paste0(version , "summary.csv"))
@@ -67,8 +78,11 @@ epis <- summ$tname %>% unique
 data <- data.table()
 
 for(setting in settings){
+  print(setting)
   for(phi in phis){
+    print(phi)
     for(epi in epis){
+      print(epi)
 
       const <- 100
 
