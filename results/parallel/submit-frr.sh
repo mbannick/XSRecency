@@ -24,8 +24,8 @@ NORMAL="-phi_norm_mu 7 -phi_norm_sd 1 -phi_norm_div 8"
 
 BASELINE="${CONSTANTS} ${ARGS} ${TYPE}"
 
-qsub ${BASELINE} ${SETTING1} -phi_tfrr 2 ${NORMAL} "-ext_FRR"
-qsub ${BASELINE} ${SETTING2} -phi_frr 0.02 ${NORMAL} "-ext_FRR"
+qsub ${BASELINE} ${SETTING1} -phi_tfrr 2 ${NORMAL}
+qsub ${BASELINE} ${SETTING2} -phi_frr 0.02 ${NORMAL}
 
 qsub ${BASELINE} ${SETTING1} -phi_tfrr 2 ${NORMAL} "-ext_FRR"
 qsub ${BASELINE} ${SETTING2} -phi_frr 0.02 ${NORMAL} "-ext_FRR"
