@@ -23,8 +23,8 @@ source("~/repos/XSRecency/R/data-generator.R")
 # GAMMA PHI FIX
 # version <- "~/Documents/FileZilla/xs-recent/25-03-21-21-3/"
 
-# DUONG + GAMMA PHI FIX
-# version <- "~/Documents/FileZilla/xs-recent/25-03-21-21-2/"
+# DUONG + GAMMA PHI FIX (MAIN TABLE)
+version <- "~/Documents/FileZilla/xs-recent/25-03-21-21-2/"
 # These are identical versions
 # version <- "~/Documents/FileZilla/xs-recent/29-03-21-18-5000/"
 
@@ -35,7 +35,10 @@ source("~/repos/XSRecency/R/data-generator.R")
 # version <- "~/Documents/FileZilla/xs-recent/29-03-21-16-2000/"
 
 # DUONG + GAMMA PHI FIX + N 10000
-version <- "~/Documents/FileZilla/xs-recent/29-03-21-16-10000/"
+# version <- "~/Documents/FileZilla/xs-recent/29-03-21-16-10000/"
+
+# DUONG + GAMMA PHI FIX + N 5000 + SENSITIVITY EPI
+# version <- "~/Documents/FileZilla/xs-recent/02-04-21-09/"
 
 detail <- fread(paste0(version, "detail.csv"))
 summ <- fread(paste0(version , "summary.csv"))
@@ -302,18 +305,14 @@ hist(-expon.inf, freq=TRUE, xlab="Years Infected",
      main="Exponential Incidence", xlim=c(0, 13), breaks=200, border='#6675ff', col='#6675ff')
 dev.off()
 
-pdf("incidence-plot.pdf",height=8,width=8)
-par(mfrow=c(1, 1))
+pdf("incidence-plot.pdf",height=5,width=8)
+layout(matrix(c(1, 2, 1, 3, 1, 4), ncol=2, byrow=TRUE), c(2, 1), c(1, 1, 1))
 plot(Year1,Incidence1/100,xlab='Year',ylab='Incidence')
 lines(Year1,rep(3.2 /100,length(Year1)),lty=2)
 lines(Year1, 0.032 + 0.0028 * (2018-Year1))
 lines(Year1,(3.2 + 0.28*(2018-Year1))/100,lty=2,col='red')
 lines(Year1,3.2 *exp(0.07*(2018-Year1))/100,lty=2,col='blue')
 legend('topright',c('Constant','Linear','Exponential'),lty=rep(2,3),col=c(1,2,4))
-dev.off()
-
-pdf("infection-plot.pdf", height=6, width=6)
-par(mfrow=c(3, 1))
 hist(-constant.inf, freq=TRUE, xlab="Years Infected",
      main="Constant Incidence", xlim=c(0, 13), breaks=200, border="grey", col='grey')
 hist(-linear.inf, freq=TRUE, xlab="Years Infected",

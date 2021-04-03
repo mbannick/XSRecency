@@ -20,26 +20,26 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                       n=5000,
                       p=0.29,
                       inc=0.032,
-                      window=71,
-                      shadow=80,
+                      window=101,
+                      shadow=194,
                       itype="constant",
                       rho=NULL,
                       tau=12,
                       bigT=2,
                       phi_frr=NULL,
-                      phi_tfrr=NULL,
+                      phi_tfrr=2,
                       phi_norm_mu=NULL,
                       phi_norm_sd=NULL,
                       phi_norm_div=NULL,
                       out_dir=".",
-                      integrate_frr=FALSE,
+                      ext_FRR=FALSE,
                       duong_scale=NULL
                     ))
 
 # Capture date in the out directory
 date <- format(Sys.time(), "%d-%m-%y-%H")
 out_dir <- paste0(a$out_dir, "/", date, "/")
-dir.create(out_dir, showWarnings=FALSE)
+dir.create(out_dir, showWarnings=FALSE, recursive=TRUE)
 
 # a[[1]] <- NULL
 a$out_dir <- NULL
@@ -125,7 +125,7 @@ sim <- simulate(n_sims=a$n_sims, n=a$n,
                 infection.function=infection.function,
                 baseline_incidence=a$inc, prevalence=a$p, rho=a$rho,
                 phi.func=phi.func,
-                bigT=a$bigT, tau=a$tau, integrate_frr=a$integrate_frr,
+                bigT=a$bigT, tau=a$tau, ext_FRR=a$ext_FRR,
                 ext_df=df)
 
 df <- do.call(cbind, sim) %>% data.table
