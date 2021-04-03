@@ -14,7 +14,7 @@ BIGT=2
 
 ARGS="-n_sims=${NSIMS} -n=${N} -tau ${TAU} -bigT ${BIGT} -out_dir ${OUTPUT}"
 
-SETTING1="-window 071 -shadow 080"
+SETTING1="-window 101 -shadow 194"
 
 BASELINE="${CONSTANTS} ${ARGS} ${RHO} ${TYPE}"
 
