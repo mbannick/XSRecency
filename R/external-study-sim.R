@@ -14,12 +14,19 @@ YEAR2DAY=365.25
 #' given in the study.
 #'
 #' @export
-simulate.beta <- function(phi.func, minT, maxT){
-  infected_times <- runif(n=N_LONG_INFECT, min=minT, max=maxT)
+simulate.beta <- function(phi.func, minT, maxT, recent=NULL){
+  if(is.null(recent)){
+    N <- N_LONG_INFECT
+    inf_times <- runif(n=N_LONG_INFECT, min=minT, max=maxT)
+    recent <- rbinom(n=N, size=1, p=phi.func(inf_times))
+  } else {
+    # If we already have recency indicators, then don't
+    # apply the phi function
+    N <- length(recent)
+  }
 
-  recent <- rbinom(n=N_LONG_INFECT, size=1, p=phi.func(infected_times))
-  beta <- sum(recent) / N_LONG_INFECT
-  beta_var <- beta * (1 - beta) / N_LONG_INFECT
+  beta <- sum(recent) / N
+  beta_var <- beta * (1 - beta) / N
   return(list(est=beta, var=beta_var))
 }
 
@@ -29,9 +36,23 @@ simulate.beta <- function(phi.func, minT, maxT){
 #' given in the study.
 #'
 #' @export
-simulate.nbeta <- function(nsims, phi.func, minT, maxT){
-  result <- replicate(nsims, simulate.beta(phi.func=phi.func,
-                                           minT=minT, maxT=maxT))
+simulate.nbeta <- function(nsims, phi.func, minT, maxT, studies=NULL){
+  if(is.null(studies)){
+    result <- replicate(nsims, simulate.beta(phi.func=phi.func,
+                                             minT=minT, maxT=maxT))
+  } else {
+    recents <- list()
+    i <- 1
+    for(study in studies){
+      recents[[i]] <- study[study$durations >= minT, "recent"]
+      i <- i + 1
+    }
+    result <- sapply(recents, function(x) simulate.beta(phi.func=phi.func,
+                                                        minT=minT,
+                                                        maxT=maxT,
+                                                        recent=x))
+  }
+
 }
 
 #' Helper function for simulating many studies
@@ -164,7 +185,7 @@ phi.hat <- function(d, model){
 #' long follow_T parameter (like 9)
 #'
 #' @export
-integrate.phi <- function(model, minT=0, maxT=12, average=FALSE){
+integrate.phi <- function(model, minT=0, maxT=12){
 
   # generate a sequence of duration times, starting at 0 and
   # up to max t, just to get the phi_hat
@@ -184,7 +205,6 @@ integrate.phi <- function(model, minT=0, maxT=12, average=FALSE){
 
   # integrate the linear predictor over the times
   estimate <- sum(phi * dt)
-  if(average) estimate <- estimate / (maxT - minT)
 
   # get the variance of omega_t
   # get the gradient of the linear predictor and then multiply
@@ -192,7 +212,6 @@ integrate.phi <- function(model, minT=0, maxT=12, average=FALSE){
   grad <- exp(lin_predictor) / (1 + exp(lin_predictor))**2
   grad <- t(ts) %*% grad
   grad <- grad * dt
-  if(average) grad <- grad / (maxT - minT)
 
   vc <- model$vbeta
 
@@ -217,18 +236,15 @@ assay.properties.sim <- function(study, phi.func, bigT, tau){
                      id=study$id)
 
   # get mu and omega
-  mu_sim <- integrate.phi(model, minT=0, maxT=tau, average=FALSE)
-  omega_sim <- integrate.phi(model, minT=0, maxT=bigT, average=FALSE)
-
-  # get beta
-  beta_sim <- integrate.phi(model, minT=bigT, maxT=tau, average=TRUE)
+  mu_sim <- integrate.phi(model, minT=0, maxT=tau)
+  omega_sim <- integrate.phi(model, minT=0, maxT=bigT)
 
   result <- list(mu_est=mu_sim$est,
                  mu_var=mu_sim$var,
                  omega_est=omega_sim$est,
                  omega_var=omega_sim$var,
-                 beta_est=beta_sim$est,
-                 beta_var=beta_sim$var)
+                 beta_est=NA,
+                 beta_var=NA)
   return(result)
 }
 
@@ -250,22 +266,21 @@ assay.properties.sim <- function(study, phi.func, bigT, tau){
 #' set.seed(0)
 #' assay.properties.sim(n_sims=1, phi.func=function(t) 1 - pgamma(t, 1, 1.5),
 #'                      bigT=2, tau=12)
-#' set.seed(0)
-#' assay.properties.sim(n_sims=1, phi.func=function(t) 1 - pgamma(t, 1, 1.5),
-#'                      bigT=2, tau=12, integrate.FRR=TRUE)
 assay.properties.nsim <- function(n_sims, phi.func, bigT, tau,
-                                  integrate.FRR=FALSE, ext_df=NULL){
+                                  ext_FRR=FALSE, ext_df=NULL){
   studies <- simulate.studies(n_sims, phi.func, ext_df=ext_df)
   result <- sapply(studies, function(x) assay.properties.sim(study=x,
                                                              phi.func=phi.func,
                                                              bigT=bigT,
                                                              tau=tau))
-
-  if(!integrate.FRR){
-    beta_sim <- simulate.nbeta(nsims=n_sims, phi.func=phi.func,
-                               minT=bigT, maxT=tau)
-    result[c("beta_est", "beta_var"), ] <- beta_sim
+  if(ext_FRR){
+    frr_studies <- studies
+  } else {
+    frr_studies <- NULL
   }
+  beta_sim <- simulate.nbeta(nsims=n_sims, phi.func=phi.func,
+                             minT=bigT, maxT=tau, studies=frr_studies)
+  result[c("beta_est", "beta_var"), ] <- beta_sim
 
   result <- t(result)
   result <- data.table(result)

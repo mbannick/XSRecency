@@ -21,6 +21,7 @@ SETTING2="-window 248 -shadow 306"
 
 NORMAL="-phi_norm_mu 7 -phi_norm_sd 1 -phi_norm_div 8"
 
+# THIS WAS A MODIFICATION TO TEST OUT DUONG SCALE
 DUONG="-duong_scale 1.25"
 
 for t in constant linear exponential

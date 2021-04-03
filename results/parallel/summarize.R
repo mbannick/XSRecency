@@ -8,6 +8,7 @@ library(tidyr)
 # Get the input and output directories
 args <- commandArgs(trailingOnly=TRUE)
 in.dir <- args[1]
+in.dir <- "~/Documents/FileZilla/xs-recent/02-04-21-10/"
 
 # Read in files
 f <- list.files(in.dir, full.names=T)
