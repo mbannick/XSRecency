@@ -51,12 +51,14 @@ variance[, estimator := lapply(.SD, function(x) gsub("_var$", "", x)), .SDcols="
 
 detail <- merge(estimate, variance, by=c(id.vars, "estimator"))
 detail[, bias := estimate - truth]
-detail[, width := qnorm(0.975) * variance ** 0.5]
-detail[, lower := estimate - width]
-detail[, upper := estimate + width]
-detail[, cover := (truth < upper) & (truth > lower)]
 
-bias <- detail[, lapply(.SD, mean), by=id.vars.nosim.est, .SDcols="bias"]
+# Do a log confidence intervals
+detail[, width := qnorm(0.975) * (variance / estimate**2) ** 0.5]
+detail[, lower := log(estimate) - width]
+detail[, upper := log(estimate) + width]
+detail[, cover := (log(truth) < upper) & (log(truth) > lower)]
+
+bias <- detail[, lapply(.SD, median), by=id.vars.nosim.est, .SDcols="bias"]
 se <- detail[, lapply(.SD, function(x) var(x) ** 0.5), by=id.vars.nosim.est, .SDcols="estimate"]
 see <- detail[, lapply(.SD, function(x) mean(x**0.5)), by=id.vars.nosim.est, .SDcols="variance"]
 cover <- detail[, lapply(.SD, mean), by=id.vars.nosim.est, .SDcols="cover"]
