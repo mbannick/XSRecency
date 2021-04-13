@@ -8,27 +8,21 @@ library(tidyr)
 # Get the input and output directories
 args <- commandArgs(trailingOnly=TRUE)
 in.dir <- args[1]
-in.dir <- "~/Documents/FileZilla/xs-recent/02-04-21-10/"
 
 # Read in files
 f <- list.files(in.dir, full.names=T)
 f <- f[!grepl("summary", f)]
 f <- f[!grepl("detail", f)]
+f <- f[!grepl("README.md", f)]
 df <- lapply(f, fread) %>% rbindlist(fill=T)
 df[, V1 := NULL]
-
-# if this is summarizing the sensitivity analysis of uniform mixtures,
-# remove the single row for simulant 3905 because it just by chance
-# estimates *exactly* 0.
-bad.row <- which(df$sim == 3905 & df$frr_mix_start == 2 & df$window == 71 & df$frr_mix_end == 9)
-df <- df[!bad.row]
 
 id.vars <- c("truth", "n_sims", "sim", "seed", "n", "p", "inc", "tau", "bigT", "itype",
              "window", "shadow")
 
 for(var in c("rho", "phi_frr", "phi_tfrr", "phi_norm_mu",
              "phi_norm_sd", "phi_norm_div", "frr_mix_start", "frr_mix_end",
-             "integrate_frr", "duong_scale")){
+             "ext_FRR", "duong_scale")){
   if(var %in% colnames(df)){
     id.vars <- c(id.vars, var)
   }
@@ -58,12 +52,14 @@ variance[, estimator := lapply(.SD, function(x) gsub("_var$", "", x)), .SDcols="
 
 detail <- merge(estimate, variance, by=c(id.vars, "estimator"))
 detail[, bias := estimate - truth]
+
 detail[, width := qnorm(0.975) * variance ** 0.5]
 detail[, lower := estimate - width]
 detail[, upper := estimate + width]
 detail[, cover := (truth < upper) & (truth > lower)]
+detail[, cover := FALSE]
 
-bias <- detail[, lapply(.SD, mean), by=id.vars.nosim.est, .SDcols="bias"]
+bias <- detail[, lapply(.SD, median), by=id.vars.nosim.est, .SDcols="bias"]
 se <- detail[, lapply(.SD, function(x) var(x) ** 0.5), by=id.vars.nosim.est, .SDcols="estimate"]
 see <- detail[, lapply(.SD, function(x) mean(x**0.5)), by=id.vars.nosim.est, .SDcols="variance"]
 cover <- detail[, lapply(.SD, mean), by=id.vars.nosim.est, .SDcols="cover"]
