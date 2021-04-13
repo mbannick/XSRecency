@@ -13,6 +13,7 @@ in.dir <- args[1]
 f <- list.files(in.dir, full.names=T)
 f <- f[!grepl("summary", f)]
 f <- f[!grepl("detail", f)]
+f <- f[!grepl("README.md", f)]
 df <- lapply(f, fread) %>% rbindlist(fill=T)
 df[, V1 := NULL]
 
@@ -56,7 +57,7 @@ detail[, lower := estimate - width]
 detail[, upper := estimate + width]
 detail[, cover := (truth < upper) & (truth > lower)]
 
-bias <- detail[, lapply(.SD, mean), by=id.vars.nosim.est, .SDcols="bias"]
+bias <- detail[, lapply(.SD, median), by=id.vars.nosim.est, .SDcols="bias"]
 se <- detail[, lapply(.SD, function(x) var(x) ** 0.5), by=id.vars.nosim.est, .SDcols="estimate"]
 see <- detail[, lapply(.SD, function(x) mean(x**0.5)), by=id.vars.nosim.est, .SDcols="variance"]
 cover <- detail[, lapply(.SD, mean), by=id.vars.nosim.est, .SDcols="cover"]
