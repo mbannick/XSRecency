@@ -54,7 +54,10 @@ detail <- merge(estimate, variance, by=c(id.vars, "estimator"))
 detail[, bias := estimate - truth]
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> 2c70af701fcfdeb4d446f3639f738168378501f0
 # Do a log confidence intervals
 detail[, width := qnorm(0.975) * (variance / estimate**2) ** 0.5]
 detail[estimate >= 0, lower := log(estimate) - width]
@@ -62,6 +65,9 @@ detail[estimate >= 0, upper := log(estimate) + width]
 detail[estimate >= 0, cover := (log(truth) < upper) & (log(truth) > lower)]
 detail[estimate <  0, cover := FALSE]
 
+<<<<<<< HEAD
+>>>>>>> 2c70af701fcfdeb4d446f3639f738168378501f0
+=======
 >>>>>>> 2c70af701fcfdeb4d446f3639f738168378501f0
 bias <- detail[, lapply(.SD, median), by=id.vars.nosim.est, .SDcols="bias"]
 se <- detail[, lapply(.SD, function(x) var(x) ** 0.5), by=id.vars.nosim.est, .SDcols="estimate"]
