@@ -267,7 +267,7 @@ assay.properties.sim <- function(study, phi.func, bigT, tau){
 #' assay.properties.sim(n_sims=1, phi.func=function(t) 1 - pgamma(t, 1, 1.5),
 #'                      bigT=2, tau=12)
 assay.properties.nsim <- function(n_sims, phi.func, bigT, tau,
-                                  ext_FRR=FALSE, ext_df=NULL){
+                                  ext_FRR=FALSE, ext_df=NULL, add_unif=NULL){
   studies <- simulate.studies(n_sims, phi.func, ext_df=ext_df)
   result <- sapply(studies, function(x) assay.properties.sim(study=x,
                                                              phi.func=phi.func,
@@ -278,8 +278,13 @@ assay.properties.nsim <- function(n_sims, phi.func, bigT, tau,
   } else {
     frr_studies <- NULL
   }
+  if(is.null(add_unif)){
+    li_max <- tau
+  } else {
+    li_max <- add_unif
+  }
   beta_sim <- simulate.nbeta(nsims=n_sims, phi.func=phi.func,
-                             minT=bigT, maxT=tau, studies=frr_studies)
+                             minT=bigT, maxT=li_max, studies=frr_studies)
   result[c("beta_est", "beta_var"), ] <- beta_sim
 
   result <- t(result)

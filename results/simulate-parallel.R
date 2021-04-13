@@ -32,8 +32,9 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                       phi_norm_sd=NULL,
                       phi_norm_div=NULL,
                       out_dir=".",
-                      ext_FRR=FALSE,
-                      duong_scale=NULL
+                      ext_FRR=TRUE,
+                      duong_scale=NULL,
+                      add_unif=NULL
                     ))
 
 # Capture date in the out directory
@@ -52,6 +53,7 @@ if(!is.null(a$phi_tfrr)) a$phi_tfrr <- as.numeric(a$phi_tfrr)
 if(!is.null(a$phi_norm_mu)) a$phi_norm_mu <- as.numeric(a$phi_norm_mu)
 if(!is.null(a$phi_norm_sd)) a$phi_norm_sd <- as.numeric(a$phi_norm_sd)
 if(!is.null(a$phi_norm_div)) a$phi_norm_div <- as.numeric(a$phi_norm_div)
+if(!is.null(a$add_unif)) a$add_unif <- as.numeric(a$add_unif)
 
 # Logic checks for arguments
 if(!is.null(a$phi_frr) & !is.null(a$phi_tfrr)){
@@ -126,7 +128,7 @@ sim <- simulate(n_sims=a$n_sims, n=a$n,
                 baseline_incidence=a$inc, prevalence=a$p, rho=a$rho,
                 phi.func=phi.func,
                 bigT=a$bigT, tau=a$tau, ext_FRR=a$ext_FRR,
-                ext_df=df)
+                ext_df=df, add_unif=a$add_unif)
 
 df <- do.call(cbind, sim) %>% data.table
 df[, sim := .I]
