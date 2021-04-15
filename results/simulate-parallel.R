@@ -39,7 +39,7 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
 
 # Capture date in the out directory
 date <- format(Sys.time(), "%d-%m-%y-%H")
-out_dir <- paste0(a$out_dir, "/", date, "-", a$n, "/")
+out_dir <- paste0(a$out_dir, "/", date, "/")
 dir.create(out_dir, showWarnings=FALSE, recursive=TRUE)
 
 # a[[1]] <- NULL
