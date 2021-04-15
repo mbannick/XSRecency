@@ -193,7 +193,24 @@ dev.off()
 pdf("boxplots-2.pdf", height=6, width=10)
 ggplot() + geom_boxplot(data=detail, aes(x=name, y=estimate,
                                          color=name)) +
-  facet_nested(sname ~ assay + tname, scales="free_y") +
+  facet_nested(sname ~ assay + tname) +
+  geom_hline(yintercept=unique(detail$truth),
+             color='black', linetype='dashed') +
+  scale_colour_manual(values=c("#ffa75e", "#5ea4ff")) +
+  scale_fill_manual(values=c("#ffa75e", "#5ea4ff")) +
+  theme_bw() +
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        legend.position="bottom") +
+  labs(color="Estimator") +
+  ylab("Estimate") + xlab("")
+dev.off()
+
+pdf("histograms-2.pdf", height=10, width=10)
+ggplot() + geom_histogram(data=detail, aes(y=estimate,
+                                         fill=name),
+                          bins=50) +
+  facet_nested(sname + name ~ assay + tname) +
   geom_hline(yintercept=unique(detail$truth),
              color='black', linetype='dashed') +
   scale_colour_manual(values=c("#ffa75e", "#5ea4ff")) +
