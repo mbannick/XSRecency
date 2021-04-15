@@ -32,7 +32,7 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                       phi_norm_sd=NULL,
                       phi_norm_div=NULL,
                       out_dir=".",
-                      ext_FRR=TRUE,
+                      ext_FRR=FALSE,
                       duong_scale=NULL,
                       add_unif=NULL
                     ))

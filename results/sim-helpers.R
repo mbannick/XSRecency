@@ -58,7 +58,14 @@ simulate <- function(n_sims, n, inc.function, infection.function, phi.func,
          adj_true_est=adj.true$est,
          adj_true_var=adj.true$var,
          adj_est_est=adj.est$est,
-         adj_est_var=adj.est$var))
+         adj_est_var=adj.est$var,
+         mu_est=assay$mu_est,
+         mu_var=assay$mu_var,
+         omega_est=assay$omega_est,
+         omega_var=assay$omega_var,
+         beta_est=assay$beta_est,
+         beta_var=assay$beta_var
+         ))
 }
 
 summarize <- function(truth, estimates, variance){
