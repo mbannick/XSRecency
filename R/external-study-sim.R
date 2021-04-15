@@ -267,12 +267,17 @@ assay.properties.sim <- function(study, phi.func, bigT, tau){
 #' assay.properties.sim(n_sims=1, phi.func=function(t) 1 - pgamma(t, 1, 1.5),
 #'                      bigT=2, tau=12)
 assay.properties.nsim <- function(n_sims, phi.func, bigT, tau,
-                                  ext_FRR=FALSE, ext_df=NULL, add_unif=NULL){
+                                  ext_FRR=FALSE, ext_df=NULL, add_unif=NULL, mu_upper=NULL){
   studies <- simulate.studies(n_sims, phi.func, ext_df=ext_df)
+  if(!is.null(mu_upper)){
+    upper <- mu_upper
+  } else {
+    upper <- tau
+  }
   result <- sapply(studies, function(x) assay.properties.sim(study=x,
                                                              phi.func=phi.func,
                                                              bigT=bigT,
-                                                             tau=tau))
+                                                             tau=upper))
   if(ext_FRR){
     frr_studies <- studies
   } else {
