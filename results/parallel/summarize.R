@@ -22,7 +22,7 @@ id.vars <- c("truth", "n_sims", "sim", "seed", "n", "p", "inc", "tau", "bigT", "
 
 for(var in c("rho", "phi_frr", "phi_tfrr", "phi_norm_mu",
              "phi_norm_sd", "phi_norm_div", "frr_mix_start", "frr_mix_end",
-             "ext_FRR", "duong_scale")){
+             "ext_FRR", "duong_scale", "add_unif")){
   if(var %in% colnames(df)){
     id.vars <- c(id.vars, var)
   }
@@ -57,7 +57,6 @@ detail[, width := qnorm(0.975) * variance ** 0.5]
 detail[, lower := estimate - width]
 detail[, upper := estimate + width]
 detail[, cover := (truth < upper) & (truth > lower)]
-detail[, cover := FALSE]
 
 bias <- detail[, lapply(.SD, median), by=id.vars.nosim.est, .SDcols="bias"]
 se <- detail[, lapply(.SD, function(x) var(x) ** 0.5), by=id.vars.nosim.est, .SDcols="estimate"]

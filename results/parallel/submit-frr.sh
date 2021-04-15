@@ -27,5 +27,8 @@ BASELINE="${CONSTANTS} ${ARGS} ${TYPE}"
 qsub ${BASELINE} ${SETTING1} -phi_tfrr 2 ${NORMAL}
 qsub ${BASELINE} ${SETTING2} -phi_frr 0.02 ${NORMAL}
 
+qsub ${BASELINE} ${SETTING1} -phi_tfrr 2 ${NORMAL} -add_unif 5
+qsub ${BASELINE} ${SETTING2} -phi_frr 0.02 ${NORMAL} -add_unif 5
+
 qsub ${BASELINE} ${SETTING1} -phi_tfrr 2 ${NORMAL} "-ext_FRR"
 qsub ${BASELINE} ${SETTING2} -phi_frr 0.02 ${NORMAL} "-ext_FRR"
