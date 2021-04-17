@@ -14,7 +14,7 @@ INC=0.032
 TAU=12
 BIGT=2
 
-ARGS="-n_sims=${NSIMS} -n=${N} -p ${P} -inc ${INC} -tau ${TAU} -bigT ${BIGT} -out_dir ${OUTPUT}"
+ARGS="-n_sims=${NSIMS} -n=${N} -p ${P} -inc ${INC} -tau ${TAU} -bigT ${BIGT} -out_dir ${OUTPUT} -last_point"
 
 SETTING1="-window 101 -shadow 194"
 SETTING2="-window 248 -shadow 306"
@@ -27,8 +27,8 @@ BASELINE="${CONSTANTS} ${ARGS} ${TYPE}"
 qsub ${BASELINE} ${SETTING1} -phi_tfrr 2 ${NORMAL}
 qsub ${BASELINE} ${SETTING2} -phi_frr 0.02 ${NORMAL}
 
-qsub ${BASELINE} ${SETTING1} -phi_tfrr 2 ${NORMAL} -add_unif 5
-qsub ${BASELINE} ${SETTING2} -phi_frr 0.02 ${NORMAL} -add_unif 5
-
 qsub ${BASELINE} ${SETTING1} -phi_tfrr 2 ${NORMAL} "-ext_FRR"
 qsub ${BASELINE} ${SETTING2} -phi_frr 0.02 ${NORMAL} "-ext_FRR"
+
+qsub ${BASELINE} ${SETTING1} -phi_tfrr 2 ${NORMAL} "-ext_FRR -max_FRR 5"
+qsub ${BASELINE} ${SETTING2} -phi_frr 0.02 ${NORMAL} "-ext_FRR -max_FRR 5"
