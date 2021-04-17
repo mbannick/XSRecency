@@ -54,10 +54,10 @@ sims <- simulate.studies(nsims=3)
 
 pdf("duong-hist-fig.pdf", width=8, height=5)
 par(mfrow=c(1, 2))
-hist(XSRecency:::duong$days, main="Days Post Seroconversion \n(Observed)",
-     xlab="Days", breaks=50, ylim=c(0, 205))
-hist(sims[[1]]$durations, main="Days Post Seroconversion \n(One Simulation)",
-     xlab="Days", breaks=50, col='lightblue',
+hist(XSRecency:::duong$days/365.25, main="Years Post Seroconversion \n(Observed)",
+     xlab="Years", breaks=50, ylim=c(0, 205))
+hist(sims[[1]]$durations, main="Years Post Seroconversion \n(One Simulation)",
+     xlab="Years", breaks=50, col='lightblue',
      ylim=c(0, 205))
 dev.off()
 

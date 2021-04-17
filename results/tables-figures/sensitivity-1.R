@@ -10,7 +10,9 @@ library(magrittr)
 # READ IN VERSIONED RESULTS ---------------------------------
 
 # version <- "~/Documents/FileZilla/xs-recent/03-04-21-10//"
-version <- "~/Documents/FileZilla/xs-recent/13-04-21-16-5000/"
+# version <- "~/Documents/FileZilla/xs-recent/13-04-21-16-5000/"
+version <- "~/Documents/FileZilla/xs-recent/17-04-21-15/"
+
 summ <- fread(paste0(version , "summary.csv"))
 
 setorder(summ, p, inc, estimator)
@@ -23,9 +25,9 @@ summ[window == 248, sname := "2 A-C"]
 summ[pname == "Non-constant" & sname == "1 A-C", assay := "1C"]
 summ[pname == "Non-constant" & sname == "2 A-C", assay := "2C"]
 
-summ[ext_FRR == FALSE & is.na(add_unif), dist := "Kassanjee et al. 2016"]
-summ[ext_FRR == FALSE & add_unif == 5, dist := "Kassanjee et al. 2016 (truncated at 5 yrs)"]
-summ[ext_FRR == TRUE & is.na(add_unif), dist := "Duong et al. 2015"]
+summ[ext_FRR == FALSE & is.na(max_FRR), dist := "Uniform 2-12"]
+summ[ext_FRR == TRUE & is.na(max_FRR), dist := "Duong et al. 2015"]
+summ[ext_FRR == TRUE & max_FRR == 5, dist := "Duong et al. 2015 (truncated)"]
 
 summ <- summ[estimator == "adj_est"]
 
