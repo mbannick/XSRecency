@@ -5,7 +5,7 @@
 library(geepack)
 
 # number of long infecteds for beta study
-N_LONG_INFECT=1388
+N_LONG_INFECT=1500
 YEAR2DAY=365.25
 
 #' This simulates the false recency rate using
@@ -15,14 +15,18 @@ YEAR2DAY=365.25
 #'
 #' @export
 simulate.beta <- function(phi.func, minT, maxT, recent=NULL){
+  N <- N_LONG_INFECT
+
   if(is.null(recent)){
-    N <- N_LONG_INFECT
-    inf_times <- runif(n=N_LONG_INFECT, min=minT, max=maxT)
+    inf_times <- runif(n=N, min=minT, max=maxT)
     recent <- rbinom(n=N, size=1, p=phi.func(inf_times))
   } else {
     # If we already have recency indicators, then don't
-    # apply the phi function
-    N <- length(recent)
+    # apply the phi function.
+
+    # However, up-sample or down-sample
+    # them so that we have the amount that we need.
+    recent <- sample(recent, size=N, replace=TRUE)
   }
 
   beta <- sum(recent) / N
@@ -44,7 +48,7 @@ simulate.nbeta <- function(nsims, phi.func, minT, maxT, studies=NULL){
     recents <- list()
     i <- 1
     for(study in studies){
-      recents[[i]] <- study[study$durations >= minT, "recent"]
+      recents[[i]] <- study[study$durations >= minT & study$durations <= maxT, "recent"]
       i <- i + 1
     }
     result <- sapply(recents, function(x) simulate.beta(phi.func=phi.func,
@@ -190,7 +194,6 @@ integrate.phi <- function(model, minT=0, maxT=12){
   # generate a sequence of duration times, starting at 0 and
   # up to max t, just to get the phi_hat
   dt <- 0.001
-
   ts <- seq(minT, maxT, by=dt)
   ts <- cbind(rep(1, length(ts)),
               ts,
@@ -230,12 +233,14 @@ integrate.phi <- function(model, minT=0, maxT=12){
 #' @param bigT The T^* time
 #' @param tau The maximum time
 #' @returns List of properties and their variances
-assay.properties.sim <- function(study, phi.func, bigT, tau){
+assay.properties.sim <- function(study, phi.func, bigT, tau, last_point=TRUE){
   model <- fit.cubic(recent=study$recent,
                      durations=study$durations,
                      id=study$id)
 
   # get mu and omega
+  if(last_point) tau <- max(study$durations)
+
   mu_sim <- integrate.phi(model, minT=0, maxT=tau)
   omega_sim <- integrate.phi(model, minT=0, maxT=bigT)
 
@@ -267,29 +272,26 @@ assay.properties.sim <- function(study, phi.func, bigT, tau){
 #' assay.properties.sim(n_sims=1, phi.func=function(t) 1 - pgamma(t, 1, 1.5),
 #'                      bigT=2, tau=12)
 assay.properties.nsim <- function(n_sims, phi.func, bigT, tau,
-                                  ext_FRR=FALSE, ext_df=NULL, add_unif=NULL, mu_upper=NULL){
+                                  ext_FRR=FALSE, ext_df=NULL,
+                                  max_FRR=NULL, last_point=FALSE){
   studies <- simulate.studies(n_sims, phi.func, ext_df=ext_df)
-  if(!is.null(mu_upper)){
-    upper <- mu_upper
-  } else {
-    upper <- tau
-  }
   result <- sapply(studies, function(x) assay.properties.sim(study=x,
                                                              phi.func=phi.func,
                                                              bigT=bigT,
-                                                             tau=upper))
+                                                             tau=tau,
+                                                             last_point=last_point))
   if(ext_FRR){
     frr_studies <- studies
   } else {
     frr_studies <- NULL
   }
-  if(is.null(add_unif)){
-    li_max <- tau
+  if(!is.null(max_FRR)){
+    b.maxT <- max_FRR
   } else {
-    li_max <- add_unif
+    b.maxT <- tau
   }
   beta_sim <- simulate.nbeta(nsims=n_sims, phi.func=phi.func,
-                             minT=bigT, maxT=li_max, studies=frr_studies)
+                             minT=bigT, maxT=b.maxT, studies=frr_studies)
   result[c("beta_est", "beta_var"), ] <- beta_sim
 
   result <- t(result)

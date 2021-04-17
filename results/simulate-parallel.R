@@ -20,13 +20,13 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                       n=5000,
                       p=0.29,
                       inc=0.032,
-                      window=101,
-                      shadow=194,
+                      window=248,
+                      shadow=306,
                       itype="constant",
                       rho=NULL,
                       tau=12,
                       bigT=2,
-                      phi_frr=NULL,
+                      phi_frr=0.02,
                       phi_tfrr=NULL,
                       phi_norm_mu=NULL,
                       phi_norm_sd=NULL,
@@ -34,8 +34,8 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                       out_dir=".",
                       ext_FRR=FALSE,
                       duong_scale=NULL,
-                      add_unif=NULL,
-                      mu_upper=NULL
+                      max_FRR=NULL,
+                      last_point=FALSE
                     ))
 
 # Capture date in the out directory
@@ -54,8 +54,7 @@ if(!is.null(a$phi_tfrr)) a$phi_tfrr <- as.numeric(a$phi_tfrr)
 if(!is.null(a$phi_norm_mu)) a$phi_norm_mu <- as.numeric(a$phi_norm_mu)
 if(!is.null(a$phi_norm_sd)) a$phi_norm_sd <- as.numeric(a$phi_norm_sd)
 if(!is.null(a$phi_norm_div)) a$phi_norm_div <- as.numeric(a$phi_norm_div)
-if(!is.null(a$add_unif)) a$add_unif <- as.numeric(a$add_unif)
-if(!is.null(a$mu_upper)) a$mu_upper <- as.numeric(a$mu_upper)
+if(!is.null(a$max_FRR)) a$max_FRR <- as.numeric(a$max_FRR)
 
 # Logic checks for arguments
 if(!is.null(a$phi_frr) & !is.null(a$phi_tfrr)){
@@ -130,8 +129,9 @@ sim <- simulate(n_sims=a$n_sims, n=a$n,
                 baseline_incidence=a$inc, prevalence=a$p, rho=a$rho,
                 phi.func=phi.func,
                 bigT=a$bigT, tau=a$tau, ext_FRR=a$ext_FRR,
-                ext_df=df, add_unif=a$add_unif,
-                mu_upper=a$mu_upper)
+                ext_df=df,
+                max_FRR=a$max_FRR,
+                last_point=a$last_point)
 
 df <- do.call(cbind, sim) %>% data.table
 df[, sim := .I]
