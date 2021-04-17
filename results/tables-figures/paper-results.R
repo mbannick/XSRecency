@@ -24,9 +24,11 @@ source("~/repos/XSRecency/R/data-generator.R")
 # version <- "~/Documents/FileZilla/xs-recent/25-03-21-21-3/"
 
 # DUONG + GAMMA PHI FIX (MAIN TABLE)
-version <- "~/Documents/FileZilla/xs-recent/25-03-21-21-2/"
+# version <- "~/Documents/FileZilla/xs-recent/25-03-21-21-2/"
 # These are identical versions
 # version <- "~/Documents/FileZilla/xs-recent/29-03-21-18-5000/"
+# This should also be identical
+version <- "~/Documents/FileZilla/xs-recent/14-04-21-19/"
 
 # DUONG + GAMMA PHI FIX + 10 YEAR DUONG
 # version <- "~/Documents/FileZilla/xs-recent/29-03-21-16-2/"
@@ -39,6 +41,9 @@ version <- "~/Documents/FileZilla/xs-recent/25-03-21-21-2/"
 
 # DUONG + GAMMA PHI FIX + N 5000 + SENSITIVITY EPI
 # version <- "~/Documents/FileZilla/xs-recent/02-04-21-09/"
+
+# DUONG + GAMMA PHI FIX (MAIN TABLE) + INTEGRATE TO 8 MU
+# version <- "~/Documents/FileZilla/xs-recent/14-04-21-20/"
 
 detail <- fread(paste0(version, "detail.csv"))
 summ <- fread(paste0(version , "summary.csv"))
