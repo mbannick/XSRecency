@@ -38,10 +38,16 @@ cover <- cover[estimator %in% c("snap_est", "adj_est")]
 cover[estimator == "snap_est", estimator := "Snapshot"]
 cover[estimator == "adj_est", estimator := "Adjusted"]
 
-pdf("coverage-samplesize.pdf", height=7, width=10)
-ggplot(data=cover, aes(x=n, y=cover, color=estimator, group=estimator)) +
-  geom_line() +
-  facet_grid(assay~itype)
+pdf("coverage-samplesize.pdf", height=6, width=10)
+ggplot(data=cover, aes(x=n, y=cover, color=estimator,
+                       shape=itype)) +
+  geom_hline(yintercept=0.95, alpha=0.5) +
+  geom_line(linetype='dashed') + geom_point() +
+  facet_wrap(~ assay) + theme_minimal() +
+  labs(x="Trial Sample Size",
+       y="Coverage",
+       shape="Incidence",
+       color="Estimator")
 dev.off()
 
 # pdf("bias-samplesize.pdf", height=10, width=7)
