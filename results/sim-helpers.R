@@ -65,7 +65,11 @@ simulate <- function(n_sims, n, inc.function, infection.function, phi.func,
          omega_est=assay$omega_est,
          omega_var=assay$omega_var,
          beta_est=assay$beta_est,
-         beta_var=assay$beta_var
+         beta_var=assay$beta_var,
+         n_n=data$n_n,
+         n_r=data$n_r,
+         n_p=data$n_p,
+         n=data$n
          ))
 }
 
