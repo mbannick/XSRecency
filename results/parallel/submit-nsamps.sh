@@ -14,7 +14,7 @@ INC=0.032
 TAU=12
 BIGT=2
 
-ARGS="-n_sims=${NSIMS} -n=${N} -p ${P} -inc ${INC} -tau ${TAU} -bigT ${BIGT} -out_dir ${OUTPUT}"
+ARGS="-n_sims=${NSIMS} -n=${N} -p ${P} -inc ${INC} -tau ${TAU} -bigT ${BIGT} -out_dir ${OUTPUT} -last_point"
 
 SETTING1="-window 101 -shadow 194"
 SETTING2="-window 248 -shadow 306"

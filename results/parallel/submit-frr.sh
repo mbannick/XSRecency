@@ -27,8 +27,8 @@ BASELINE="${CONSTANTS} ${ARGS} ${TYPE}"
 qsub ${BASELINE} ${SETTING1} -phi_tfrr 2 ${NORMAL}
 qsub ${BASELINE} ${SETTING2} -phi_frr 0.02 ${NORMAL}
 
-qsub ${BASELINE} ${SETTING1} -phi_tfrr 2 ${NORMAL} "-ext_FRR"
-qsub ${BASELINE} ${SETTING2} -phi_frr 0.02 ${NORMAL} "-ext_FRR"
+qsub ${BASELINE} ${SETTING1} -phi_tfrr 2 ${NORMAL} -ext_FRR
+qsub ${BASELINE} ${SETTING2} -phi_frr 0.02 ${NORMAL} -ext_FRR
 
-qsub ${BASELINE} ${SETTING1} -phi_tfrr 2 ${NORMAL} "-ext_FRR -max_FRR 5"
-qsub ${BASELINE} ${SETTING2} -phi_frr 0.02 ${NORMAL} "-ext_FRR -max_FRR 5"
+qsub ${BASELINE} ${SETTING1} -phi_tfrr 2 ${NORMAL} -max_FRR 5 -ext_FRR
+qsub ${BASELINE} ${SETTING2} -phi_frr 0.02 ${NORMAL} -max_FRR 5 -ext_FRR
