@@ -26,11 +26,11 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                       rho=NULL,
                       tau=12,
                       bigT=2,
-                      phi_frr=NULL,
+                      phi_frr=0.02,
                       phi_tfrr=NULL,
-                      phi_norm_mu=NULL,
-                      phi_norm_sd=NULL,
-                      phi_norm_div=NULL,
+                      phi_norm_mu=7,
+                      phi_norm_sd=1,
+                      phi_norm_div=8,
                       out_dir=".",
                       ext_FRR=FALSE,
                       duong_scale=NULL,
@@ -54,6 +54,9 @@ if(!is.null(a$phi_tfrr)) a$phi_tfrr <- as.numeric(a$phi_tfrr)
 if(!is.null(a$phi_norm_mu)) a$phi_norm_mu <- as.numeric(a$phi_norm_mu)
 if(!is.null(a$phi_norm_sd)) a$phi_norm_sd <- as.numeric(a$phi_norm_sd)
 if(!is.null(a$phi_norm_div)) a$phi_norm_div <- as.numeric(a$phi_norm_div)
+if(!is.null(a$phi_pnorm_mu)) a$phi_pnorm_mu <- as.numeric(a$phi_pnorm_mu)
+if(!is.null(a$phi_pnorm_sd)) a$phi_pnorm_sd <- as.numeric(a$phi_pnorm_sd)
+if(!is.null(a$phi_pnorm_div)) a$phi_pnorm_div <- as.numeric(a$phi_pnorm_div)
 if(!is.null(a$max_FRR)) a$max_FRR <- as.numeric(a$max_FRR)
 
 # Logic checks for arguments
@@ -76,7 +79,8 @@ params <- get.gamma.params(window=a$window/365.25, shadow=a$shadow/365.25)
 # Set up each type of phi function, will be overwritten
 phi.none <- function(t) 1-pgamma(t, shape = params[1], rate = params[2])
 phi.const <- function(t) 1-pgamma(t, shape = params[1], rate = params[2])
-phi.dnorm <- function(t) 1-pgamma(t, shape = params[1], rate = params[2])
+phi.norm <- function(t) 1-pgamma(t, shape = params[1], rate = params[2])
+phit.pnorm <- function(t) phit.const(t) + pnorm(t, mean=6.5, sd=1) / 8
 
 phi.func <- phi.none
 
@@ -97,6 +101,10 @@ if(!is.null(a$phi_tfrr) | !is.null(a$phi_frr)){
 if(!is.null(a$phi_norm_mu)){
   phi.norm <- function(t) phi.const(t) + dnorm(t-a$phi_norm_mu, mean=0, sd=a$phi_norm_sd) / a$phi_norm_div
   phi.func <- phi.norm
+}
+if(!is.null(a$phi_pnorm_mu)){
+  phi.pnorm <- function(t) phi.const(t) + pnorm(t-a$phi_pnorm_mu, mean=0, sd=a$phi_pnorm_sd) / a$phi_pnorm_div
+  phi.func <- phi.pnorm
 }
 
 if(a$itype == "constant"){

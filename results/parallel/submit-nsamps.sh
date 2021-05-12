@@ -3,7 +3,7 @@
 OUT="/home/students/mnorwood/hutch/sgeout/"
 SHELL="/home/students/mnorwood/repos/XSRecency/results/parallel/shell.sh"
 SCRIPT="/home/students/mnorwood/repos/XSRecency/results/simulate-parallel.R"
-OUTPUT="/home/students/mnorwood/hutch/xs-recent"
+OUTPUT="/home/students/mnorwood/hutch/xs-recent/nsamps"
 
 CONSTANTS="-cwd -N recency_sim -j y -o ${OUT} -pe smp 1 -q normal.q ${SHELL} ${SCRIPT}"
 
@@ -20,6 +20,7 @@ SETTING1="-window 101 -shadow 194"
 SETTING2="-window 248 -shadow 306"
 
 NORMAL="-phi_norm_mu 7 -phi_norm_sd 1 -phi_norm_div 8"
+PNORMAL="-phi_pnorm_mu 6.5 -phi_pnorm_sd 1 -phi_pnorm_div 8"
 
 for t in constant linear exponential
 do
@@ -46,8 +47,10 @@ do
   qsub ${BASELINE} ${SETTING1}
   qsub ${BASELINE} ${SETTING1} -phi_tfrr 2
   qsub ${BASELINE} ${SETTING1} -phi_tfrr 2 ${NORMAL}
+  qsub ${BASELINE} ${SETTING1} -phi_tfrr 2 ${PNORMAL}
 
   qsub ${BASELINE} ${SETTING2}
   qsub ${BASELINE} ${SETTING2} -phi_frr 0.02
   qsub ${BASELINE} ${SETTING2} -phi_frr 0.02 ${NORMAL}
+  qsub ${BASELINE} ${SETTING2} -phi_frr 0.02 ${PNORMAL}
 done
