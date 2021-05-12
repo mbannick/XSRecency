@@ -28,7 +28,10 @@ source("~/repos/XSRecency/R/data-generator.R")
 # These are identical versions
 # version <- "~/Documents/FileZilla/xs-recent/29-03-21-18-5000/"
 # This should also be identical
-version <- "~/Documents/FileZilla/xs-recent/14-04-21-19/"
+# version <- "~/Documents/FileZilla/xs-recent/14-04-21-19/"
+
+# MAIN VERSION, COMPARING WITH LAST POINT INTEGRATION
+version <- "~/Documents/FileZilla/xs-recent/17-04-21-11/"
 
 # DUONG + GAMMA PHI FIX + 10 YEAR DUONG
 # version <- "~/Documents/FileZilla/xs-recent/29-03-21-16-2/"
@@ -81,7 +84,8 @@ detail[pname == "Non-constant" & sname == "2 A-C", assay := "2C"]
 
 settings <- summ$sname %>% unique
 phis <- summ$pname %>% unique
-epis <- summ$tname %>% unique
+# epis <- summ$tname %>% unique
+epis <- c("Constant", "Linear", "Exponential")
 
 data <- data.table()
 

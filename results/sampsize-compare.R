@@ -2,13 +2,10 @@ rm(list=ls())
 
 library(data.table)
 library(ggplot2)
+library(magrittr)
 
 files <- c(
-  "~/Documents/FileZilla/xs-recent/29-03-21-16-2000/summary.csv",
-  "~/Documents/FileZilla/xs-recent/29-03-21-18-5000/summary.csv",
-  "~/Documents/FileZilla/xs-recent/29-03-21-16-10000/summary.csv",
-  "~/Documents/FileZilla/xs-recent/29-03-21-19-15000/summary.csv",
-  "~/Documents/FileZilla/xs-recent/29-03-21-19-20000/summary.csv"
+  "~/Documents/FileZilla/xs-recent/17-04-21-16/summary.csv"
 )
 
 dfs <- lapply(files, fread) %>% rbindlist
@@ -37,22 +34,33 @@ cover <- dfs[, cover.cols, with=F]
 se <- dfs[, se.cols, with=F]
 see <- dfs[, see.cols, with=F]
 
-pdf("coverage-samplesize.pdf", height=10, width=7)
-ggplot(data=cover, aes(x=n, y=cover, color=estimator, group=estimator)) + geom_line() +
-  facet_grid(assay~itype)
+cover <- cover[estimator %in% c("snap_est", "adj_est")]
+cover[estimator == "snap_est", estimator := "Snapshot"]
+cover[estimator == "adj_est", estimator := "Adjusted"]
+
+pdf("coverage-samplesize.pdf", height=6, width=10)
+ggplot(data=cover, aes(x=n, y=cover, color=estimator,
+                       shape=itype)) +
+  geom_hline(yintercept=0.95, alpha=0.5) +
+  geom_line(linetype='dashed') + geom_point() +
+  facet_wrap(~ assay) + theme_minimal() +
+  labs(x="Trial Sample Size",
+       y="Coverage",
+       shape="Incidence",
+       color="Estimator")
 dev.off()
 
-pdf("bias-samplesize.pdf", height=10, width=7)
-ggplot(data=bias, aes(x=n, y=bias, color=estimator, group=estimator)) + geom_line() +
-  facet_grid(assay~itype)
-dev.off()
-
-pdf("se-samplesize.pdf", height=10, width=7)
-ggplot(data=se, aes(x=n, y=se, color=estimator, group=estimator)) + geom_line() +
-  facet_grid(assay~itype)
-dev.off()
-
-pdf("see-samplesize.pdf", height=10, width=7)
-ggplot(data=see, aes(x=n, y=see, color=estimator, group=estimator)) + geom_line() +
-  facet_grid(assay~itype)
-dev.off()
+# pdf("bias-samplesize.pdf", height=10, width=7)
+# ggplot(data=bias, aes(x=n, y=bias, color=estimator, group=estimator)) + geom_line() +
+#   facet_grid(assay~itype)
+# dev.off()
+#
+# pdf("se-samplesize.pdf", height=10, width=7)
+# ggplot(data=se, aes(x=n, y=se, color=estimator, group=estimator)) + geom_line() +
+#   facet_grid(assay~itype)
+# dev.off()
+#
+# pdf("see-samplesize.pdf", height=10, width=7)
+# ggplot(data=see, aes(x=n, y=see, color=estimator, group=estimator)) + geom_line() +
+#   facet_grid(assay~itype)
+# dev.off()
