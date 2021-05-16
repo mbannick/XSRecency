@@ -20,7 +20,7 @@ SETTING1="-window 101 -shadow 194"
 SETTING2="-window 248 -shadow 306"
 
 NORMAL="-phi_norm_mu 7 -phi_norm_sd 1 -phi_norm_div 8"
-PNORMAL="-phi_pnorm_mu 6.5 -phi_pnorm_sd 1 -phi_pnorm_div 8"
+PNORMAL="-phi_pnorm_mu 10 -phi_pnorm_sd 2 -phi_pnorm_div 10"
 
 for t in constant linear exponential
 do
