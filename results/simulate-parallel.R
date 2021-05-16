@@ -83,7 +83,7 @@ params <- get.gamma.params(window=a$window/365.25, shadow=a$shadow/365.25)
 phi.none <- function(t) 1-pgamma(t, shape = params[1], rate = params[2])
 phi.const <- function(t) 1-pgamma(t, shape = params[1], rate = params[2])
 phi.norm <- function(t) 1-pgamma(t, shape = params[1], rate = params[2])
-phit.pnorm <- function(t) phit.const(t) + pnorm(t, mean=6.5, sd=1) / 8
+phit.pnorm <- function(t) phit.const(t) + pnorm(t, mean=10, sd=2) / 10
 
 phi.func <- phi.none
 
