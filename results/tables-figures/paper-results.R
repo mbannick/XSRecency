@@ -31,7 +31,11 @@ source("~/repos/XSRecency/R/data-generator.R")
 # version <- "~/Documents/FileZilla/xs-recent/14-04-21-19/"
 
 # MAIN VERSION, COMPARING WITH LAST POINT INTEGRATION
-version <- "~/Documents/FileZilla/xs-recent/17-04-21-11/"
+# version <- "~/Documents/FileZilla/xs-recent/17-04-21-11/"
+
+# MAIN VERSION, LAST POINT INTEGRATION + NEW PHI FUNCTION
+# version <- "~/Documents/FileZilla/xs-recent/12-05-21-08/"
+version <- "~/Documents/FileZilla/xs-recent/16-05-21-10/"
 
 # DUONG + GAMMA PHI FIX + 10 YEAR DUONG
 # version <- "~/Documents/FileZilla/xs-recent/29-03-21-16-2/"
@@ -56,36 +60,43 @@ summ <- fread(paste0(version , "summary.csv"))
 summ[, tname := ifelse(itype == "constant", "Constant", ifelse(itype == "linear", "Linear", "Exponential"))]
 detail[, tname := ifelse(itype == "constant", "Constant", ifelse(itype == "linear", "Linear", "Exponential"))]
 
-summ[is.na(phi_frr) & is.na(phi_tfrr) & is.na(phi_norm_mu), pname := "Zero"]
-summ[(!is.na(phi_frr) | !is.na(phi_tfrr)) & is.na(phi_norm_mu), pname := "Constant"]
-summ[(!is.na(phi_frr) | !is.na(phi_tfrr)) & !is.na(phi_norm_mu), pname := "Non-constant"]
-detail[is.na(phi_frr) & is.na(phi_tfrr) & is.na(phi_norm_mu), pname := "Zero"]
-detail[(!is.na(phi_frr) | !is.na(phi_tfrr)) & is.na(phi_norm_mu), pname := "Constant"]
-detail[(!is.na(phi_frr) | !is.na(phi_tfrr)) & !is.na(phi_norm_mu), pname := "Non-constant"]
+summ[is.na(phi_frr) & is.na(phi_tfrr) & is.na(phi_norm_mu) & is.na(phi_pnorm_mu), pname := "Zero"]
+summ[(!is.na(phi_frr) | !is.na(phi_tfrr)) & is.na(phi_norm_mu) & is.na(phi_pnorm_mu), pname := "Constant"]
+summ[(!is.na(phi_frr) | !is.na(phi_tfrr)) & !is.na(phi_norm_mu) & is.na(phi_pnorm_mu), pname := "Non-constant"]
+summ[(!is.na(phi_frr) | !is.na(phi_tfrr)) & is.na(phi_norm_mu) & !is.na(phi_pnorm_mu), pname := "Increasing"]
+detail[is.na(phi_frr) & is.na(phi_tfrr) & is.na(phi_norm_mu) & is.na(phi_pnorm_mu), pname := "Zero"]
+detail[(!is.na(phi_frr) | !is.na(phi_tfrr)) & is.na(phi_norm_mu) & is.na(phi_pnorm_mu), pname := "Constant"]
+detail[(!is.na(phi_frr) | !is.na(phi_tfrr)) & !is.na(phi_norm_mu) & is.na(phi_pnorm_mu), pname := "Non-constant"]
+detail[(!is.na(phi_frr) | !is.na(phi_tfrr)) & is.na(phi_norm_mu) & !is.na(phi_pnorm_mu), pname := "Increasing"]
 
-summ[window == 101, sname := "1 A-C"]
-summ[window == 248, sname := "2 A-C"]
-detail[window == 101, sname := "1 A-C"]
-detail[window == 248, sname := "2 A-C"]
+summ[window == 101, sname := "1 A-D"]
+summ[window == 248, sname := "2 A-D"]
+detail[window == 101, sname := "1 A-D"]
+detail[window == 248, sname := "2 A-D"]
 
-summ[pname == "Zero" & sname == "1 A-C", assay := "1A"]
-summ[pname == "Constant" & sname == "1 A-C", assay := "1B"]
-summ[pname == "Non-constant" & sname == "1 A-C", assay := "1C"]
-summ[pname == "Zero" & sname == "2 A-C", assay := "2A"]
-summ[pname == "Constant" & sname == "2 A-C", assay := "2B"]
-summ[pname == "Non-constant" & sname == "2 A-C", assay := "2C"]
+summ[pname == "Zero" & sname == "1 A-D", assay := "1A"]
+summ[pname == "Constant" & sname == "1 A-D", assay := "1B"]
+summ[pname == "Non-constant" & sname == "1 A-D", assay := "1C"]
+summ[pname == "Increasing" & sname == "1 A-D", assay := "1D"]
+summ[pname == "Zero" & sname == "2 A-D", assay := "2A"]
+summ[pname == "Constant" & sname == "2 A-D", assay := "2B"]
+summ[pname == "Non-constant" & sname == "2 A-D", assay := "2C"]
+summ[pname == "Increasing" & sname == "2 A-D", assay := "2D"]
 
-detail[pname == "Zero" & sname == "1 A-C", assay := "1A"]
-detail[pname == "Constant" & sname == "1 A-C", assay := "1B"]
-detail[pname == "Non-constant" & sname == "1 A-C", assay := "1C"]
-detail[pname == "Zero" & sname == "2 A-C", assay := "2A"]
-detail[pname == "Constant" & sname == "2 A-C", assay := "2B"]
-detail[pname == "Non-constant" & sname == "2 A-C", assay := "2C"]
+detail[pname == "Zero" & sname == "1 A-D", assay := "1A"]
+detail[pname == "Constant" & sname == "1 A-D", assay := "1B"]
+detail[pname == "Non-constant" & sname == "1 A-D", assay := "1C"]
+detail[pname == "Increasing" & sname == "1 A-D", assay := "1D"]
+detail[pname == "Zero" & sname == "2 A-D", assay := "2A"]
+detail[pname == "Constant" & sname == "2 A-D", assay := "2B"]
+detail[pname == "Non-constant" & sname == "2 A-D", assay := "2C"]
+detail[pname == "Increasing" & sname == "2 A-D", assay := "2D"]
 
 settings <- summ$sname %>% unique
 phis <- summ$pname %>% unique
 # epis <- summ$tname %>% unique
 epis <- c("Constant", "Linear", "Exponential")
+phis <- c("Zero", "Constant", "Non-constant", "Increasing")
 
 data <- data.table()
 
@@ -137,6 +148,7 @@ for(setting in settings){
 
 addtorow <- list()
 addtorow$pos <- list(0, 0, 0, 0, 0, 0, 0, 0, 3, 6, 9, 9, 9, 12, 15)
+addtorow$pos <- list(0, 0, 0, 0, 0, 0, 0, 0, 3, 6, 9, 12, 12, 12, 15, 18, 21)
 addtorow$command <- c("\\multicolumn{2}{c}{Setting} & \\multicolumn{5}{c}{Snapshot Estimator (1)} & \\multicolumn{5}{c}{Kassanjee Estimator (2)} \\\\\n",
                       "\\hline ",
                       "Incidence & Assay & \\multicolumn{5}{c}{$\\hat{\\mu}$} & \\multicolumn{5}{c}{$\\hat{\\Omega}_{T^*}$, $\\hat{\\beta}_{T^*}$} \\\\\n",
@@ -144,11 +156,13 @@ addtorow$command <- c("\\multicolumn{2}{c}{Setting} & \\multicolumn{5}{c}{Snapsh
                       "& & Asm. & Bias & SE & SEE & Cov & Asm. & Bias & SE & SEE & Cov \\\\\n",
                       "\\hline ",
                       "\\hline ",
-                      "\\multicolumn{11}{c}{Recency Assay 1A-C} \\\\\n",
+                      "\\multicolumn{11}{c}{Recency Assay 1A-D} \\\\\n",
                       "\\hline ",
                       "\\hline ",
                       "\\hline ",
-                      "\\multicolumn{11}{c}{Recency Assay 2A-C} \\\\\n",
+                      "\\hline ",
+                      "\\multicolumn{11}{c}{Recency Assay 2A-D} \\\\\n",
+                      "\\hline ",
                       "\\hline ",
                       "\\hline ",
                       "\\hline ")
@@ -262,8 +276,8 @@ for(i in 1:2){
 
   phit.const <- function(t) phit(t)*(t <= ttime) + tval*(t > ttime)
   phit.const.dnorm <- function(t) phit.const(t) + dnorm(t-7, mean=0, sd=1) / 8
-  phit.const.dnorm.ext <- function(t) phit.const(t) + pnorm(t, mean=6.5, sd=1) / 8
-
+  phit.const.dnorm.ext <- function(t) phit.const(t) + pnorm(t, mean=10, sd=2) / 10
+  # TRY THIS FUNCTION
   plot(t, phit(t), col='black', type='l', ylab=expression(phi(t)), xlab=expression(t))
   abline(h=tval, lty='dashed')
 

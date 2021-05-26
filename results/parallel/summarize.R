@@ -42,10 +42,6 @@ expected[, estimator_type := lapply(.SD, function(x) gsub("_bias_exp$", "", x)),
 df[, snap_bias_exp := NULL]
 df[, adj_bias_exp := NULL]
 
-if(nrow(df[is.na(adj_est_var)]) > 3){
-  stop("CHECK YOUR NA'S")
-}
-
 estimate <- reshape2::melt(df, id.vars=id.vars,
                            value.vars=c("snap_true_est", "snap_est_est", "adj_true_est", "adj_est_est"),
                            variable.name="estimator", value.name="estimate") %>% data.table

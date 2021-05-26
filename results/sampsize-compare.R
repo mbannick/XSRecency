@@ -5,23 +5,27 @@ library(ggplot2)
 library(magrittr)
 
 files <- c(
-  "~/Documents/FileZilla/xs-recent/17-04-21-16/summary.csv"
+  "~/Documents/FileZilla/xs-recent/nsamps/18-05-21-16/summary.csv"
 )
 
 dfs <- lapply(files, fread) %>% rbindlist
 
 dfs[, tname := ifelse(itype == "constant", "Constant", ifelse(itype == "linear", "Linear", "Exponential"))]
-dfs[is.na(phi_frr) & is.na(phi_tfrr) & is.na(phi_norm_mu), pname := "Zero"]
-dfs[(!is.na(phi_frr) | !is.na(phi_tfrr)) & is.na(phi_norm_mu), pname := "Constant"]
-dfs[(!is.na(phi_frr) | !is.na(phi_tfrr)) & !is.na(phi_norm_mu), pname := "Non-constant"]
-dfs[window == 101, sname := "1 A-C"]
-dfs[window == 248, sname := "2 A-C"]
-dfs[pname == "Zero" & sname == "1 A-C", assay := "1A"]
-dfs[pname == "Constant" & sname == "1 A-C", assay := "1B"]
-dfs[pname == "Non-constant" & sname == "1 A-C", assay := "1C"]
-dfs[pname == "Zero" & sname == "2 A-C", assay := "2A"]
-dfs[pname == "Constant" & sname == "2 A-C", assay := "2B"]
-dfs[pname == "Non-constant" & sname == "2 A-C", assay := "2C"]
+dfs[is.na(phi_frr) & is.na(phi_tfrr) & is.na(phi_norm_mu) & is.na(phi_pnorm_mu), pname := "Zero"]
+dfs[(!is.na(phi_frr) | !is.na(phi_tfrr)) & is.na(phi_norm_mu) & is.na(phi_pnorm_mu), pname := "Constant"]
+dfs[(!is.na(phi_frr) | !is.na(phi_tfrr)) & !is.na(phi_norm_mu) & is.na(phi_pnorm_mu), pname := "Non-constant"]
+dfs[(!is.na(phi_frr) | !is.na(phi_tfrr)) & is.na(phi_norm_mu) & !is.na(phi_pnorm_mu), pname := "Increasing"]
+dfs[window == 101, sname := "1 A-D"]
+dfs[window == 248, sname := "2 A-D"]
+
+dfs[pname == "Zero" & sname == "1 A-D", assay := "1A"]
+dfs[pname == "Constant" & sname == "1 A-D", assay := "1B"]
+dfs[pname == "Non-constant" & sname == "1 A-D", assay := "1C"]
+dfs[pname == "Increasing" & sname == "1 A-D", assay := "1D"]
+dfs[pname == "Zero" & sname == "2 A-D", assay := "2A"]
+dfs[pname == "Constant" & sname == "2 A-D", assay := "2B"]
+dfs[pname == "Non-constant" & sname == "2 A-D", assay := "2C"]
+dfs[pname == "Increasing" & sname == "2 A-D", assay := "2D"]
 
 id.cols <- c("assay", "estimator", "itype", "n")
 bias.cols <- c(id.cols, "bias")
@@ -43,7 +47,7 @@ ggplot(data=cover, aes(x=n, y=cover, color=estimator,
                        shape=itype)) +
   geom_hline(yintercept=0.95, alpha=0.5) +
   geom_line(linetype='dashed') + geom_point() +
-  facet_wrap(~ assay) + theme_minimal() +
+  facet_wrap(~ assay, nrow=2) + theme_minimal() +
   labs(x="Trial Sample Size",
        y="Coverage",
        shape="Incidence",
