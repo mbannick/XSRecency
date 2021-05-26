@@ -1,3 +1,7 @@
+############################
+# Create sample size figure
+############################
+
 rm(list=ls())
 
 library(data.table)
@@ -53,18 +57,3 @@ ggplot(data=cover, aes(x=n, y=cover, color=estimator,
        shape="Incidence",
        color="Estimator")
 dev.off()
-
-# pdf("bias-samplesize.pdf", height=10, width=7)
-# ggplot(data=bias, aes(x=n, y=bias, color=estimator, group=estimator)) + geom_line() +
-#   facet_grid(assay~itype)
-# dev.off()
-#
-# pdf("se-samplesize.pdf", height=10, width=7)
-# ggplot(data=se, aes(x=n, y=se, color=estimator, group=estimator)) + geom_line() +
-#   facet_grid(assay~itype)
-# dev.off()
-#
-# pdf("see-samplesize.pdf", height=10, width=7)
-# ggplot(data=see, aes(x=n, y=see, color=estimator, group=estimator)) + geom_line() +
-#   facet_grid(assay~itype)
-# dev.off()

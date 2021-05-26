@@ -8,6 +8,8 @@ library(gridExtra)
 library(magrittr)
 library(XSRecency)
 
+# This data was obtained from:
+# https://doi.org/10.1371/journal.pone.0114947.s001
 FILE <- "data-raw/duong2015.csv"
 
 # --------------------------------------------------------------------
@@ -69,7 +71,6 @@ df[, last.time := shift(days), by="id.key"]
 df[, gap := days - last.time]
 
 ggplot(data=df, aes(y=gap, x=num.samples)) + geom_jitter() + theme_bw()
-# ggplot(data=df, aes(y=gap, x=samp)) + geom_jitter()
 
 df[, samp.5 := samp >= 5]
 mod <- geese(gap ~ samp + samp.5 + samp.5*samp, id=id.key, data=df,
