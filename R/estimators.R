@@ -6,12 +6,12 @@ snapshot.estimate <- function(n_r, n_n, mu){
   return(val)
 }
 
-#' Adjusted estimator from Kassanjee
+#' Adjusted estimator from Kassanjee et al. 2012
 #'
 #' @export
-adjusted.estimate <- function(n_r, n_n, n_p, omega, beta, big_T){
+adjusted.estimate <- function(n_r, n_n, n_p, omega, beta, big_T, q){
   o_b <- omega - beta * big_T
-  est <- n_r - beta * n_p
+  est <- n_r/q - beta * n_p
   val <- est / (o_b * n_n)
   return(val)
 }
@@ -33,6 +33,42 @@ variance <- function(n_n, n_r, n_p, n, omega, omega_var, beta, beta_var, big_T){
       ) ** 2
   )
   return(variance)
+}
+
+# Adjusted variance computation with sampling for recency test
+variance.q <- function(n_n, n_r, n_p, n, omega, omega_var, beta, beta_var, big_T, q){
+
+  est <- adjusted.estimate(n_r=n_r, n_n=n_n, n_p=n_p,
+                           omega=omega, beta=beta, big_T=big_T, q=q)
+
+  p <- n_p / (q * n)
+  pr <- beta + est * (1 - p) / p * (omega - beta * big_T)
+  obt <- omega - beta*big_T
+
+  gam1 <- 1/p * (
+    pr * (1 - pr) / (q * (pr - beta)^2) +
+    1/(1-p) +
+    (1-q)^2 * pr^2 / (q * (pr - beta)^2) +
+    (1 - p) * beta_var / (pr - beta)^2
+  )
+
+  gam2 <- (
+    omega_var / obt^2 +
+    beta_var * (obt^2 / ((pr - beta)^2 * obt^2))
+  )
+
+  logvar <- gam1 / n +  gam2
+
+  return(logvar)
+}
+
+adjusted.variance <- function(q, ...){
+  if(q == 1){
+    logvar <- variance(...)
+  } else {
+    logvar <- variance.q(..., q=q)
+  }
+  return(logvar)
 }
 
 #' Convert log variance to variance
@@ -64,8 +100,8 @@ var.log.to.var <- function(estimate, variance) (estimate ** 2) * variance
 #'              mu=0.36, mu_var=0)
 #' get.snapshot(n_r=c(2, 3), n_n=c(50, 48), n_p=c(10, 12), n=c(60, 60),
 #'              mu=0.36, mu_var=0)
-get.snapshot <- function(n_r, n_n, n_p, n, mu, mu_var){
-  est <- snapshot.estimate(n_r=n_r, n_n=n_n, mu=mu)
+get.snapshot <- function(n_r, n_n, n_p, n, mu, mu_var, q=1){
+  est <- snapshot.estimate(n_r=n_r, n_n=n_n, mu=mu, q=q)
   logvar <- variance(n_n=n_n, n_r=n_r, n_p=n_p, n=n,
                      omega=mu, omega_var=mu_var,
                      beta=0, beta_var=0, big_T=0)
@@ -95,19 +131,20 @@ get.snapshot <- function(n_r, n_n, n_p, n, mu, mu_var){
 #' @param beta False recency rate (FRR)
 #' @param beta_var Variance of the estimator for FRR (or 0 if FRR known)
 #' @param big_T The \eqn{T^*} in the equation above
+#' @param q The fraction of positives that were given recency tests, defaults to 1
 #' @return Returns a list of the estimate and the variance.
 #' @examples
 #' get.adjusted(n_r=2, n_n=50, n_p=10, n=60,
-#'              omega=0.36, omega_var=0, beta=0.02, beta_var=0, big_T=2)
+#'              omega=0.36, omega_var=0, beta=0.02, beta_var=0, big_T=2, q=1)
 #' get.adjusted(n_r=c(2, 3), n_n=c(50, 48), n_p=c(10, 12), n=c(60, 60),
 #'              omega=0.36, omega_var=0, beta=0.02, beta_var=0, big_T=2)
 get.adjusted <- function(n_r, n_n, n_p, n, omega, omega_var,
-                         beta, beta_var, big_T){
+                         beta, beta_var, big_T, q=1){
   est <- adjusted.estimate(n_r=n_r, n_n=n_n, n_p=n_p,
-                           omega=omega, beta=beta, big_T=big_T)
-  logvar <- variance(n_n=n_n, n_r=n_r, n_p=n_p, n=n,
-                     omega=omega, omega_var=omega_var,
-                     beta=beta, beta_var=beta_var, big_T=big_T)
+                           omega=omega, beta=beta, big_T=big_T, q=q)
+  logvar <- adjusted.variance(n_n=n_n, n_r=n_r, n_p=n_p, n=n,
+                              omega=omega, omega_var=omega_var,
+                              beta=beta, beta_var=beta_var, big_T=big_T, q=q)
   estvar <- var.log.to.var(est, logvar)
   return(list(est=est, var=estvar))
 }
