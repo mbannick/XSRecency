@@ -1,15 +1,15 @@
 #' Snapshot estimator
 #'
 #' @export
-snapshot.estimate <- function(n_r, n_n, mu){
-  val <- n_r / (mu * n_n)
+snapshot.estimate <- function(n_r, n_n, mu, q=1){
+  val <- (n_r/q) / (mu * n_n)
   return(val)
 }
 
 #' Adjusted estimator from Kassanjee et al. 2012
 #'
 #' @export
-adjusted.estimate <- function(n_r, n_n, n_p, omega, beta, big_T, q){
+adjusted.estimate <- function(n_r, n_n, n_p, omega, beta, big_T, q=1){
   o_b <- omega - beta * big_T
   est <- n_r/q - beta * n_p
   val <- est / (o_b * n_n)
@@ -36,10 +36,14 @@ variance <- function(n_n, n_r, n_p, n, omega, omega_var, beta, beta_var, big_T){
 }
 
 # Adjusted variance computation with sampling for recency test
-variance.q <- function(n_n, n_r, n_p, n, omega, omega_var, beta, beta_var, big_T, q){
+variance.q <- function(n_n, n_r, n_p, n, omega, omega_var, beta, beta_var, big_T, q=1, adjusted=TRUE){
 
-  est <- adjusted.estimate(n_r=n_r, n_n=n_n, n_p=n_p,
-                           omega=omega, beta=beta, big_T=big_T, q=q)
+  if(!adjusted){
+    est <- snapshot.estimate(n_r=n_r, n_n=n_n, mu=omega, q=q)
+  } else {
+    est <- adjusted.estimate(n_r=n_r, n_n=n_n, n_p=n_p,
+                             omega=omega, beta=beta, big_T=big_T, q=q)
+  }
 
   p <- n_p / (q * n)
   pr <- beta + est * (1 - p) / p * (omega - beta * big_T)
@@ -62,15 +66,6 @@ variance.q <- function(n_n, n_r, n_p, n, omega, omega_var, beta, beta_var, big_T
   return(logvar)
 }
 
-adjusted.variance <- function(q, ...){
-  if(q == 1){
-    logvar <- variance(...)
-  } else {
-    logvar <- variance.q(..., q=q)
-  }
-  return(logvar)
-}
-
 #' Convert log variance to variance
 #'
 #' @export
@@ -79,12 +74,11 @@ var.log.to.var <- function(estimate, variance) (estimate ** 2) * variance
 #' Snapshot estimator and variance (Kaplan and Brookmeyer 1999)
 #'
 #'   \deqn{
-#'     \hat{\lambda} = \frac{N_{rec}}{\hat{\mu} N_{neg}}
+#'     \hat{\lambda} = \frac{N_{rec}/q}{\hat{\mu} N_{neg}}
 #'   }
 #'   where \eqn{\hat{\mu}} is an estimate of the mean window period.
-#'   Function is vectorized, so you can pass a vector of \eqn{\mu},
-#'   a vector of the counts \eqn{n} or both
-#'   (as long as they have the same length).
+#'
+#'   \code{q} is an adjustment for the number of positives that are given recency tests.
 #'
 #' @export
 #' @param n_r Number of recent positives
@@ -102,9 +96,9 @@ var.log.to.var <- function(estimate, variance) (estimate ** 2) * variance
 #'              mu=0.36, mu_var=0)
 get.snapshot <- function(n_r, n_n, n_p, n, mu, mu_var, q=1){
   est <- snapshot.estimate(n_r=n_r, n_n=n_n, mu=mu, q=q)
-  logvar <- variance(n_n=n_n, n_r=n_r, n_p=n_p, n=n,
-                     omega=mu, omega_var=mu_var,
-                     beta=0, beta_var=0, big_T=0)
+  logvar <- variance.q(n_n=n_n, n_r=n_r, n_p=n_p, n=n,
+                           omega=mu, omega_var=mu_var,
+                           beta=0, beta_var=0, big_T=0, q=q, adjusted=FALSE)
   estvar <- var.log.to.var(est, logvar)
   return(list(est=est, var=estvar))
 }
@@ -112,14 +106,13 @@ get.snapshot <- function(n_r, n_n, n_p, n, mu, mu_var, q=1){
 #' Adjusted estimator and variance (Kassanjee et al. 2012)
 #'
 #'   \deqn{
-#'     \hat{\lambda} = \frac{N_{rec} - N_{pos} \hat{\beta}_{T^*}}{N_{neg} (\hat{\Omega}_{T^*} - \hat{\beta}_{T^*} T^*)}
+#'     \hat{\lambda} = \frac{N_{rec}/q - N_{pos} \hat{\beta}_{T^*}}{N_{neg} (\hat{\Omega}_{T^*} - \hat{\beta}_{T^*} T^*)}
 #'   }
 #'   where \eqn{\hat{\Omega}_{T^*}} is an estimate of the mean duration of recent infection (MDRI),
-#'   \eqn{\hat{\beta}_{T^*}} is an estimate of the false recency rate, and \eqn{T^*} is the time cutoff for beign
+#'   \eqn{\hat{\beta}_{T^*}} is an estimate of the false recency rate, and \eqn{T^*} is the time cutoff for being
 #'   a recent infected or not.
-#'   Function is vectorized, so you can pass a vector of \eqn{\Omega} and \eqn{\beta},
-#'   a vector of the counts \eqn{n_} or both
-#'   (as long as they have the same length).
+#'
+#'   \code{q} is an adjustment for the number of positives that are given recency tests.
 #'
 #' @export
 #' @param n_r Number of recent positives
@@ -142,9 +135,10 @@ get.adjusted <- function(n_r, n_n, n_p, n, omega, omega_var,
                          beta, beta_var, big_T, q=1){
   est <- adjusted.estimate(n_r=n_r, n_n=n_n, n_p=n_p,
                            omega=omega, beta=beta, big_T=big_T, q=q)
-  logvar <- adjusted.variance(n_n=n_n, n_r=n_r, n_p=n_p, n=n,
-                              omega=omega, omega_var=omega_var,
-                              beta=beta, beta_var=beta_var, big_T=big_T, q=q)
+  logvar <- variance.q(n_n=n_n, n_r=n_r, n_p=n_p, n=n,
+                           omega=omega, omega_var=omega_var,
+                           beta=beta, beta_var=beta_var,
+                           big_T=big_T, q=q, adjusted=TRUE)
   estvar <- var.log.to.var(est, logvar)
   return(list(est=est, var=estvar))
 }
