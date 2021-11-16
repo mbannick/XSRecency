@@ -26,7 +26,7 @@ function and with constant prevalence.
 \examples{
 set.seed(1)
 sim.infection.times(p=0.2, nsims=15,
-                    inc.function=function(t) con.incidence(t, 0.5))
+                    inc.function=function(t) incidence.con(t, 0.5))
 sim.infection.times(p=0.2, nsims=15,
-                    inc.function=function(t) con.incidence(t, 0.05))
+                    inc.function=function(t) incidence.con(t, 0.05))
 }

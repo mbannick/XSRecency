@@ -5,7 +5,7 @@
 \title{Adjusted variance computation, is the same for adjusted
 and snapshot estimator, just pass in beta_sim=list(est=0, var=0).}
 \usage{
-variance(n_n, n_r, n_p, n, omega, omega_var, beta, beta_var, big_T)
+variance(n_n, n_r, n_p, n, omega, omega_var, beta, beta_var, big_T, q = 1)
 }
 \description{
 Adjusted variance computation, is the same for adjusted

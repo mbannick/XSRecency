@@ -4,7 +4,7 @@
 \alias{get.snapshot}
 \title{Snapshot estimator and variance (Kaplan and Brookmeyer 1999)}
 \usage{
-get.snapshot(n_r, n_n, n_p, n, mu, mu_var)
+get.snapshot(n_r, n_n, n_p, n, mu, mu_var, q = 1)
 }
 \arguments{
 \item{n_r}{Number of recent positives}
@@ -25,12 +25,12 @@ Returns a list of the estimate and the variance for \eqn{\lambda}.
 }
 \description{
 \deqn{
-    \hat{\lambda} = \frac{N_{rec}}{\hat{\mu} N_{neg}}
+    \hat{\lambda} = \frac{N_{rec}/q}{\hat{\mu} N_{neg}}
   }
   where \eqn{\hat{\mu}} is an estimate of the mean window period.
-  Function is vectorized, so you can pass a vector of \eqn{\mu},
-  a vector of the counts \eqn{n} or both
-  (as long as they have the same length).
+}
+\details{
+\code{q} is an adjustment for the number of positives that are given recency tests.
 }
 \examples{
 get.snapshot(n_r=2, n_n=50, n_p=10, n=60,

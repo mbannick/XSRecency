@@ -4,7 +4,7 @@
 \alias{snapshot.estimate}
 \title{Snapshot estimator}
 \usage{
-snapshot.estimate(n_r, n_n, mu)
+snapshot.estimate(n_r, n_n, mu, q = 1)
 }
 \description{
 Snapshot estimator
