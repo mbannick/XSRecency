@@ -20,50 +20,23 @@ adjusted.estimate <- function(n_r, n_n, n_p, omega, beta, big_T, q=1){
 #' and snapshot estimator, just pass in beta_sim=list(est=0, var=0).
 #'
 #' @export
-variance <- function(n_n, n_r, n_p, n, omega, omega_var, beta, beta_var, big_T){
+variance <- function(n_n, n_r, n_p, n, omega, omega_var, beta, beta_var, big_T, q=1){
+
+  # Slight modification for n_{p,test} to give the number of positives tested
+  # for recency. Takes the place of n_p in this calculation.
+  n_pt <- n_p * q
 
   variance <- (
-    n_r * (n_p - n_r) / (n_p * (n_r - n_p * beta)**2) +
+    n_r * (n_pt - n_r) / (n_pt * (n_r - n_pt * beta)**2) +
       n / (n_p * n_n) +
-      beta_var * n_p * (n - n_p) / (n * (n_r - n_p * beta)**2) +
+      beta_var * n_pt * (n - n_pt) / (n * (n_r - n_pt * beta)**2) +
       omega_var / (omega - beta * big_T)**2 +
       beta_var * (
-        (n_p * omega - n_r * big_T) /
-          ((n_r - n_p * beta) * (omega - beta * big_T))
+        (n_pt * omega - n_r * big_T) /
+          ((n_r - n_pt * beta) * (omega - beta * big_T))
       ) ** 2
   )
   return(variance)
-}
-
-# Adjusted variance computation with sampling for recency test
-variance.q <- function(n_n, n_r, n_p, n, omega, omega_var, beta, beta_var, big_T, q=1, adjusted=TRUE){
-
-  if(!adjusted){
-    est <- snapshot.estimate(n_r=n_r, n_n=n_n, mu=omega, q=q)
-  } else {
-    est <- adjusted.estimate(n_r=n_r, n_n=n_n, n_p=n_p,
-                             omega=omega, beta=beta, big_T=big_T, q=q)
-  }
-
-  p <- n_p / (q * n)
-  pr <- beta + est * (1 - p) / p * (omega - beta * big_T)
-  obt <- omega - beta*big_T
-
-  gam1 <- 1/p * (
-    pr * (1 - pr) / (q * (pr - beta)^2) +
-    1/(1-p) +
-    (1-q)^2 * pr^2 / (q * (pr - beta)^2) +
-    (1 - p) * beta_var / (pr - beta)^2
-  )
-
-  gam2 <- (
-    omega_var / obt^2 +
-    beta_var * (obt^2 / ((pr - beta)^2 * obt^2))
-  )
-
-  logvar <- gam1 / n +  gam2
-
-  return(logvar)
 }
 
 #' Convert log variance to variance
@@ -96,9 +69,9 @@ var.log.to.var <- function(estimate, variance) (estimate ** 2) * variance
 #'              mu=0.36, mu_var=0)
 get.snapshot <- function(n_r, n_n, n_p, n, mu, mu_var, q=1){
   est <- snapshot.estimate(n_r=n_r, n_n=n_n, mu=mu, q=q)
-  logvar <- variance.q(n_n=n_n, n_r=n_r, n_p=n_p, n=n,
-                           omega=mu, omega_var=mu_var,
-                           beta=0, beta_var=0, big_T=0, q=q, adjusted=FALSE)
+  logvar <- variance(n_n=n_n, n_r=n_r, n_p=n_p, n=n,
+                     omega=mu, omega_var=mu_var,
+                     beta=0, beta_var=0, big_T=0, q=q)
   estvar <- var.log.to.var(est, logvar)
   return(list(est=est, var=estvar))
 }
@@ -135,10 +108,10 @@ get.adjusted <- function(n_r, n_n, n_p, n, omega, omega_var,
                          beta, beta_var, big_T, q=1){
   est <- adjusted.estimate(n_r=n_r, n_n=n_n, n_p=n_p,
                            omega=omega, beta=beta, big_T=big_T, q=q)
-  logvar <- variance.q(n_n=n_n, n_r=n_r, n_p=n_p, n=n,
-                           omega=omega, omega_var=omega_var,
-                           beta=beta, beta_var=beta_var,
-                           big_T=big_T, q=q, adjusted=TRUE)
+  logvar <- variance(n_n=n_n, n_r=n_r, n_p=n_p, n=n,
+                     omega=omega, omega_var=omega_var,
+                     beta=beta, beta_var=beta_var,
+                     big_T=big_T, q=q)
   estvar <- var.log.to.var(est, logvar)
   return(list(est=est, var=estvar))
 }
