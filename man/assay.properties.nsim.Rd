@@ -26,8 +26,12 @@ assay.properties.nsim(
 \item{tau}{The maximum duration of infection where a subject
 could have a false-positive for recent infection}
 
-\item{integrate.FRR}{Whether or not to get FRR integrated from the Duong et al. 2015
-study or to calculate it from a simpler, separate study.}
+\item{ext_FRR}{A dataset with column "duration" and column for binary "recent" indicator}
+
+\item{max_FRR}{The maximum duration allowed}
+
+\item{last_point}{Integrate the mean window period to the last observed
+duration in the dataset, rather than tau}
 }
 \value{
 A list of estimated mean window period \eqn{\mu} and its variance,
@@ -35,8 +39,9 @@ A list of estimated mean window period \eqn{\mu} and its variance,
   estimated FRR \eqn{\beta_{T^*}} and its variance.
 }
 \description{
-Function that simulates the mean window period, mean duration of recent
-infection, and false recent rate (FRR) based on external study data.
+The external study data for mean window and MDRI is available here from
+Duong et al. 2015:
+# https://doi.org/10.1371/journal.pone.0114947.s001
 }
 \examples{
 set.seed(0)
