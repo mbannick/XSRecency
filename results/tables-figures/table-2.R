@@ -9,8 +9,6 @@ library(magrittr)
 
 # READ IN VERSIONED RESULTS ---------------------------------
 
-# version <- "~/Documents/FileZilla/xs-recent/03-04-21-10//"
-# version <- "~/Documents/FileZilla/xs-recent/13-04-21-16-5000/"
 version <- "~/Documents/FileZilla/xs-recent/17-04-21-15/"
 
 summ <- fread(paste0(version , "summary.csv"))
@@ -36,7 +34,6 @@ summ[, bias := bias * 100]
 summ[, se := se * 100]
 summ[, see := see * 100]
 summ[, cover := cover * 100]
-
 
 addtorow <- list()
 addtorow$pos <- list(0, 0, 0, 0, 0, 0)

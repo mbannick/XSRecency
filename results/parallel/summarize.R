@@ -21,7 +21,9 @@ id.vars <- c("truth", "n_sims", "sim", "seed", "n", "p", "inc", "tau", "bigT", "
              "window", "shadow")
 
 for(var in c("rho", "phi_frr", "phi_tfrr", "phi_norm_mu",
-             "phi_norm_sd", "phi_norm_div", "frr_mix_start", "frr_mix_end",
+             "phi_norm_sd", "phi_norm_div",
+             "phi_pnorm_mu", "phi_pnorm_sd", "phi_pnorm_div",
+             "frr_mix_start", "frr_mix_end",
              "ext_FRR", "duong_scale", "max_FRR", "last_point")){
   if(var %in% colnames(df)){
     id.vars <- c(id.vars, var)
@@ -59,9 +61,9 @@ detail[, upper := estimate + width]
 detail[, cover := (truth < upper) & (truth > lower)]
 
 bias <- detail[, lapply(.SD, median), by=id.vars.nosim.est, .SDcols="bias"]
-se <- detail[, lapply(.SD, function(x) var(x) ** 0.5), by=id.vars.nosim.est, .SDcols="estimate"]
-see <- detail[, lapply(.SD, function(x) mean(x**0.5)), by=id.vars.nosim.est, .SDcols="variance"]
-cover <- detail[, lapply(.SD, mean), by=id.vars.nosim.est, .SDcols="cover"]
+se <- detail[, lapply(.SD, function(x) var(x, na.rm=T) ** 0.5), by=id.vars.nosim.est, .SDcols="estimate"]
+see <- detail[, lapply(.SD, function(x) mean(x**0.5, na.rm=T)), by=id.vars.nosim.est, .SDcols="variance"]
+cover <- detail[, lapply(.SD, mean, na.rm=T), by=id.vars.nosim.est, .SDcols="cover"]
 
 setnames(se, "estimate", "se")
 setnames(see, "variance", "see")

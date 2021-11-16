@@ -229,11 +229,10 @@ integrate.phi <- function(model, minT=0, maxT=12){
 #'
 #' @export
 #' @param study Data frame with recent and durations variables
-#' @param phi.func Phi function
 #' @param bigT The T^* time
 #' @param tau The maximum time
 #' @returns List of properties and their variances
-assay.properties.sim <- function(study, phi.func, bigT, tau, last_point=TRUE){
+assay.properties.est <- function(study, bigT, tau, last_point=TRUE){
   model <- fit.cubic(recent=study$recent,
                      durations=study$durations,
                      id=study$id)
@@ -275,8 +274,7 @@ assay.properties.nsim <- function(n_sims, phi.func, bigT, tau,
                                   ext_FRR=FALSE, ext_df=NULL,
                                   max_FRR=NULL, last_point=FALSE){
   studies <- simulate.studies(n_sims, phi.func, ext_df=ext_df)
-  result <- sapply(studies, function(x) assay.properties.sim(study=x,
-                                                             phi.func=phi.func,
+  result <- sapply(studies, function(x) assay.properties.est(study=x,
                                                              bigT=bigT,
                                                              tau=tau,
                                                              last_point=last_point))
