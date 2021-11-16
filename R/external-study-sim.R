@@ -3,6 +3,8 @@
 # -------------------------------------------------------------------------
 
 library(geepack)
+library(data.table)
+.datatable.aware=TRUE
 
 # number of long infecteds for beta study
 N_LONG_INFECT=1500
@@ -69,7 +71,7 @@ simulate.nbeta <- function(nsims, phi.func, minT, maxT, studies=NULL){
 #' @param knot Knot location for piecewise-linear function
 #' @return List of start durations, numbers of samples, and model coefficients
 fit.model <- function(df, knot=5){
-
+  df <- data.table(df)
   # Indicator variable for sample 5+
   df[, samp.5 := samp >= knot]
 
