@@ -17,7 +17,9 @@ get.snapshot(n_r, n_n, n_p, n, mu, mu_var, q = 1)
 
 \item{mu}{Mean window period (in years, not days)}
 
-\item{mu_var}{Variance of the estimator for mean window period.
+\item{mu_var}{Variance of the estimator for mean window period.}
+
+\item{q}{Fraction of positives that were given recency test, defaults to 1
 If \eqn{\mu} is known, input 0.}
 }
 \value{

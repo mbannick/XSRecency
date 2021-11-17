@@ -41,7 +41,7 @@ A list of estimated mean window period \eqn{\mu} and its variance,
 \description{
 The external study data for mean window and MDRI is available here from
 Duong et al. 2015:
-# https://doi.org/10.1371/journal.pone.0114947.s001
+https://doi.org/10.1371/journal.pone.0114947.s001
 }
 \examples{
 set.seed(0)

@@ -60,6 +60,7 @@ var.log.to.var <- function(estimate, variance) (estimate ** 2) * variance
 #' @param n Total number of observations (\eqn{n_n + n_p = n})
 #' @param mu Mean window period (in years, not days)
 #' @param mu_var Variance of the estimator for mean window period.
+#' @param q Fraction of positives that were given recency test, defaults to 1
 #'   If \eqn{\mu} is known, input 0.
 #' @return Returns a list of the estimate and the variance for \eqn{\lambda}.
 #' @examples
