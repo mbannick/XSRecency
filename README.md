@@ -1,9 +1,13 @@
 # Cross-Sectional Recency Assay Incidence Estimation
 
+### [Statistical Considerations for Cross-Sectional HIV Incidence Estimation Based on Recency Test](https://arxiv.org/abs/2106.01997)
+
+Fei Gao and Marlena Bannick
+
 ## Description
 This repository contains:
 - `.`: An installable package to calculate cross-sectional incidence estimates from recency assays, and to generate past infection times.
-- `results`: Code to reproduce the results in the paper here [ADD PAPER CITATION HERE] on statistical issues in estimating counter-factual HIV incidence with recency assays.
+- `results`: Code to reproduce the results in the paper [here](https://arxiv.org/abs/2106.01997) on statistical issues in estimating counter-factual HIV incidence with recency assays.
 
 ## Installation
 
