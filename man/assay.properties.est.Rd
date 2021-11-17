@@ -2,8 +2,8 @@
 % Please edit documentation in R/external-study-sim.R
 \name{assay.properties.est}
 \alias{assay.properties.est}
-\title{Use an assay df with recent and durations to calculate the properties
-of the assay simulation.}
+\title{Use an assay df with recent (yes/no) and duration columns
+to calculate the mean window period and MDRI of the assay}
 \usage{
 assay.properties.est(study, bigT, tau, last_point = TRUE)
 }
@@ -18,6 +18,6 @@ assay.properties.est(study, bigT, tau, last_point = TRUE)
 List of properties and their variances
 }
 \description{
-Use an assay df with recent and durations to calculate the properties
-of the assay simulation.
+Use an assay df with recent (yes/no) and duration columns
+to calculate the mean window period and MDRI of the assay
 }

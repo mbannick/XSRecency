@@ -226,8 +226,8 @@ integrate.phi <- function(model, minT=0, maxT=12){
   return(list(est=estimate, var=variance))
 }
 
-#' Use an assay df with recent and durations to calculate the properties
-#' of the assay simulation.
+#' Use an assay df with recent (yes/no) and duration columns
+#' to calculate the mean window period and MDRI of the assay
 #'
 #' @export
 #' @param study Data frame with recent and durations variables
