@@ -46,6 +46,7 @@ process.study <- function(file){
 
 duong <- process.study(FILE)
 frr <- fread("data-raw/duong2015-frr.csv")
+
 BIGT <- 1
 TAU <- 8
 
@@ -65,8 +66,6 @@ mu * 365.25
 mdri * 365.25
 
 # Calculate false recency rate
-study.data.frr <- study.data[days > BIGT*365.25 & !is.na(recent)]
-
 frr[, recent := LAg <= 1.5]
 frr <- frr[!is.na(LAg)] # ID number 6085 was missing LAg
 beta <- sum(frr$recent) / nrow(frr) # this is really high

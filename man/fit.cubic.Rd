@@ -5,7 +5,7 @@
 \title{Fits a cubic model to indicators and durations
 and returns the model object.}
 \usage{
-fit.cubic(recent, durations)
+fit.cubic(recent, durations, id)
 }
 \description{
 Fits a cubic model to indicators and durations
