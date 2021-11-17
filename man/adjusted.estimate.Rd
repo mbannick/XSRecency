@@ -2,10 +2,10 @@
 % Please edit documentation in R/estimators.R
 \name{adjusted.estimate}
 \alias{adjusted.estimate}
-\title{Adjusted estimator from Kassanjee}
+\title{Adjusted estimator from Kassanjee et al. 2012}
 \usage{
-adjusted.estimate(n_r, n_n, n_p, omega, beta, big_T)
+adjusted.estimate(n_r, n_n, n_p, omega, beta, big_T, q = 1)
 }
 \description{
-Adjusted estimator from Kassanjee
+Adjusted estimator from Kassanjee et al. 2012
 }

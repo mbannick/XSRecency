@@ -2,18 +2,6 @@ template:
   params:
     bootswatch: yeti
 reference:
-- title: "Simulating datasets"
-  desc: >
-    Functions for simulating a trial dataset with past infection times and recency indicators.
-- contents:
-  - generate.data
-  - sim.infection.times
-  - con.incidence
-  - lin.incidence
-  - exn.incidence
-  - con.infections
-  - lin.infections
-  - exn.infections
 - title: "Estimating cross-sectional incidence"
   desc: >
     Point and variance estimators for cross-sectional incidence, including the Snapshot estimator and the Adjusted estimator.
@@ -24,4 +12,17 @@ reference:
   desc: >
     Functions to estimate the recency assay parameters like mean window period, mean duration of recent infection, and false recency rate.
 - contents:
-  - assay.properties.sim
+  - assay.properties.est
+  - assay.properties.nsim
+- title: "Simulating datasets"
+  desc: >
+    Functions for simulating a trial dataset with past infection times and recency indicators.
+- contents:
+  - generate.data
+  - sim.infection.times
+  - incidence.con
+  - incidence.lin
+  - incidence.exp
+  - infections.con
+  - infections.lin
+  - infections.exp
