@@ -64,15 +64,15 @@ and a prevalence and baseline incidence (time 0).
 }
 \examples{
 set.seed(1)
-generate.data(n_sims=3, n=2, infection.function=con.infections,
+generate.data(n_sims=3, n=2, infection.function=infections.con,
               baseline_incidence=0.05, prevalence=0.5, rho=NA,
               phi.func=function(t) 1 - pgamma(t, 1, 2),
               times=c(0, 1), summarize=FALSE)
-generate.data(n_sims=3, n=100, infection.function=con.infections,
+generate.data(n_sims=3, n=100, infection.function=infections.con,
               baseline_incidence=0.05, prevalence=0.3, rho=NA,
               phi.func=function(t) 1 - pgamma(t, 1, 2),
               times=c(0, 1), summarize=TRUE)
-generate.data(n_sims=3, n=100, infection.function=con.infections,
+generate.data(n_sims=3, n=100, infection.function=infections.con,
               baseline_incidence=0.05, prevalence=0.3, rho=NA,
               phi.func=function(t) 1 - pgamma(t, 1, 2),
               times=c(0), summarize=TRUE)
