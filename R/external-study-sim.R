@@ -269,7 +269,7 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE){
 #'   could have a false-positive for recent infection
 #' @param ext_FRR Whether or not to get FRR from the Duong et al. 2015
 #'   study or to calculate it from a simpler, separate study, passed in \code{ext_df}
-#' @param ext_FRR A dataset with column "duration" and column for binary "recent" indicator
+#' @param ext_df A dataset with column "duration" and column for binary "recent" indicator
 #' @param max_FRR The maximum duration allowed
 #' @param last_point Integrate the mean window period to the last observed
 #'   duration in the dataset, rather than tau
@@ -278,7 +278,7 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE){
 #'   estimated FRR \eqn{\beta_{T^*}} and its variance.
 #' @examples
 #' set.seed(0)
-#' assay.properties.sim(n_sims=1, phi.func=function(t) 1 - pgamma(t, 1, 1.5),
+#' assay.properties.nsim(n_sims=1, phi.func=function(t) 1 - pgamma(t, 1, 1.5),
 #'                      bigT=2, tau=12)
 assay.properties.nsim <- function(n_sims, phi.func, bigT, tau,
                                   ext_FRR=FALSE, ext_df=NULL,

@@ -26,7 +26,10 @@ assay.properties.nsim(
 \item{tau}{The maximum duration of infection where a subject
 could have a false-positive for recent infection}
 
-\item{ext_FRR}{A dataset with column "duration" and column for binary "recent" indicator}
+\item{ext_FRR}{Whether or not to get FRR from the Duong et al. 2015
+study or to calculate it from a simpler, separate study, passed in \code{ext_df}}
+
+\item{ext_df}{A dataset with column "duration" and column for binary "recent" indicator}
 
 \item{max_FRR}{The maximum duration allowed}
 
@@ -45,6 +48,6 @@ https://doi.org/10.1371/journal.pone.0114947.s001
 }
 \examples{
 set.seed(0)
-assay.properties.sim(n_sims=1, phi.func=function(t) 1 - pgamma(t, 1, 1.5),
+assay.properties.nsim(n_sims=1, phi.func=function(t) 1 - pgamma(t, 1, 1.5),
                      bigT=2, tau=12)
 }

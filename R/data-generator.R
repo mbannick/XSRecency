@@ -1,4 +1,6 @@
 
+library(magrittr)
+
 #' Generates raw data of number positive, negative, and screened
 #' based on study parameters
 #' that can be used later to simulate infection times.
@@ -39,6 +41,8 @@ generate.raw.data <- function(n_sims, n, prevalence, times=c(0)){
 #'   Cannot pass both arguments.
 #' @param ... Additional arguments to the `simulate.infection.times` function if you're
 #'   passing an `incidence.function` instead of an `infection.function`.
+#' @importFrom data.table data.table
+#' @import magrittr
 simulate.recent <- function(sim_data, infection.function=NULL,
                             phi.func, baseline_incidence, prevalence, rho, summarize=TRUE,
                             incidence.function=NULL, ...){
@@ -199,15 +203,15 @@ simulate.recent <- function(sim_data, infection.function=NULL,
 #'   }
 #' @examples
 #' set.seed(1)
-#' generate.data(n_sims=3, n=2, infection.function=con.infections,
+#' generate.data(n_sims=3, n=2, infection.function=infections.con,
 #'               baseline_incidence=0.05, prevalence=0.5, rho=NA,
 #'               phi.func=function(t) 1 - pgamma(t, 1, 2),
 #'               times=c(0, 1), summarize=FALSE)
-#' generate.data(n_sims=3, n=100, infection.function=con.infections,
+#' generate.data(n_sims=3, n=100, infection.function=infections.con,
 #'               baseline_incidence=0.05, prevalence=0.3, rho=NA,
 #'               phi.func=function(t) 1 - pgamma(t, 1, 2),
 #'               times=c(0, 1), summarize=TRUE)
-#' generate.data(n_sims=3, n=100, infection.function=con.infections,
+#' generate.data(n_sims=3, n=100, infection.function=infections.con,
 #'               baseline_incidence=0.05, prevalence=0.3, rho=NA,
 #'               phi.func=function(t) 1 - pgamma(t, 1, 2),
 #'               times=c(0), summarize=TRUE)
