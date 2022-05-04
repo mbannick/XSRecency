@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/327072490.svg)](https://zenodo.org/badge/latestdoi/327072490)
+
 # Cross-Sectional Recency Assay Incidence Estimation
 
 ### [Statistical Considerations for Cross-Sectional HIV Incidence Estimation Based on Recency Test](https://arxiv.org/abs/2106.01997)
