@@ -10,7 +10,6 @@ library(magrittr)
 #' @param prevalence Constant prevalence
 #' @param times Times at which enrollment happens
 generate.raw.data <- function(n_sims, n, prevalence, times=c(0)){
-
   # number of times
   n_times <- length(times)
 
@@ -31,6 +30,8 @@ generate.raw.data <- function(n_sims, n, prevalence, times=c(0)){
 #' Simulate recency indicators based on the data, true phi function,
 #' and the infection incidence function.
 #'
+#' Also possibly simulate prior test results.
+#'
 #' @param sim_data Outputs from the `generate.raw.data` function
 #' @param infection.function Function that simulates the infection time
 #' @param phi.func Test positive function for recency assay
@@ -39,13 +40,33 @@ generate.raw.data <- function(n_sims, n, prevalence, times=c(0)){
 #' @param rho A parameter to the `infection.function` for how quickly incidence changes
 #' @param incidence.function An incidence function in place of `infection.function`.
 #'   Cannot pass both arguments.
+#' @param ptest.dist A prior test result distribution function.
+#' @param ptest.prob Probability of prior test result being available.
 #' @param ... Additional arguments to the `simulate.infection.times` function if you're
 #'   passing an `incidence.function` instead of an `infection.function`.
 #' @importFrom data.table data.table
 #' @import magrittr
+#'
+#' @examples
+#' dat <- generate.raw.data(n_sims=3, n=10, prevalence=0.5, times=c(0, 0))
+#' sim <- simulate.recent(sim_data=dat, infection.function=infections.con,
+#'                        baseline_incidence=0.05, prevalence=0.5, rho=NA,
+#'                        phi.func=function(t) 1 - pgamma(t, 1, 2),
+#'                        times=c(0, 1), summarize=FALSE,
+#'                        ptest.dist=function(n) runif(n, 0.0, 5.0),
+#'                        ptest.prob=0.5, bigT=2)
+#' sim <- simulate.recent(sim_data=dat, infection.function=infections.con,
+#'                        baseline_incidence=0.05, prevalence=0.5, rho=NA,
+#'                        phi.func=function(t) 1 - pgamma(t, 1, 2),
+#'                        times=c(0, 1), summarize=TRUE,
+#'                        ptest.dist=function(n) runif(n, 0.0, 5.0),
+#'                        ptest.prob=0.5, bigT=2)
 simulate.recent <- function(sim_data, infection.function=NULL,
                             phi.func, baseline_incidence, prevalence, rho, summarize=TRUE,
-                            incidence.function=NULL, ...){
+                            incidence.function=NULL,
+                            ptest.dist=NULL, ptest.prob=0.0,
+                            bigT=NULL,
+                            ...){
 
   if(is.null(incidence.function) & is.null(infection.function)){
     stop("Pass either an incidence or infection function.")
@@ -89,10 +110,53 @@ simulate.recent <- function(sim_data, infection.function=NULL,
     indicators <- lapply(recent_probabilities,
                          function(x) rbinom(n=length(x), size=1, prob=x))
   }
+  browser()
+
+  if(!is.null(ptest.dist)){
+    # Get the prior testing times for everyone
+    test_times <- mapply(function(t, n) t - ptest.dist(n), t=times, n=n_p)
+    # Simulate whether or not those tests are available (were actually taken)
+    available <- lapply(n_p, function(n) rbinom(n=n, size=1, prob=ptest.prob))
+    # Generate vector with prior time or NA if not available
+    ptest_times <- mapply(function(t, a) ifelse(a, t, 0), t=test_times, a=available)
+    # See whether or not the test was positive
+    ptest_delta <- mapply(function(it, pt) as.integer(it < pt), pt=ptest_times, it=t_infect)
+
+    # Define a function for getting the new recency indicator
+    # if there are prior test results.
+    enhanced.r <- function(ti, ri, di){
+      ri_star <- (di == 0) & (-ti <= bigT)
+      ri_tild <- 1 - ((-ti > bigT) & (di == 1))
+      ri_new <- (ri | ri_star) & ri_tild
+      return(ri_new)
+    }
+
+    integrate.tinan <- function(ti) ifelse(is.na(ti), NA, integrate(phi.func, 0, ti)$value)
+    integrate.ti <- function(ti) sapply(ti, function(t) integrate.tinan(t))
+
+    ri_new <- mapply(FUN=enhanced.r, ti=ptest_times, ri=indicators, di=ptest_delta)
+    recent_ti <- lapply(ptest_times, function(x) -x <= bigT)
+    int_phi_ti <- lapply(ptest_times, function(x) integrate.ti(-x))
+    recent_int_ti <- mapply(FUN=function(x, y) x * y, x=recent_ti, y=int_phi_ti)
+    int_phi_ti_ti <- mapply(FUN=function(x, y) x * -y, x=recent_ti, y=ptest_times)
+  }
 
   if(summarize == TRUE){
     # number of recents
     n_r <- lapply(indicators, sum) %>% unlist
+
+    # Additional info from prior test results
+    if(!is.null(ptest.dist)){
+      n_r_pt <- lapply(ri_new, sum) %>% unlist
+      num_beta <- lapply(recent_ti, sum) %>% unlist
+      den_omega <- lapply(recent_int_ti, sum) %>% unlist
+      den_beta <- lapply(int_phi_ti_ti, sum) %>% unlist
+    } else {
+      n_r_pt <- NULL
+      num_beta <- NULL
+      den_omega <- NULL
+      den_beta <- NULL
+    }
 
     # if we have multiple times, convert it back into a matrix
     if(n_times > 1) n_r   <- matrix(n_r, nrow=n_times, ncol=n_sims, byrow=FALSE)
@@ -113,7 +177,11 @@ simulate.recent <- function(sim_data, infection.function=NULL,
       n_p=n_p,
       n_n=n_n,
       n_r=n_r,
-      times=times
+      times=times,
+      n_r_pt=n_r_pt,
+      num_beta=num_beta,
+      den_omega=den_omega,
+      den_beta=den_beta
     )
     return(aspect_list)
   } else {
@@ -136,16 +204,24 @@ simulate.recent <- function(sim_data, infection.function=NULL,
     prev_neg <- rep(0, length(sim_neg))
     prev <- c(prev_neg, prev_pos)
 
-    # Infection time
-    infect_pos <- unlist(t_infect)
-    infect_neg <- rep(NA, length(time_neg))
-    infect <- c(infect_neg, infect_pos)
+    # Infection time and prior testing time / result
+    na_neg <- rep(NA, length(time_neg))
+    infect <- c(na_neg, unlist(t_infect))
 
+    if(!is.null(ptest.dist)){
+      priorT <- c(na_neg, unlist(ptest_times))
+      priorD <- c(na_neg, as.integer(unlist(ptest_delta)))
+    } else {
+      priorT <- NULL
+      priorD <- NULL
+    }
     df <- data.table(
       sim=sim,
       time=time,
       pos=prev,
-      itime=infect
+      itime=infect,
+      priorT=priorT,
+      priorD=priorD
     )
 
     if(!is.null(phi.func)){
