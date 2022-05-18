@@ -48,7 +48,7 @@ generate.raw.data <- function(n_sims, n, prevalence, times=c(0)){
 #' @import magrittr
 #'
 #' @examples
-#' dat <- generate.raw.data(n_sims=3, n=10, prevalence=0.5, times=c(0, 0))
+#' dat <- generate.raw.data(n_sims=10, n=100, prevalence=0.5, times=c(0, 0))
 #' sim <- simulate.recent(sim_data=dat, infection.function=infections.con,
 #'                        baseline_incidence=0.05, prevalence=0.5, rho=NA,
 #'                        phi.func=function(t) 1 - pgamma(t, 1, 2),
@@ -59,6 +59,13 @@ generate.raw.data <- function(n_sims, n, prevalence, times=c(0)){
 #'                        baseline_incidence=0.05, prevalence=0.5, rho=NA,
 #'                        phi.func=function(t) 1 - pgamma(t, 1, 2),
 #'                        times=c(0, 1), summarize=TRUE,
+#'                        ptest.dist=function(n) runif(n, 0.0, 5.0),
+#'                        ptest.prob=0.5, bigT=2)
+#' dat <- generate.raw.data(n_sims=10, n=100, prevalence=0.5, times=c(0))
+#' sim <- simulate.recent(sim_data=dat, infection.function=infections.con,
+#'                        baseline_incidence=0.05, prevalence=0.5, rho=NA,
+#'                        phi.func=function(t) 1 - pgamma(t, 1, 2),
+#'                        summarize=TRUE,
 #'                        ptest.dist=function(n) runif(n, 0.0, 5.0),
 #'                        ptest.prob=0.5, bigT=2)
 simulate.recent <- function(sim_data, infection.function=NULL,
@@ -110,7 +117,6 @@ simulate.recent <- function(sim_data, infection.function=NULL,
     indicators <- lapply(recent_probabilities,
                          function(x) rbinom(n=length(x), size=1, prob=x))
   }
-  browser()
 
   if(!is.null(ptest.dist)){
     # Get the prior testing times for everyone
@@ -158,19 +164,25 @@ simulate.recent <- function(sim_data, infection.function=NULL,
       den_beta <- NULL
     }
 
-    # if we have multiple times, convert it back into a matrix
-    if(n_times > 1) n_r   <- matrix(n_r, nrow=n_times, ncol=n_sims, byrow=FALSE)
-    if(n_times > 1) n_p   <- sim_data$n_p
-    if(n_times > 1) n_n   <- sim_data$n_n
-    if(n_times > 1) times <- sim_data$times
-    if(n_times > 1) n     <- sim_data$n
-
-    # if we have only one time (cross-sectional), keep everything
-    # in vector form
-    if(n_times == 1) n_p   <- as.vector(sim_data$n_p)
-    if(n_times == 1) n_n   <- as.vector(sim_data$n_n)
-    if(n_times == 1) n     <- as.vector(sim_data$n)
-    if(n_times == 1) times <- as.vector(sim_data$times)
+    if(n_times > 1){
+      # if we have multiple times, convert it back into a matrix
+      n_r       <- matrix(n_r, nrow=n_times, ncol=n_sims, byrow=FALSE)
+      n_r_pt    <- matrix(n_r_pt, nrow=n_times, ncol=n_sims, byrow=FALSE)
+      num_beta  <- matrix(num_beta, nrow=n_times, ncol=n_sims, byrow=FALSE)
+      den_omega <- matrix(den_omega, nrow=n_times, ncol=n_sims, byrow=FALSE)
+      den_beta  <- matrix(den_beta, nrow=n_times, ncol=n_sims, byrow=FALSE)
+      n_p       <- sim_data$n_p
+      n_n       <- sim_data$n_n
+      times     <- sim_data$times
+      n         <- sim_data$n
+    } else {
+      # if we have only one time (cross-sectional), keep everything
+      # in vector form
+      n_p   <- as.vector(sim_data$n_p)
+      n_n   <- as.vector(sim_data$n_n)
+      n     <- as.vector(sim_data$n)
+      times <- as.vector(sim_data$times)
+    }
 
     aspect_list <- list(
       n=n,
