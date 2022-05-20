@@ -142,9 +142,9 @@ simulate.recent <- function(sim_data, infection.function=NULL,
 
     ri_new <- mapply(FUN=enhanced.r, ti=ptest_times, ri=indicators, di=ptest_delta)
     recent_ti <- lapply(ptest_times, function(x) -x <= bigT)
-    int_phi_ti <- lapply(ptest_times, function(x) integrate.ti(-x))
+    int_phi_ti <- lapply(ptest_times, function(x) -x - integrate.ti(-x))
     recent_int_ti <- mapply(FUN=function(x, y) x * y, x=recent_ti, y=int_phi_ti)
-    int_phi_ti_ti <- mapply(FUN=function(x, y) x * -y, x=recent_ti, y=ptest_times)
+    int_phi_ti_ti <- mapply(FUN=function(x, y) (1-x) * -y, x=recent_ti, y=ptest_times)
   }
 
   if(summarize == TRUE){
@@ -153,9 +153,13 @@ simulate.recent <- function(sim_data, infection.function=NULL,
 
     # Additional info from prior test results
     if(!is.null(ptest.dist)){
+      # This is N^*_{rec}
       n_r_pt <- lapply(ri_new, sum) %>% unlist
+      # This is \sum I(T_i \leq T^*)
       num_beta <- lapply(recent_ti, sum) %>% unlist
+      # This is \sum I(T_i \leq T^*) * int_0^{T_i} (1 - \phi(u)) du
       den_omega <- lapply(recent_int_ti, sum) %>% unlist
+      # This is I(T_i > T^*) * T_i
       den_beta <- lapply(int_phi_ti_ti, sum) %>% unlist
     } else {
       n_r_pt <- NULL

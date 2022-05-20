@@ -14,8 +14,10 @@ get.gamma.params <- function(window, shadow){
 #' Non-constant FRR true rate based on the phi function and the tail probability of 0.015
 #' @export
 true.frr <- function(phi.function, bigT, tau){
-  ts <- seq(bigT, tau, DELTA)
-  return(mean(phi.function(ts)))
+  # ts <- seq(bigT, tau, DELTA)
+  # return(mean(phi.function(ts)))
+  val <- integrate(phi.function, bigT, tau)$value/(tau-bigT)
+  return(val)
 }
 
 #' When using the shadow period, need to numerically calculate the MDRI
@@ -23,8 +25,10 @@ true.frr <- function(phi.function, bigT, tau){
 #' MDRI for convenience
 #' @export
 true.window.mdri <- function(phi.function, maxT){
-  ts <- seq(0, maxT, DELTA)
-  return(sum(phi.function(ts) * DELTA))
+  # ts <- seq(0, maxT, DELTA)
+  # return(sum(phi.function(ts) * DELTA))
+  val <- integrate(phi.function, 0, maxT)$value
+  return(val)
 }
 
 #' @export
