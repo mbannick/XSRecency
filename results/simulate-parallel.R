@@ -1,4 +1,4 @@
-rm(list=ls())
+# rm(list=ls())
 
 args <- commandArgs()
 print(args)
@@ -16,16 +16,16 @@ source("./R/phi-functions.R")
 a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                     defaults=list(
                       seed=1,
-                      n_sims=10,
-                      n=5000,
-                      p=0.29,
-                      inc=0.032,
+                      n_sims=2,
+                      n=100,
+                      p=0.2,
+                      inc=0.03,
                       window=248,
                       shadow=306,
                       itype="constant",
-                      rho=NULL,
-                      tau=12,
-                      bigT=2,
+                      rho=0.0,
+                      tau=10,
+                      bigT=1,
                       phi_frr=NULL,
                       phi_tfrr=NULL,
                       phi_norm_mu=NULL,
@@ -38,7 +38,18 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                       ext_FRR=FALSE,
                       duong_scale=NULL,
                       max_FRR=NULL,
-                      last_point=FALSE
+                      last_point=FALSE,
+                      pt=TRUE,
+                      t_min=0.5,
+                      t_max=1,
+                      q=1,
+                      gamma=NULL, # variance for the Gaussian noise to add to prior test time
+                      eta=NULL, # the probability of incorrectly reporting negative test
+                      nu=NULL, # the probability of failing to report prior test result
+                      qu_int=NULL, # argument to the function for q being a function of u
+                      qu_slope=NULL,
+                      tu_int=NULL,
+                      tu_slope=NULL # argument to the function for t being a function of u
                     ))
 
 # Capture date in the out directory
@@ -49,7 +60,7 @@ dir.create(out_dir, showWarnings=FALSE, recursive=TRUE)
 # a[[1]] <- NULL
 a$out_dir <- NULL
 
-print(a)
+# print(a)
 
 if(!is.null(a$rho)) a$rho <- as.numeric(a$rho)
 if(!is.null(a$phi_frr)) a$phi_frr <- as.numeric(a$phi_frr)
@@ -134,17 +145,51 @@ if(!is.null(a$duong_scale)){
 
 set.seed(a$seed)
 
-sim <- simulate(n_sims=a$n_sims, n=a$n,
-                inc.function=inc.function,
-                infection.function=infection.function,
-                baseline_incidence=a$inc, prevalence=a$p, rho=a$rho,
-                phi.func=phi.func,
-                bigT=a$bigT, tau=a$tau, ext_FRR=a$ext_FRR,
-                ext_df=df,
-                max_FRR=a$max_FRR,
-                last_point=a$last_point)
+if(!a$pt){
+  sim <- simulate(n_sims=a$n_sims, n=a$n,
+                  inc.function=inc.function,
+                  infection.function=infection.function,
+                  baseline_incidence=a$inc, prevalence=a$p, rho=a$rho,
+                  phi.func=phi.func,
+                  bigT=a$bigT, tau=a$tau, ext_FRR=a$ext_FRR,
+                  ext_df=df,
+                  max_FRR=a$max_FRR,
+                  last_point=a$last_point)
+} else {
+  # THESE ARE THE PRIOR TEST SETTINGS
 
-df <- do.call(cbind, sim) %>% data.table
+  if(is.null(a$t_u)){
+    ptest.dist <- function(n, u) runif(n, a$t_min, a$t_max)
+  } else {
+    ptest.dist <- function(n, u) a$tu_int + a$tu_slope * u
+  }
+
+  if(is.null(a$q_u)){
+    ptest.prob <- function(u) a$q
+  } else {
+    expit <- function(x) exp(x) / (1 + exp(x))
+    ptest.prob <- function(u) rbinom(1, 1, prob=expit(a$q * u**0.5))
+  }
+  set.seed(2446)
+  sim2 <- simulate.pt(n_sims=a$n_sims, n=a$n,
+                     inc.function=inc.function,
+                     infection.function=infection.function,
+                     baseline_incidence=a$inc, prevalence=a$p, rho=a$rho,
+                     phi.func=truephifunc_MDRI,
+                     bigT=a$bigT, tau=a$tau, ext_FRR=a$ext_FRR,
+                     ext_df=df,
+                     max_FRR=a$max_FRR,
+                     last_point=a$last_point,
+                     # THESE ARE THE NEW ARGUMENTS
+                     ptest.dist=ptest.dist,
+                     ptest.prob=ptest.prob,
+                     t_range=c(a$t_min, a$t_max),
+                     t_noise=a$gamma,
+                     d_misrep=a$eta,
+                     q_misrep=a$nu)
+}
+
+df <- do.call(cbind, sim2) %>% data.table
 df[, sim := .I]
 
 as <- do.call(c, a)

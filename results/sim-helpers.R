@@ -3,6 +3,7 @@ source("R/data-generator.R")
 source("R/external-study-sim.R")
 source("R/external-study-data.R")
 source("R/estimators.R")
+source("R/estimators-pt.R")
 
 library(magrittr)
 
@@ -71,4 +72,85 @@ simulate <- function(n_sims, n, inc.function, infection.function, phi.func,
          n_p=data$n_p,
          n=data$n
          ))
+}
+
+simulate.pt <- function(n_sims, n, inc.function, infection.function, phi.func,
+                     baseline_incidence, prevalence, rho, bigT, tau,
+                     ext_FRR, ext_df=NULL, max_FRR=NULL, last_point=FALSE,
+                     ptest.dist=NULL, ptest.prob=1.0, t_range=NULL,
+                     t_noise=NULL, d_misrep=0.0, q_misrep=0.0){
+
+  # Generate trial data
+  data <- generate.data(n=n, n_sims=n_sims,
+                        infection.function=infection.function,
+                        phi.func=phi.func,
+                        baseline_incidence=baseline_incidence,
+                        prevalence=prevalence, rho=rho,
+                        bigT=bigT,
+                        ptest.dist=ptest.dist, ptest.prob=ptest.prob,
+                        t_range=t_range, t_noise=t_noise,
+                        d_misrep=d_misrep, q_misrep=q_misrep)
+
+  # Get assay parameters simulation based on external data simulation
+  assay <- assay.properties.nsim(n_sims, phi.func=phi.func, bigT=bigT, tau=tau,
+                                 ext_FRR=ext_FRR, ext_df=ext_df, max_FRR=max_FRR,
+                                 last_point=last_point)
+
+  # # Calculate true assay parameters
+  true_frr <- true.frr(phi.func=phi.func, bigT=bigT, tau=tau)
+  print(true_frr)
+  true_mdri <- true.window.mdri(phi.func=phi.func, maxT=bigT)
+  print(true_mdri)
+
+  # Compute estimates for adjusted
+  adj.true <- get.adjusted(n_r=data$n_r, n_n=data$n_n, n_p=data$n_p, n=data$n,
+                           omega=true_mdri, omega_var=0,
+                           beta=true_frr, beta_var=0,
+                           big_T=bigT)
+  adj.est <- get.adjusted(n_r=data$n_r, n_n=data$n_n, n_p=data$n_p, n=data$n,
+                          omega=assay$omega_est, omega_var=assay$omega_var,
+                          beta=assay$beta_est, beta_var=assay$beta_var,
+                          big_T=bigT)
+
+  # Compute estimates for adjusted enhanced estimator
+  eadj.true <- get.adjusted.pt(n_r=data$n_r_pt, n_n=data$n_n, n_p=data$n_p, n=data$n,
+                           omega=true_mdri, omega_var=0,
+                           beta=true_frr, beta_var=0,
+                           big_T=bigT,
+                           num_beta=data$num_beta,
+                           den_omega=data$den_omega,
+                           den_beta=data$den_beta)
+
+  eadj.est <- get.adjusted.pt(n_r=data$n_r_pt, n_n=data$n_n, n_p=data$n_p, n=data$n,
+                          omega=assay$omega_est, omega_var=assay$omega_var,
+                          beta=assay$beta_est, beta_var=assay$beta_var,
+                          big_T=bigT,
+                          num_beta=data$num_beta,
+                          den_omega=data$den_omega,
+                          den_beta=data$den_beta)
+
+  return(list(truth=rep(baseline_incidence, n_sims),
+              adj_true_est=adj.true$est,
+              adj_true_var=adj.true$var,
+              adj_est_est=adj.est$est,
+              adj_est_var=adj.est$var,
+              eadj_true_est=eadj.true$est,
+              eadj_true_var=eadj.true$var,
+              eadj_est_est=eadj.est$est,
+              eadj_est_var=eadj.est$var,
+              mu_est=assay$mu_est,
+              mu_var=assay$mu_var,
+              omega_est=assay$omega_est,
+              omega_var=assay$omega_var,
+              beta_est=assay$beta_est,
+              beta_var=assay$beta_var,
+              n_n=data$n_n,
+              n_r=data$n_r,
+              n_p=data$n_p,
+              n_r_pt=data$n_r_pt,
+              num_beta=data$num_beta,
+              den_omega=data$den_omega,
+              den_beta=data$den_beta,
+              n=data$n
+  ))
 }

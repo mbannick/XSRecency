@@ -1,5 +1,6 @@
 #' Adjusted estimator  accounting for prior test results.
 #'
+#' @inheritParams get.adjusted.pt
 #' @export
 adjusted.estimate.pt <- function(n_r_pt, n_n, n_p,
                                  omega, beta, big_T,
@@ -52,7 +53,7 @@ var.log.to.var <- function(estimate, variance) (estimate ** 2) * variance
 #'   \code{q} is an adjustment for the number of positives that are given recency tests.
 #'
 #' @export
-#' @param n_r Number of recent positives
+#' @param n_r_pt Number of recent positives
 #' @param n_n Number of negatives
 #' @param n_p Number of positives
 #' @param n Total number of observations (\eqn{n_n + n_p = n})
@@ -68,14 +69,18 @@ var.log.to.var <- function(estimate, variance) (estimate ** 2) * variance
 #'              omega=0.36, omega_var=0, beta=0.02, beta_var=0, big_T=2, q=1)
 #' get.adjusted(n_r=c(2, 3), n_n=c(50, 48), n_p=c(10, 12), n=c(60, 60),
 #'              omega=0.36, omega_var=0, beta=0.02, beta_var=0, big_T=2)
-get.adjusted <- function(n_r, n_n, n_p, n, omega, omega_var,
-                         beta, beta_var, big_T, q=1){
-  est <- adjusted.estimate(n_r=n_r, n_n=n_n, n_p=n_p,
-                           omega=omega, beta=beta, big_T=big_T, q=q)
-  logvar <- variance(n_n=n_n, n_r=n_r, n_p=n_p, n=n,
-                     omega=omega, omega_var=omega_var,
-                     beta=beta, beta_var=beta_var,
-                     big_T=big_T, q=q)
-  estvar <- var.log.to.var(est, logvar)
-  return(list(est=est, var=estvar))
+get.adjusted.pt <- function(n_r_pt, n_n, n_p, n, omega, omega_var,
+                         beta, beta_var, big_T, q=1,
+                         num_beta, den_omega, den_beta){
+
+  est <- adjusted.estimate.pt(n_r_pt=n_r_pt, n_n=n_n, n_p=n_p,
+                              omega=omega, beta=beta, big_T=big_T,
+                              num_beta=num_beta,
+                              den_omega=den_omega, den_beta=den_beta)
+  # logvar <- variance.pt(n_n=n_n, n_r=n_r, n_p=n_p, n=n,
+  #                       omega=omega, omega_var=omega_var,
+  #                       beta=beta, beta_var=beta_var,
+  #                       big_T=big_T, q=q)
+  # estvar <- var.log.to.var(est, logvar)
+  return(list(est=est, var=NA))
 }

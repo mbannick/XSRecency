@@ -1,4 +1,3 @@
-
 library(magrittr)
 
 #' Generates raw data of number positive, negative, and screened
@@ -40,8 +39,18 @@ generate.raw.data <- function(n_sims, n, prevalence, times=c(0)){
 #' @param rho A parameter to the `infection.function` for how quickly incidence changes
 #' @param incidence.function An incidence function in place of `infection.function`.
 #'   Cannot pass both arguments.
-#' @param ptest.dist A prior test result distribution function.
+#' @param ptest.dist A prior test result distribution function, which must have
+#'   be a function of a scalar `n` and vector `u` which is a vector
+#'   of infection durations (which will be of length n),
+#'   though it can ignore the `u` argument inside the function.
+#'   An example is `rnorm(n, mean=u)`.
 #' @param ptest.prob Probability of prior test result being available.
+#'   Can instead be a function of `u`, the infection duration.
+#' @param t_noise Function to add noise to a single prior testing time.
+#'   Must be a function of t, the prior testing time.
+#' @param d_misrep Probability of given a positive prior test, individual
+#'   reports negative prior test.
+#' @param q_misrep Probability of not reporting a prior test result.
 #' @param ... Additional arguments to the `simulate.infection.times` function if you're
 #'   passing an `incidence.function` instead of an `infection.function`.
 #' @importFrom data.table data.table
@@ -52,9 +61,10 @@ generate.raw.data <- function(n_sims, n, prevalence, times=c(0)){
 #' sim <- simulate.recent(sim_data=dat, infection.function=infections.con,
 #'                        baseline_incidence=0.05, prevalence=0.5, rho=NA,
 #'                        phi.func=function(t) 1 - pgamma(t, 1, 2),
-#'                        times=c(0, 1), summarize=FALSE,
-#'                        ptest.dist=function(n) runif(n, 0.0, 5.0),
-#'                        ptest.prob=0.5, bigT=2)
+#'                        times=c(0, 1), summarize=TRUE,
+#'                        ptest.dist=function(n, u) runif(n, 0.4, 1.0),
+#'                        ptest.prob=1.0, bigT=2,
+#'                        t_range=c(0.4, 1.0))
 #' sim <- simulate.recent(sim_data=dat, infection.function=infections.con,
 #'                        baseline_incidence=0.05, prevalence=0.5, rho=NA,
 #'                        phi.func=function(t) 1 - pgamma(t, 1, 2),
@@ -71,7 +81,9 @@ generate.raw.data <- function(n_sims, n, prevalence, times=c(0)){
 simulate.recent <- function(sim_data, infection.function=NULL,
                             phi.func, baseline_incidence, prevalence, rho, summarize=TRUE,
                             incidence.function=NULL,
-                            ptest.dist=NULL, ptest.prob=0.0,
+                            ptest.dist=NULL, ptest.prob=1.0,
+                            t_range=NULL,
+                            t_noise=NULL, d_misrep=0.0, q_misrep=0.0,
                             bigT=NULL,
                             ...){
 
@@ -119,14 +131,53 @@ simulate.recent <- function(sim_data, infection.function=NULL,
   }
 
   if(!is.null(ptest.dist)){
+
     # Get the prior testing times for everyone
-    test_times <- mapply(function(t, n) t - ptest.dist(n), t=times, n=n_p)
+    test_times <- mapply(function(t, n, u) t - ptest.dist(n, u),
+                         t=times, n=n_p, u=infect_duration)
+
+    # Apply noise to the testing times if desired
+    if(!is.null(t_noise)){
+      test_times <- lapply(test_times, function(t) sapply(t, t_noise(t)))
+    }
+
     # Simulate whether or not those tests are available (were actually taken)
-    available <- lapply(n_p, function(n) rbinom(n=n, size=1, prob=ptest.prob))
+    # Since can pass either a probability or a function,
+    # convert the probabilities to a constant function of infection duration.
+    if(!is.function(ptest.prob)){
+      testprob <- function(u) ptest.prob
+    } else {
+      testprob <- ptest.prob
+    }
+    available <- mapply(function(n, u) rbinom(n=n, size=1, prob=testprob(u)),
+                        n=n_p, u=infect_duration)
+
+    # Apply misreporting of available tests
+    if(!is.null(q_misrep)){
+      w <- lapply(n_p, function(n) rbinom(n, size=1, prob=1-q_misrep))
+      available <- mapply(function(a, w) a * w, a=available, w=w)
+    }
+
     # Generate vector with prior time or NA if not available
-    ptest_times <- mapply(function(t, a) ifelse(a, t, 0), t=test_times, a=available)
+    ptest_times <- mapply(function(t, a) ifelse(a, t, NA), t=test_times, a=available)
+
+    # Get rid of prior testing times that are outside of the range
+    if(!is.null(t_range)){
+      rem <- function(x){
+        x[(x > -t_range[1]) | (x < -t_range[2])] <- NA
+        return(x)
+      }
+      ptest_times <- lapply(ptest_times, rem)
+    }
+
     # See whether or not the test was positive
     ptest_delta <- mapply(function(it, pt) as.integer(it < pt), pt=ptest_times, it=t_infect)
+
+    # Apply misreporting of positive tests
+    if(!is.null(d_misrep)){
+      z <- lapply(n_p, function(n) rbinom(n, size=1, prob=1-d_misrep))
+      ptest_delta <- mapply(function(d, z) d * z, d=ptest_delta, z=z)
+    }
 
     # Define a function for getting the new recency indicator
     # if there are prior test results.
@@ -140,6 +191,7 @@ simulate.recent <- function(sim_data, infection.function=NULL,
     integrate.tinan <- function(ti) ifelse(is.na(ti), NA, integrate(phi.func, 0, ti)$value)
     integrate.ti <- function(ti) sapply(ti, function(t) integrate.tinan(t))
 
+    # Compute terms that will be used in the estimator
     ri_new <- mapply(FUN=enhanced.r, ti=ptest_times, ri=indicators, di=ptest_delta)
     recent_ti <- lapply(ptest_times, function(x) -x <= bigT)
     int_phi_ti <- lapply(ptest_times, function(x) -x - integrate.ti(-x))
@@ -154,13 +206,13 @@ simulate.recent <- function(sim_data, infection.function=NULL,
     # Additional info from prior test results
     if(!is.null(ptest.dist)){
       # This is N^*_{rec}
-      n_r_pt <- lapply(ri_new, sum) %>% unlist
+      n_r_pt <- lapply(ri_new, function(x) sum(x, na.rm=T)) %>% unlist
       # This is \sum I(T_i \leq T^*)
-      num_beta <- lapply(recent_ti, sum) %>% unlist
+      num_beta <- lapply(recent_ti, function(x) sum(x, na.rm=T)) %>% unlist
       # This is \sum I(T_i \leq T^*) * int_0^{T_i} (1 - \phi(u)) du
-      den_omega <- lapply(recent_int_ti, sum) %>% unlist
+      den_omega <- lapply(recent_int_ti, function(x) sum(x, na.rm=T)) %>% unlist
       # This is I(T_i > T^*) * T_i
-      den_beta <- lapply(int_phi_ti_ti, sum) %>% unlist
+      den_beta <- lapply(int_phi_ti_ti, function(x) sum(x, na.rm=T)) %>% unlist
     } else {
       n_r_pt <- NULL
       num_beta <- NULL
@@ -309,7 +361,7 @@ simulate.recent <- function(sim_data, infection.function=NULL,
 #'               times=c(0), summarize=TRUE)
 generate.data <- function(n_sims, n, infection.function,
                           baseline_incidence,
-                          prevalence, rho, phi.func=NULL, times=c(0), summarize=TRUE){
+                          prevalence, rho, phi.func=NULL, times=c(0), summarize=TRUE, ...){
 
   # TODO: include some sanity checks
   if(summarize & is.null(phi.func)) stop("Need a phi function
@@ -317,7 +369,7 @@ generate.data <- function(n_sims, n, infection.function,
 
   data <- generate.raw.data(n_sims, n, prevalence, times=times)
   data <- simulate.recent(data, infection.function, phi.func,
-                          baseline_incidence, prevalence, rho, summarize=summarize)
+                          baseline_incidence, prevalence, rho, summarize=summarize, ...)
   return(data)
 }
 
