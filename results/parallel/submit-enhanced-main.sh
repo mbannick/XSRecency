@@ -21,7 +21,7 @@ TAIL="-phi_tfrr 2"
 PT="-pt"
 
 BASELINE="${ARGS} ${RHO} ${TYPE} ${ASSAY} ${TAIL} ${PT}"
-
+OLDIFS=$IFS; IFS=','
 for GAMMA in 0 0.1
 do
   for Q in 0.2 0.4 0.6 0.8 1.0
@@ -31,10 +31,15 @@ do
       for NU in 0.0 0.25
       do
         for TRANGE in 0,4 0,2 1,3
-        do IFS=","; set -- $TRANGE;
-          PTARGS="-t_min {$1} -t_max {$1} -q {$Q} -gamma {$GAMMA} -eta {$ETA} -nu {$NU}"
-
+        do set -- $TRANGE;
+          PTARGS="-t_min {$1} -t_max {$2} -q {$Q} -gamma {$GAMMA} -eta {$ETA} -nu {$NU}"
+          IFS=$OLDIFS
           qsub ${CONSTANTS} ${BASELINE} ${PTARGS}
           # qsub ${CONSTANTS} ${BASELINE} ${PTARGS} -qu_int 1 -qu_slope 1
           # qsub ${CONSTANTS} ${BASELINE} ${PTARGS} -tu_int 1 -tu_slope 1
           # qsub ${CONSTANTS} ${BASELINE} ${PTARGS} -qu_int 1 -qu_slope 1 -tu_int 1 -tu_slope 1
+        done
+      done
+    done
+  done
+done
