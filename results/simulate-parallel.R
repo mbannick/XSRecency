@@ -72,6 +72,16 @@ if(!is.null(a$phi_pnorm_mu)) a$phi_pnorm_mu <- as.numeric(a$phi_pnorm_mu)
 if(!is.null(a$phi_pnorm_sd)) a$phi_pnorm_sd <- as.numeric(a$phi_pnorm_sd)
 if(!is.null(a$phi_pnorm_div)) a$phi_pnorm_div <- as.numeric(a$phi_pnorm_div)
 if(!is.null(a$max_FRR)) a$max_FRR <- as.numeric(a$max_FRR)
+if(!is.null(a$t_min)) a$t_min <- as.numeric(a$t_min)
+if(!is.null(a$t_max)) a$t_max <- as.numeric(a$t_max)
+if(!is.null(a$q)) a$q <- as.numeric(a$q)
+if(!is.null(a$gamma)) a$gamma <- as.numeric(a$gamma)
+if(!is.null(a$eta)) a$eta <- as.numeric(a$eta)
+if(!is.null(a$nu)) a$nu <- as.numeric(a$nu)
+if(!is.null(a$qu_int)) a$qu_int <- as.numeric(a$qu_int)
+if(!is.null(a$qu_slope)) a$qu_int <- as.numeric(a$qu_slope)
+if(!is.null(a$tu_int)) a$tu_int <- as.numeric(a$tu_int)
+if(!is.null(a$tu_slope)) a$tu_slope <- as.numeric(a$tu_slope)
 
 # Logic checks for arguments
 if(!is.null(a$phi_frr) & !is.null(a$phi_tfrr)){
@@ -169,6 +179,10 @@ if(!a$pt){
   } else {
     expit <- function(x) exp(x) / (1 + exp(x))
     ptest.prob <- function(u) rbinom(1, 1, prob=expit(a$q * u**0.5))
+  }
+
+  if(!is.null(a$gamma)){
+    t_noise <- function(t) rnorm(n=1, sd=a$gamma)
   }
 
   sim <- simulate.pt(n_sims=a$n_sims, n=a$n,
