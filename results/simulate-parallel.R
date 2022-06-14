@@ -1,4 +1,4 @@
-# rm(list=ls())
+rm(list=ls())
 
 args <- commandArgs()
 print(args)
@@ -16,7 +16,7 @@ source("./R/phi-functions.R")
 a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                     defaults=list(
                       seed=1,
-                      n_sims=2,
+                      n_sims=100,
                       n=100,
                       p=0.2,
                       inc=0.03,
@@ -170,12 +170,12 @@ if(!a$pt){
     expit <- function(x) exp(x) / (1 + exp(x))
     ptest.prob <- function(u) rbinom(1, 1, prob=expit(a$q * u**0.5))
   }
-  set.seed(2446)
-  sim2 <- simulate.pt(n_sims=a$n_sims, n=a$n,
+
+  sim <- simulate.pt(n_sims=a$n_sims, n=a$n,
                      inc.function=inc.function,
                      infection.function=infection.function,
                      baseline_incidence=a$inc, prevalence=a$p, rho=a$rho,
-                     phi.func=truephifunc_MDRI,
+                     phi.func=phi.func,
                      bigT=a$bigT, tau=a$tau, ext_FRR=a$ext_FRR,
                      ext_df=df,
                      max_FRR=a$max_FRR,
@@ -189,7 +189,7 @@ if(!a$pt){
                      q_misrep=a$nu)
 }
 
-df <- do.call(cbind, sim2) %>% data.table
+df <- do.call(cbind, sim) %>% data.table
 df[, sim := .I]
 
 as <- do.call(c, a)

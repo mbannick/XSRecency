@@ -182,6 +182,8 @@ simulate.recent <- function(sim_data, infection.function=NULL,
     # Define a function for getting the new recency indicator
     # if there are prior test results.
     enhanced.r <- function(ti, ri, di){
+      di[is.na(di)] <- 1
+      ti[is.na(ti)] <- 0
       ri_star <- (di == 0) & (-ti <= bigT)
       ri_tild <- 1 - ((-ti > bigT) & (di == 1))
       ri_new <- (ri | ri_star) & ri_tild
@@ -193,10 +195,22 @@ simulate.recent <- function(sim_data, infection.function=NULL,
 
     # Compute terms that will be used in the estimator
     ri_new <- mapply(FUN=enhanced.r, ti=ptest_times, ri=indicators, di=ptest_delta)
-    recent_ti <- lapply(ptest_times, function(x) -x <= bigT)
-    int_phi_ti <- lapply(ptest_times, function(x) -x - integrate.ti(-x))
-    recent_int_ti <- mapply(FUN=function(x, y) x * y, x=recent_ti, y=int_phi_ti)
-    int_phi_ti_ti <- mapply(FUN=function(x, y) (1-x) * -y, x=recent_ti, y=ptest_times)
+
+    ptest_temp <- ptest_times
+    for(i in 1:length(ptest_temp)){
+      ptest_temp[[i]][is.na(ptest_temp[[i]])] <- 0
+    }
+
+    recent_ti <- lapply(ptest_temp, function(x) -x <= bigT)
+
+    recent_temp <- recent_ti
+    for(i in 1:length(recent_temp)){
+      recent_temp[[i]][is.na(recent_temp[[i]])] <- 1
+    }
+
+    int_phi_ti <- lapply(ptest_temp, function(x) -x - integrate.ti(-x))
+    recent_int_ti <- mapply(FUN=function(x, y) x * y, x=recent_temp, y=int_phi_ti)
+    int_phi_ti_ti <- mapply(FUN=function(x, y) (1-x) * -y, x=recent_temp, y=ptest_temp)
   }
 
   if(summarize == TRUE){
@@ -208,7 +222,8 @@ simulate.recent <- function(sim_data, infection.function=NULL,
       # This is N^*_{rec}
       n_r_pt <- lapply(ri_new, function(x) sum(x, na.rm=T)) %>% unlist
       # This is \sum I(T_i \leq T^*)
-      num_beta <- lapply(recent_ti, function(x) sum(x, na.rm=T)) %>% unlist
+
+      num_beta <- lapply(recent_temp, function(x) sum(x, na.rm=T)) %>% unlist
       # This is \sum I(T_i \leq T^*) * int_0^{T_i} (1 - \phi(u)) du
       den_omega <- lapply(recent_int_ti, function(x) sum(x, na.rm=T)) %>% unlist
       # This is I(T_i > T^*) * T_i
