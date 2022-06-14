@@ -39,13 +39,13 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                       duong_scale=NULL,
                       max_FRR=NULL,
                       last_point=FALSE,
-                      pt=TRUE,
-                      t_min=0.5,
-                      t_max=1,
-                      q=1,
+                      pt=FALSE,
+                      t_min=0,
+                      t_max=4,
+                      q=0.2,
                       gamma=0, # variance for the Gaussian noise to add to prior test time
-                      eta=NULL, # the probability of incorrectly reporting negative test
-                      nu=NULL, # the probability of failing to report prior test result
+                      eta=0, # the probability of incorrectly reporting negative test
+                      nu=0, # the probability of failing to report prior test result
                       qu_int=NULL, # argument to the function for q being a function of u
                       qu_slope=NULL,
                       tu_int=NULL,
@@ -79,7 +79,7 @@ if(!is.null(a$gamma)) a$gamma <- as.numeric(a$gamma)
 if(!is.null(a$eta)) a$eta <- as.numeric(a$eta)
 if(!is.null(a$nu)) a$nu <- as.numeric(a$nu)
 if(!is.null(a$qu_int)) a$qu_int <- as.numeric(a$qu_int)
-if(!is.null(a$qu_slope)) a$qu_int <- as.numeric(a$qu_slope)
+if(!is.null(a$qu_slope)) a$qu_slope <- as.numeric(a$qu_slope)
 if(!is.null(a$tu_int)) a$tu_int <- as.numeric(a$tu_int)
 if(!is.null(a$tu_slope)) a$tu_slope <- as.numeric(a$tu_slope)
 
