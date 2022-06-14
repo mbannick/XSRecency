@@ -43,7 +43,7 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                       t_min=0.5,
                       t_max=1,
                       q=1,
-                      gamma=NULL, # variance for the Gaussian noise to add to prior test time
+                      gamma=0, # variance for the Gaussian noise to add to prior test time
                       eta=NULL, # the probability of incorrectly reporting negative test
                       nu=NULL, # the probability of failing to report prior test result
                       qu_int=NULL, # argument to the function for q being a function of u
@@ -182,7 +182,9 @@ if(!a$pt){
   }
 
   if(!is.null(a$gamma)){
-    t_noise <- function(t) rnorm(n=1, sd=a$gamma)
+    t_noise <- function(t) max(0, t + rnorm(n=1, sd=a$gamma))
+  } else {
+    t_noise <- NULL
   }
 
   sim <- simulate.pt(n_sims=a$n_sims, n=a$n,
@@ -198,7 +200,7 @@ if(!a$pt){
                      ptest.dist=ptest.dist,
                      ptest.prob=ptest.prob,
                      t_range=c(a$t_min, a$t_max),
-                     t_noise=a$gamma,
+                     t_noise=t_noise,
                      d_misrep=a$eta,
                      q_misrep=a$nu)
 }

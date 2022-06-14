@@ -137,8 +137,9 @@ simulate.recent <- function(sim_data, infection.function=NULL,
                          t=times, n=n_p, u=infect_duration)
 
     # Apply noise to the testing times if desired
+    browser()
     if(!is.null(t_noise)){
-      test_times <- lapply(test_times, function(t) sapply(t, t_noise(t)))
+      test_times <- lapply(test_times, function(t) sapply(t, t_noise))
     }
 
     # Simulate whether or not those tests are available (were actually taken)
