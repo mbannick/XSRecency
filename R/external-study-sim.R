@@ -3,6 +3,8 @@
 # -------------------------------------------------------------------------
 
 library(geepack)
+library(data.table)
+.datatable.aware=TRUE
 
 # number of long infecteds for beta study
 N_LONG_INFECT=1500
@@ -69,7 +71,7 @@ simulate.nbeta <- function(nsims, phi.func, minT, maxT, studies=NULL){
 #' @param knot Knot location for piecewise-linear function
 #' @return List of start durations, numbers of samples, and model coefficients
 fit.model <- function(df, knot=5){
-
+  df <- data.table(df)
   # Indicator variable for sample 5+
   df[, samp.5 := samp >= knot]
 
@@ -224,8 +226,8 @@ integrate.phi <- function(model, minT=0, maxT=12){
   return(list(est=estimate, var=variance))
 }
 
-#' Use an assay df with recent and durations to calculate the properties
-#' of the assay simulation.
+#' Use an assay df with recent (yes/no) and duration columns
+#' to calculate the mean window period and MDRI of the assay
 #'
 #' @export
 #' @param study Data frame with recent and durations variables
@@ -255,14 +257,22 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE){
 #' Function that simulates the mean window period, mean duration of recent
 #' infection, and false recent rate (FRR) based on external study data.
 #'
+#' The external study data for mean window and MDRI is available here from
+#' Duong et al. 2015:
+#' # https://doi.org/10.1371/journal.pone.0114947.s001
+#'
 #' @export
 #' @param n_sims Number of simulations
 #' @param phi.func A test-recent positive function of t
 #' @param bigT The time cutoff value designating true recent versus false recent
 #' @param tau The maximum duration of infection where a subject
 #'   could have a false-positive for recent infection
-#' @param integrate.FRR Whether or not to get FRR integrated from the Duong et al. 2015
-#'   study or to calculate it from a simpler, separate study.
+#' @param ext_FRR Whether or not to get FRR from the Duong et al. 2015
+#'   study or to calculate it from a simpler, separate study, passed in \code{ext_df}
+#' @param ext_FRR A dataset with column "duration" and column for binary "recent" indicator
+#' @param max_FRR The maximum duration allowed
+#' @param last_point Integrate the mean window period to the last observed
+#'   duration in the dataset, rather than tau
 #' @return A list of estimated mean window period \eqn{\mu} and its variance,
 #'   estimated MDRI \eqn{\Omega_{T^*}} and its variance, and
 #'   estimated FRR \eqn{\beta_{T^*}} and its variance.

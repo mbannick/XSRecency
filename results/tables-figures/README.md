@@ -10,4 +10,7 @@
 
 - `figure-1.R`: Plot of phi functions used for assays 1A-D and 2A-D.
 - `figure-A1.R`: Incidence functions and distribution of infection times.
-- `figure-A2-3.R`: Data generating process based on Duong et al. 2015 data.
+- `figure-A2-3.R`: Data generating process based on Duong et al. 2015 data.i
+
+### Data analysis:
+- `data-analysis.R`: Uses external data to illustrate estimators.

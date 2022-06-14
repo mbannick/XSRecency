@@ -1,4 +1,5 @@
 context("Estimators")
+library(data.table)
 
 PHI <- function(t) 1 - pgamma(t, 1, 2.7)
 

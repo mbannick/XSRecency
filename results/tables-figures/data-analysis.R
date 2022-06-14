@@ -46,6 +46,7 @@ process.study <- function(file){
 
 duong <- process.study(FILE)
 frr <- fread("data-raw/duong2015-frr.csv")
+
 BIGT <- 1
 TAU <- 8
 
@@ -65,8 +66,6 @@ mu * 365.25
 mdri * 365.25
 
 # Calculate false recency rate
-study.data.frr <- study.data[days > BIGT*365.25 & !is.na(recent)]
-
 frr[, recent := LAg <= 1.5]
 frr <- frr[!is.na(LAg)] # ID number 6085 was missing LAg
 beta <- sum(frr$recent) / nrow(frr) # this is really high
@@ -84,14 +83,12 @@ N_rec <- 19
 
 snapshot <- get.snapshot(n=N, n_r=N_rec, n_n=N_neg, n_p=N_pos,
                          mu=windows$mu_est, mu_var=windows$mu_var, q=N_test/N_pos)
-adjusted <- get.adjusted(n=N, n_r=N_rec, n_n=N_neg, n_p=N_test,
+adjusted <- get.adjusted(n=N, n_r=N_rec, n_n=N_neg, n_p=N_pos,
                          omega=windows$omega_est, omega_var=windows$omega_var,
                          beta=beta, beta_var=beta_var, big_T=BIGT, q=N_test/N_pos)
 
 snap <- snapshot$est + c(-1, 0, 1) * qnorm(0.975) * snapshot$var**0.5
 adj <- adjusted$est + c(-1, 0, 1) * qnorm(0.975) * adjusted$var**0.5
-adj.q <- adjusted.q$est + c(-1, 0, 1) * qnorm(0.975) * adjusted.q$var**0.5
 
-print(snap)
-print(adj)
-print(adj.q)
+print(snap * 1000)
+print(adj * 1000)
