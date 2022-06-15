@@ -7,7 +7,7 @@ OUTPUT="/home/users/mnorwood/hutch/xs-recent/enhanced"
 
 CONSTANTS="-cwd -N recency_sim -j y -o ${OUT} -pe smp 1 -q normal.q ${SHELL} ${SCRIPT}"
 
-NSIMS=1000
+NSIMS=2
 N=5000
 P=0.29
 INC=0.032
@@ -32,8 +32,9 @@ do
       do
         for TRANGE in 0,4 0,2 1,3
         do set -- $TRANGE;
-          PTARGS="-t_min {$1} -t_max {$2} -q {$Q} -gamma {$GAMMA} -eta {$ETA} -nu {$NU}"
+          PTARGS="-t_min $1 -t_max $2 -q $Q -gamma $GAMMA -eta $ETA -nu $NU"
           IFS=$OLDIFS
+          echo "qsub ${CONSTANTS} ${BASELINE} ${PTARGS}"
           qsub ${CONSTANTS} ${BASELINE} ${PTARGS}
           # qsub ${CONSTANTS} ${BASELINE} ${PTARGS} -qu_int 1 -qu_slope 1
           # qsub ${CONSTANTS} ${BASELINE} ${PTARGS} -tu_int 1 -tu_slope 1

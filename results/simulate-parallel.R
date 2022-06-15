@@ -16,7 +16,7 @@ source("./R/phi-functions.R")
 a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                     defaults=list(
                       seed=1,
-                      n_sims=100,
+                      n_sims=2,
                       n=100,
                       p=0.2,
                       inc=0.03,
@@ -39,10 +39,10 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                       duong_scale=NULL,
                       max_FRR=NULL,
                       last_point=FALSE,
-                      pt=FALSE,
+                      pt=TRUE,
                       t_min=0,
-                      t_max=4,
-                      q=0.2,
+                      t_max=1,
+                      q=1,
                       gamma=0, # variance for the Gaussian noise to add to prior test time
                       eta=0, # the probability of incorrectly reporting negative test
                       nu=0, # the probability of failing to report prior test result
@@ -60,7 +60,7 @@ dir.create(out_dir, showWarnings=FALSE, recursive=TRUE)
 # a[[1]] <- NULL
 a$out_dir <- NULL
 
-# print(a)
+print(a)
 
 if(!is.null(a$rho)) a$rho <- as.numeric(a$rho)
 if(!is.null(a$phi_frr)) a$phi_frr <- as.numeric(a$phi_frr)
@@ -182,7 +182,7 @@ if(!a$pt){
   }
 
   if(!is.null(a$gamma)){
-    t_noise <- function(t) max(0, t + rnorm(n=1, sd=a$gamma))
+    t_noise <- function(t) min(0, t + rnorm(n=1, sd=a$gamma))
   } else {
     t_noise <- NULL
   }
@@ -212,6 +212,8 @@ as <- do.call(c, a)
 for(i in 1:length(as)){
   df[, names(as[i]) := as[i]]
 }
+print(df)
+print(df)
 
 filename <- do.call(paste, a)
 filename <- gsub(" ", "_", filename)
