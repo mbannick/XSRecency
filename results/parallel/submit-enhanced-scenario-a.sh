@@ -24,6 +24,6 @@ BASELINE="${ARGS} ${RHO} ${TYPE} ${ASSAY} ${TAIL} ${PT}"
 
 for Q in 0.2 0.4 0.6 0.8 1.0
 do
-  PTARGS="-t_min {$TMIN} -t_max {$TMAX} -q {$Q}"
+  PTARGS="-t_min $TMIN -t_max $TMAX -q $Q"
   qsub ${CONSTANTS} ${BASELINE} ${PTARGS}
   qsub ${CONSTANTS} ${BASELINE} ${PTARGS} ${MECH2}

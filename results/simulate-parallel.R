@@ -43,7 +43,7 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                       pt=TRUE,
                       t_min=0,
                       t_max=1,
-                      q=0.2,
+                      q=1,
                       gamma=0, # variance for the Gaussian noise to add to prior test time
                       eta=0, # the probability of incorrectly reporting negative test
                       nu=0, # the probability of failing to report prior test result
@@ -211,6 +211,8 @@ as <- do.call(c, a)
 for(i in 1:length(as)){
   df[, names(as[i]) := as[i]]
 }
+print(df)
+print(df)
 
 filename <- do.call(paste, a)
 filename <- gsub(" ", "_", filename)

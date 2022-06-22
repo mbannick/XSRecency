@@ -28,5 +28,5 @@ do
     do
       for Q in 0.5 1.0
       do
-        PTARGS="-t_min {$TMIN} -t_max {$TMAX} -q {$Q} -gamma {$GAMMA} -eta {$ETA} -nu {$NU}"
+        PTARGS="-t_min $TMIN -t_max $TMAX -q $Q -gamma $GAMMA -eta $ETA -nu $NU"
         qsub ${CONSTANTS} ${BASELINE} ${PTARGS}
