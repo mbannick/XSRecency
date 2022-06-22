@@ -15,6 +15,7 @@ BIGT=2
 
 TMIN=1
 TMAX=3
+Q=1
 
 ARGS="-n_sims=${NSIMS} -n=${N} -p ${P} -inc ${INC} -tau ${TAU} -bigT ${BIGT} -out_dir ${OUTDIR} -last_point"
 ASSAY="-window 101 -shadow 194"
@@ -30,12 +31,17 @@ do
   do
     for NU in 0.0 0.1 0.25
     do
-      for Q in 0.5 1.0
-      do
-        PTARGS="-t_min $TMIN -t_max $TMAX -q $Q -gamma $GAMMA -eta $ETA -nu $NU"
-        # echo "qsub ${CONSTANTS} ${BASELINE} ${PTARGS}"
-        qsub ${CONSTANTS} ${BASELINE} ${PTARGS}
-      done
+      PTARGS="-t_min $TMIN -t_max $TMAX -q $Q -gamma $GAMMA -eta $ETA -nu $NU"
+      qsub ${CONSTANTS} ${BASELINE} ${PTARGS}
     done
+  done
+done
+
+for GAMMA in 0 0.1 0.5
+do
+  for XI in 0.0 0.1 0.25
+  do
+    PTARGS="-t_min $TMIN -t_max $TMAX -q $Q -gamma $GAMMA -eta $ETA -nu $NU -xi $XI"
+    qsub ${CONSTANTS} ${BASELINE} ${PTARGS}
   done
 done
