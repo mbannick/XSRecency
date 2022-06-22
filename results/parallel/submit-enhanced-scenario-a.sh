@@ -17,7 +17,7 @@ TMIN=0
 TMAX=$TAU
 
 ARGS="-n_sims=${NSIMS} -n=${N} -p ${P} -inc ${INC} -tau ${TAU} -bigT ${BIGT} -out_dir ${OUTDIR} -last_point"
-ASSAY="-window 248 -shadow 306"
+ASSAY="-window 101 -shadow 194"
 TYPE="-itype constant"
 TAIL="-phi_tfrr 2"
 PT="-pt"
@@ -26,7 +26,7 @@ MECH2="-mech2"
 
 BASELINE="${ARGS} ${RHO} ${TYPE} ${ASSAY} ${TAIL} ${PT}"
 
-for Q in 0.2 0.4 0.6 0.8 1.0
+for Q in 0.25 0.5 0.75
 do
   PTARGS="-t_min $TMIN -t_max $TMAX -q $Q"
   qsub ${CONSTANTS} ${BASELINE} ${PTARGS}
