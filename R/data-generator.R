@@ -252,6 +252,8 @@ simulate.recent <- function(sim_data, infection.function=NULL,
   if(summarize == TRUE){
     # number of recents
     n_r <- lapply(indicators, sum) %>% unlist
+    n_d <- lapply(available, sum) %>% unlist
+    q_eff <- n_d / n_p
 
     # Additional info from prior test results
     if(!is.null(ptest.dist)){
@@ -269,6 +271,7 @@ simulate.recent <- function(sim_data, infection.function=NULL,
       num_beta <- NULL
       den_omega <- NULL
       den_beta <- NULL
+      q_eff <- NULL
     }
 
     if(n_times > 1){
@@ -278,6 +281,7 @@ simulate.recent <- function(sim_data, infection.function=NULL,
       num_beta  <- matrix(num_beta, nrow=n_times, ncol=n_sims, byrow=FALSE)
       den_omega <- matrix(den_omega, nrow=n_times, ncol=n_sims, byrow=FALSE)
       den_beta  <- matrix(den_beta, nrow=n_times, ncol=n_sims, byrow=FALSE)
+      q_eff     <- matrix(q_eff, nrow=n_times, ncol=n_sims, byrow=FALSE)
       n_p       <- sim_data$n_p
       n_n       <- sim_data$n_n
       times     <- sim_data$times
@@ -300,7 +304,8 @@ simulate.recent <- function(sim_data, infection.function=NULL,
       n_r_pt=n_r_pt,
       num_beta=num_beta,
       den_omega=den_omega,
-      den_beta=den_beta
+      den_beta=den_beta,
+      q_eff=q_eff
     )
     return(aspect_list)
   } else {

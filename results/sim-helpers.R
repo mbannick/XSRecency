@@ -153,6 +153,7 @@ simulate.pt <- function(n_sims, n, inc.function, infection.function, phi.func,
               num_beta=data$num_beta,
               den_omega=data$den_omega,
               den_beta=data$den_beta,
+              q_eff=data$q_eff,
               n=data$n
   ))
 }
