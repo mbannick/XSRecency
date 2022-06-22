@@ -7,6 +7,7 @@ library(data.table)
 library(magrittr)
 library(R.utils)
 library(stringr)
+library(flexsurv)
 
 setwd("~/repos/XSRecency/")
 source("./results/sim-helpers.R")
@@ -16,8 +17,8 @@ source("./R/phi-functions.R")
 a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                     defaults=list(
                       seed=1,
-                      n_sims=100,
-                      n=100,
+                      n_sims=2,
+                      n=1000,
                       p=0.2,
                       inc=0.03,
                       window=248,
@@ -27,7 +28,7 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                       tau=10,
                       bigT=1,
                       phi_frr=NULL,
-                      phi_tfrr=NULL,
+                      phi_tfrr=2,
                       phi_norm_mu=NULL,
                       phi_norm_sd=NULL,
                       phi_norm_div=NULL,
@@ -39,17 +40,15 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                       duong_scale=NULL,
                       max_FRR=NULL,
                       last_point=FALSE,
-                      pt=FALSE,
+                      pt=TRUE,
                       t_min=0,
-                      t_max=4,
+                      t_max=1,
                       q=0.2,
                       gamma=0, # variance for the Gaussian noise to add to prior test time
                       eta=0, # the probability of incorrectly reporting negative test
                       nu=0, # the probability of failing to report prior test result
-                      qu_int=NULL, # argument to the function for q being a function of u
-                      qu_slope=NULL,
-                      tu_int=NULL,
-                      tu_slope=NULL # argument to the function for t being a function of u
+                      xi=1.0, # the probability of failing to report prior positive test results
+                      mech2=FALSE
                     ))
 
 # Capture date in the out directory
@@ -57,10 +56,7 @@ date <- format(Sys.time(), "%d-%m-%y-%H")
 out_dir <- paste0(a$out_dir, "/", date, "/")
 dir.create(out_dir, showWarnings=FALSE, recursive=TRUE)
 
-# a[[1]] <- NULL
 a$out_dir <- NULL
-
-# print(a)
 
 if(!is.null(a$rho)) a$rho <- as.numeric(a$rho)
 if(!is.null(a$phi_frr)) a$phi_frr <- as.numeric(a$phi_frr)
@@ -78,10 +74,7 @@ if(!is.null(a$q)) a$q <- as.numeric(a$q)
 if(!is.null(a$gamma)) a$gamma <- as.numeric(a$gamma)
 if(!is.null(a$eta)) a$eta <- as.numeric(a$eta)
 if(!is.null(a$nu)) a$nu <- as.numeric(a$nu)
-if(!is.null(a$qu_int)) a$qu_int <- as.numeric(a$qu_int)
-if(!is.null(a$qu_slope)) a$qu_slope <- as.numeric(a$qu_slope)
-if(!is.null(a$tu_int)) a$tu_int <- as.numeric(a$tu_int)
-if(!is.null(a$tu_slope)) a$tu_slope <- as.numeric(a$tu_slope)
+if(!is.null(a$xi)) a$xi <- as.numeric(a$xi)
 
 # Logic checks for arguments
 if(!is.null(a$phi_frr) & !is.null(a$phi_tfrr)){
@@ -140,6 +133,10 @@ if(a$itype == "constant"){
 } else if(a$itype == "exponential"){
   inc.function <- incidence.exp
   infection.function <- infections.exp
+} else if(a$itype == "piecewise"){
+  # TODO: Figure out how to generate infection times from this.
+  inc.function <- NULL
+  infection.funtion <- NULL
 } else {
   stop("Unknown incidence function.")
 }
@@ -168,21 +165,21 @@ if(!a$pt){
 } else {
   # THESE ARE THE PRIOR TEST SETTINGS
 
-  if(is.null(a$t_u)){
-    ptest.dist <- function(n, u) runif(n, a$t_min, a$t_max)
-  } else {
-    ptest.dist <- function(n, u) a$tu_int + a$tu_slope * u
-  }
+  ptest.dist <- function(n, u) runif(n, a$t_min, a$t_max)
+  ptest.prob <- function(u) a$q
 
-  if(is.null(a$q_u)){
-    ptest.prob <- function(u) a$q
+  if(a$mech2){
+    GAMMA_PARMS <- c(1.57243557, 1.45286770, -0.02105187)
+    ptest.dist2 <- function(n, u) u - rgengamma(n=n,
+                                                mu=GAMMA_PARMS[1],
+                                                sigma=GAMMA_PARMS[2],
+                                                Q=GAMMA_PARMS[3])
   } else {
-    expit <- function(x) exp(x) / (1 + exp(x))
-    ptest.prob <- function(u) rbinom(1, 1, prob=expit(a$q * u**0.5))
+    ptest.dist2 <- NULL
   }
 
   if(!is.null(a$gamma)){
-    t_noise <- function(t) max(0, t + rnorm(n=1, sd=a$gamma))
+    t_noise <- function(t) min(0, t + rnorm(n=1, sd=a$gamma))
   } else {
     t_noise <- NULL
   }
@@ -196,13 +193,15 @@ if(!a$pt){
                      ext_df=df,
                      max_FRR=a$max_FRR,
                      last_point=a$last_point,
-                     # THESE ARE THE NEW ARGUMENTS
+                     # THESE ARE THE NEW ARGUMENTS --
                      ptest.dist=ptest.dist,
                      ptest.prob=ptest.prob,
                      t_range=c(a$t_min, a$t_max),
                      t_noise=t_noise,
                      d_misrep=a$eta,
-                     q_misrep=a$nu)
+                     q_misrep=a$nu,
+                     p_misrep=a$xi,
+                     ptest.dist2=ptest.dist2)
 }
 
 df <- do.call(cbind, sim) %>% data.table
