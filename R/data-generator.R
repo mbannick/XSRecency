@@ -165,7 +165,7 @@ simulate.recent <- function(sim_data, infection.function=NULL,
       # Replace the test times and availability by new criteria of availability
       test_times <- mapply(compare,
                            t=times,
-                           t1=test_times1, t2=test_times2,
+                           t1=test_times, t2=test_times2,
                            a1=available)
       available <- lapply(test_times, function(t) as.integer(t <= 0))
     }
