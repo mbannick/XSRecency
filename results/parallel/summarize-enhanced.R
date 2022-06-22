@@ -8,7 +8,8 @@ library(tidyr)
 # Get the input and output directories
 args <- commandArgs(trailingOnly=TRUE)
 in.dir <- args[1]
-in.dir <- "/Users/marlena/Documents/FileZilla/xs-recent/enhanced/15-06-22-12-2/"
+# in.dir <- "/Users/marlena/Documents/FileZilla/xs-recent/enhanced/15-06-22-12-2/"
+in.dir <- "/Users/marlena/Documents/FileZilla/xs-recent/enhanced/22-06-2022-11-56-10/"
 
 # Read in files
 f <- list.files(in.dir, full.names=T)
@@ -27,7 +28,7 @@ for(var in c("rho", "phi_frr", "phi_tfrr", "phi_norm_mu",
              "frr_mix_start", "frr_mix_end",
              "ext_FRR", "duong_scale", "max_FRR", "last_point",
              "pt", "t_min", "t_max", "q", "gamma", "eta", "nu",
-             "qu_int", "qu_slope", "tu_int", "tu_slope")){
+             "xi")){
   if(var %in% colnames(df)){
     id.vars <- c(id.vars, var)
   }
@@ -52,6 +53,7 @@ se <- df2[, lapply(.SD, function(x) var(x, na.rm=T) ** 0.5), by=id.vars.nosim.es
 setnames(se, "estimate", "se")
 
 results <- merge(bias, se, by=id.vars.nosim.est)
+results[, mse := bias**2 + se**2]
 
 results[, estimator_type := lapply(.SD, function(x) gsub("_est$", "", gsub("_true$", "", x))), .SDcols="estimator"]
 results[, assay_vals := lapply(.SD, function(x) ifelse(grepl("true", x), "true", "est")), .SDcols="estimator"]
