@@ -1,9 +1,10 @@
 #!/bin/sh
 
 # Source shared parameters
-sh shared-parameters.sh
+sh shared-parameters.sh $1
 
-NSIMS=5000
+echo "${DT}: MAIN with ${1} SIMS -- ${2}" >> "${OUTPUT}/RUN-LOG.txt"
+
 N=5000
 P=0.29
 INC=0.032
@@ -23,4 +24,5 @@ do
   for TRANGE in "0 4" "0 2" "1 3"
   set -- $TRANGE
     PTARGS="-t_min $1 -t_max $2 -q $Q"
+    echo "qsub ${CONSTANTS} ${BASELINE} ${PTARGS}"
     qsub ${CONSTANTS} ${BASELINE} ${PTARGS}

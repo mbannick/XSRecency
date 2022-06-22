@@ -1,8 +1,10 @@
 #!/bin/sh
 
-sh shared-parameters.sh
+# Source shared parameters
+sh shared-parameters.sh $1
 
-NSIMS=1000
+echo "${DT}: SCENARIO B with ${1} SIMS -- ${2}" >> "${OUTPUT}/RUN-LOG.txt"
+
 N=5000
 P=0.29
 INC=0.032
