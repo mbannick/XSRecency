@@ -206,6 +206,13 @@ simulate.recent <- function(sim_data, infection.function=NULL,
       }
       vs <- mapply(replace.func, v=vs, delta=ptest_delta)
       available <- mapply(function(a, v) a * v, a=available, v=vs)
+
+      # DO THIS AGAIN
+      # Generate vector with prior time or NA if not available
+      ptest_times <- mapply(function(t, a) ifelse(a, t, NA), t=ptest_times, a=available)
+
+      # See whether or not the test was positive
+      ptest_delta <- mapply(function(it, pt) as.integer(it < pt), pt=ptest_times, it=t_infect)
     }
 
     # Define a function for getting the new recency indicator
