@@ -9,7 +9,7 @@ library(tidyr)
 args <- commandArgs(trailingOnly=TRUE)
 in.dir <- args[1]
 # in.dir <- "/Users/marlena/Documents/FileZilla/xs-recent/enhanced/15-06-22-12-2/"
-in.dir <- "/Users/marlena/Documents/FileZilla/xs-recent/enhanced/22-06-2022-11-56-10/"
+in.dir <- "/Users/marlena/Documents/FileZilla/xs-recent/enhanced/22-06-2022-13-51-46/"
 
 # Read in files
 f <- list.files(in.dir, full.names=T)
@@ -28,7 +28,7 @@ for(var in c("rho", "phi_frr", "phi_tfrr", "phi_norm_mu",
              "frr_mix_start", "frr_mix_end",
              "ext_FRR", "duong_scale", "max_FRR", "last_point",
              "pt", "t_min", "t_max", "q", "gamma", "eta", "nu",
-             "xi")){
+             "xi", "mech2")){
   if(var %in% colnames(df)){
     id.vars <- c(id.vars, var)
   }
@@ -39,6 +39,7 @@ id.vars.nosim.est <- c(id.vars.nosim, "estimator")
 id.vars.est <- c("adj_true_est", "adj_est_est", "eadj_true_est", "eadj_est_est")
 
 df2 <- df[, c(id.vars, id.vars.est), with=F]
+df3 <- df[, c(id.vars, "q_eff"), with=F]
 
 df2 <- reshape2::melt(df2, id.vars=id.vars,
                            value.vars=c("adj_true_est", "adj_est_est", "eadj_true_est", "eadj_est_est"),
@@ -57,5 +58,8 @@ results[, mse := bias**2 + se**2]
 
 results[, estimator_type := lapply(.SD, function(x) gsub("_est$", "", gsub("_true$", "", x))), .SDcols="estimator"]
 results[, assay_vals := lapply(.SD, function(x) ifelse(grepl("true", x), "true", "est")), .SDcols="estimator"]
+
+QEFF <- df3[, lapply(.SD, mean), by=id.vars.nosim, .SDcols="q_eff"]
+results <- merge(results, QEFF, by=id.vars.nosim)
 
 write.csv(results, paste0(in.dir, "/summary.csv"), row.names=F)

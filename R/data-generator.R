@@ -212,7 +212,12 @@ simulate.recent <- function(sim_data, infection.function=NULL,
       ptest_times <- mapply(function(t, a) ifelse(a, t, NA), t=ptest_times, a=available)
 
       # See whether or not the test was positive
-      ptest_delta <- mapply(function(it, pt) as.integer(it < pt), pt=ptest_times, it=t_infect)
+      # We need to take into account the original ptest_delta vector that we had
+      # because it may have been modified according to d_misrep
+      ptest_delta <- mapply(function(it, pt, d) as.integer((it < pt) & d),
+                            pt=ptest_times,
+                            it=t_infect,
+                            d=ptest_delta)
     }
 
     # Define a function for getting the new recency indicator
