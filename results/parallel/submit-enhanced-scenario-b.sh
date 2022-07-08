@@ -27,13 +27,10 @@ BASELINE="${ARGS} ${RHO} ${TYPE} ${ASSAY} ${TAIL} ${PT}"
 
 for GAMMA in 0 0.1 0.5
 do
-  for ETA in 0.0 0.1 0.25
+  for NU in 0.0 0.1 0.25
   do
-    for NU in 0.0 0.1 0.25
-    do
-      PTARGS="-t_min $TMIN -t_max $TMAX -q $Q -gamma $GAMMA -eta $ETA -nu $NU"
-      qsub ${CONSTANTS} ${BASELINE} ${PTARGS}
-    done
+    PTARGS="-t_min $TMIN -t_max $TMAX -q $Q -gamma $GAMMA -nu $NU"
+    qsub ${CONSTANTS} ${BASELINE} ${PTARGS}
   done
 done
 
@@ -41,7 +38,7 @@ for GAMMA in 0 0.1 0.5
 do
   for XI in 0.0 0.1 0.25
   do
-    PTARGS="-t_min $TMIN -t_max $TMAX -q $Q -gamma $GAMMA -eta $ETA -nu $NU -xi $XI"
+    PTARGS="-t_min $TMIN -t_max $TMAX -q $Q -gamma $GAMMA -xi $XI"
     qsub ${CONSTANTS} ${BASELINE} ${PTARGS}
   done
 done
