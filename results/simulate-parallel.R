@@ -17,10 +17,10 @@ source("./R/phi-functions.R")
 a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                     defaults=list(
                       seed=100,
-                      n_sims=2,
+                      n_sims=5,
                       n=1000,
-                      p=0.2,
-                      inc=0.03,
+                      p=0.29,
+                      inc=0.032,
                       window=101,
                       shadow=194,
                       itype="constant",
@@ -43,11 +43,11 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                       pt=TRUE,
                       t_min=0,
                       t_max=1,
-                      q=1,
+                      q=1.0,
                       gamma=0, # variance for the Gaussian noise to add to prior test time
                       eta=0, # the probability of incorrectly reporting negative test
-                      nu=0, # the probability of failing to report prior test result
-                      xi=0, # the probability of failing to report prior positive test results
+                      nu=0.0, # the probability of failing to report prior test result
+                      xi=0.2, # the probability of failing to report prior positive test results
                       mech2=FALSE
                     ))
 
