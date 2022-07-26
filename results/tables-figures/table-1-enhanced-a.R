@@ -17,9 +17,7 @@ source("~/repos/XSRecency/R/data-generator.R")
 
 # READ IN VERSIONED RESULTS ---------------------------------
 
-# MAIN VERSION, LAST POINT INTEGRATION + NEW PHI FUNCTION
-version <- "~/Documents/FileZilla/xs-recent/enhanced/22-06-2022-13-06-54/"
-
+version <- "~/Documents/FileZilla/xs-recent/enhanced/11-07-2022-16-13-12/"
 summ <- fread(paste0(version , "summary.csv"))
 
 # TABLE RESULTS ---------------------------------------------

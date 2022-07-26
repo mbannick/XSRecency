@@ -17,16 +17,16 @@ source("./R/phi-functions.R")
 a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                     defaults=list(
                       seed=100,
-                      n_sims=5,
+                      n_sims=2,
                       n=1000,
                       p=0.29,
-                      inc=0.032,
+                      inc=0.034,
                       window=101,
                       shadow=194,
                       itype="constant",
-                      rho=0.0,
+                      rho=0.0039,
                       tau=10,
-                      bigT=1,
+                      bigT=2,
                       phi_frr=NULL,
                       phi_tfrr=NULL,
                       phi_norm_mu=NULL,
@@ -41,14 +41,15 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                       max_FRR=NULL,
                       last_point=FALSE,
                       pt=TRUE,
-                      t_min=0,
-                      t_max=1,
+                      t_min=2,
+                      t_max=4,
                       q=1.0,
                       gamma=0, # variance for the Gaussian noise to add to prior test time
-                      eta=0, # the probability of incorrectly reporting negative test
+                      eta=0.0, # the probability of incorrectly reporting negative test
                       nu=0.0, # the probability of failing to report prior test result
-                      xi=0.2, # the probability of failing to report prior positive test results
-                      mech2=FALSE
+                      xi=0.0, # the probability of failing to report prior positive test results
+                      mech2=FALSE,
+                      exclude_pt_bigT=TRUE
                     ))
 
 # Capture date in the out directory
@@ -135,9 +136,11 @@ if(a$itype == "constant"){
   inc.function <- incidence.exp
   infection.function <- infections.exp
 } else if(a$itype == "piecewise"){
-  # TODO: Figure out how to generate infection times from this.
-  inc.function <- NULL
-  infection.funtion <- NULL
+  if(!a$pt){
+    stop("Piecewise constant-linear incidence function only to be used
+         with prior testing simulations.")
+  }
+  infection.function <- function(...) infections.lincon(bigT=a$bigT, ...)
 } else {
   stop("Unknown incidence function.")
 }
@@ -186,7 +189,6 @@ if(!a$pt){
   }
 
   sim <- simulate.pt(n_sims=a$n_sims, n=a$n,
-                     inc.function=inc.function,
                      infection.function=infection.function,
                      baseline_incidence=a$inc, prevalence=a$p, rho=a$rho,
                      phi.func=phi.func,
@@ -202,7 +204,8 @@ if(!a$pt){
                      d_misrep=a$eta,
                      q_misrep=a$nu,
                      p_misrep=a$xi,
-                     ptest.dist2=ptest.dist2)
+                     ptest.dist2=ptest.dist2,
+                     exclude_pt_bigT=a$exclude_pt_bigT)
 }
 
 df <- do.call(cbind, sim) %>% data.table

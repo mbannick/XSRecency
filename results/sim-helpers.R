@@ -74,13 +74,14 @@ simulate <- function(n_sims, n, inc.function, infection.function, phi.func,
          ))
 }
 
-simulate.pt <- function(n_sims, n, inc.function, infection.function, phi.func,
+simulate.pt <- function(n_sims, n, infection.function, phi.func,
                      baseline_incidence, prevalence, rho, bigT, tau,
                      ext_FRR, ext_df=NULL, max_FRR=NULL, last_point=FALSE,
                      ptest.dist=NULL, ptest.prob=1.0,
                      t_range=NULL, t_noise=NULL,
                      d_misrep=0.0, q_misrep=0.0, p_misrep=0.0,
-                     ptest.dist2=NULL){
+                     ptest.dist2=NULL,
+                     exclude_pt_bigT=FALSE){
 
   # Generate trial data
   data <- generate.data(n=n, n_sims=n_sims,
@@ -93,7 +94,8 @@ simulate.pt <- function(n_sims, n, inc.function, infection.function, phi.func,
                         t_range=t_range, t_noise=t_noise,
                         d_misrep=d_misrep, q_misrep=q_misrep,
                         p_misrep=p_misrep,
-                        ptest.dist2=ptest.dist2)
+                        ptest.dist2=ptest.dist2,
+                        exclude_pt_bigT=exclude_pt_bigT)
 
   # Get assay parameters simulation based on external data simulation
   assay <- assay.properties.nsim(n_sims, phi.func=phi.func, bigT=bigT, tau=tau,

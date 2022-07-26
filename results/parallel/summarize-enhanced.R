@@ -8,8 +8,6 @@ library(tidyr)
 # Get the input and output directories
 args <- commandArgs(trailingOnly=TRUE)
 in.dir <- args[1]
-# in.dir <- "/Users/marlena/Documents/FileZilla/xs-recent/enhanced/15-06-22-12-2/"
-in.dir <- "/Users/marlena/Documents/FileZilla/xs-recent/enhanced/22-06-2022-13-51-46/"
 
 # Read in files
 f <- list.files(in.dir, full.names=T)
@@ -63,3 +61,4 @@ QEFF <- df3[, lapply(.SD, mean), by=id.vars.nosim, .SDcols="q_eff"]
 results <- merge(results, QEFF, by=id.vars.nosim)
 
 write.csv(results, paste0(in.dir, "/summary.csv"), row.names=F)
+
