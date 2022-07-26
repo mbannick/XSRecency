@@ -85,7 +85,8 @@ simulate.recent <- function(sim_data, infection.function=NULL,
                             t_range=NULL, t_noise=NULL,
                             d_misrep=0.0, q_misrep=0.0, p_misrep=0.0,
                             bigT=NULL,
-                            ptest.dist2=NULL){
+                            ptest.dist2=NULL,
+                            exclude_pt_bigT=FALSE){
 
   if(is.null(incidence.function) & is.null(infection.function)){
     stop("Pass either an incidence or infection function.")
@@ -206,19 +207,25 @@ simulate.recent <- function(sim_data, infection.function=NULL,
       }
       vs <- mapply(replace.func, v=vs, delta=ptest_delta)
       available <- mapply(function(a, v) a * v, a=available, v=vs)
-
-      # DO THIS AGAIN
-      # Generate vector with prior time or NA if not available
-      ptest_times <- mapply(function(t, a) ifelse(a, t, NA), t=ptest_times, a=available)
-
-      # See whether or not the test was positive
-      # We need to take into account the original ptest_delta vector that we had
-      # because it may have been modified according to d_misrep
-      ptest_delta <- mapply(function(it, pt, d) as.integer((it < pt) & d),
-                            pt=ptest_times,
-                            it=t_infect,
-                            d=ptest_delta)
     }
+
+    # Apply exclusion for tests that were taken longer ago than bigT
+    if(exclude_pt_bigT){
+      exclude <- lapply(ptest_times, function(x) x < -bigT)
+      available <- mapply(function(a, e) a * !e, a=available, e=exclude)
+    }
+
+    # DO THIS AGAIN
+    # Generate vector with prior time or NA if not available
+    ptest_times <- mapply(function(t, a) ifelse(a, t, NA), t=ptest_times, a=available)
+
+    # See whether or not the test was positive
+    # We need to take into account the original ptest_delta vector that we had
+    # because it may have been modified according to d_misrep
+    ptest_delta <- mapply(function(it, pt, d) ifelse(is.na(pt), NA, as.integer((it < pt) & d)),
+                          pt=ptest_times,
+                          it=t_infect,
+                          d=ptest_delta)
 
     # Define a function for getting the new recency indicator
     # if there are prior test results.
@@ -265,7 +272,6 @@ simulate.recent <- function(sim_data, infection.function=NULL,
       # This is N^*_{rec}
       n_r_pt <- lapply(ri_new, function(x) sum(x, na.rm=T)) %>% unlist
       # This is \sum I(T_i \leq T^*)
-
       num_beta <- lapply(recent_temp, function(x) sum(x, na.rm=T)) %>% unlist
       # This is \sum I(T_i \leq T^*) * int_0^{T_i} (1 - \phi(u)) du
       den_omega <- lapply(recent_int_ti, function(x) sum(x, na.rm=T)) %>% unlist
@@ -509,6 +515,25 @@ infections.lin <- function(e, t, p, lambda_0, rho){
   numerator <- sqrt(numerator) - incidence
 
   infections <- t - numerator / rho
+  return(infections)
+}
+
+#' Infection times function based on constant incidence until bigT
+#' then linearly increasing after. Compared to the other infection functions
+#' we've switched to 1-e, which doesn't matter because e is uniform.
+infections.lincon <- function(e, t, p, lambda_0, rho, bigT){
+  incidence <- lambda_0
+  estar <- 1-incidence * (1-p) / p * bigT
+  efunc <- function(es){
+    if(es < estar){
+      numerator <- incidence**2 + 2 * rho * (p * (1-es)/(1-p) - incidence * bigT)
+      numerator <- sqrt(numerator) - incidence
+      infections <- (t - bigT) - numerator / rho
+    } else {
+      infections <- t - p*(1-es) / ((1 - p) * incidence)
+    }
+  }
+  infections <- sapply(e, efunc)
   return(infections)
 }
 
