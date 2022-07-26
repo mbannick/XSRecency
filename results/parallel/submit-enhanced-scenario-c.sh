@@ -18,15 +18,16 @@ TMAX=4
 
 ARGS="-n_sims=${NSIMS} -n=${N} -p ${P} -inc ${INC} -tau ${TAU} -bigT ${BIGT} -out_dir ${OUTDIR} -last_point"
 ASSAY="-window 101 -shadow 194"
-TYPE="-itype piecewise"
 TAIL="-phi_tfrr 2"
 PT="-pt"
 TS="-t_min ${TMIN} -t_max ${TMAX}"
 
-BASELINE="${ARGS} ${RHO} ${TYPE} ${ASSAY} ${TAIL} ${PT} ${TS}"
+BASELINE="${ARGS} ${ASSAY} ${TAIL} ${PT} ${TS}"
 
 for Q in 0.5 1.0
 do
-    qsub ${CONSTANTS} ${BASELINE} -q $Q
-    qsub ${CONSTANTS} ${BASELINE} -q $Q -exclude_pt_bigT
+    qsub ${CONSTANTS} ${BASELINE} -q $Q -itype constant
+    qsub ${CONSTANTS} ${BASELINE} -q $Q -itype constant -exclude_pt_bigT
+    qsub ${CONSTANTS} ${BASELINE} -q $Q -itype piecewise -rho ${RHO}
+    qsub ${CONSTANTS} ${BASELINE} -q $Q -itype piecewise -rho ${RHO} -exclude_pt_bigT
 done
