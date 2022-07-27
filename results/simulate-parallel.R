@@ -23,7 +23,7 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                       inc=0.034,
                       window=101,
                       shadow=194,
-                      itype="constant",
+                      itype="piecewise",
                       rho=0.0039,
                       tau=10,
                       bigT=2,
@@ -43,13 +43,13 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                       pt=TRUE,
                       t_min=0,
                       t_max=4,
-                      q=1.0,
+                      q=0.5,
                       gamma=0, # variance for the Gaussian noise to add to prior test time
                       eta=0.0, # the probability of incorrectly reporting negative test
                       nu=0.0, # the probability of failing to report prior test result
                       xi=0.0, # the probability of failing to report prior positive test results
                       mech2=FALSE,
-                      exclude_pt_bigT=FALSE
+                      exclude_pt_bigT=TRUE
                     ))
 
 # Capture date in the out directory

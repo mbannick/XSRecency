@@ -212,7 +212,7 @@ simulate.recent <- function(sim_data, infection.function=NULL,
     # Apply exclusion for tests that were taken longer ago than bigT
     if(exclude_pt_bigT){
       exclude <- lapply(ptest_times, function(x) x < -bigT)
-      available <- mapply(function(a, e) a * !e, a=available, e=exclude)
+      available <- mapply(function(a, e) ifelse((!e & !is.na(e)), a, 0), a=available, e=exclude)
     }
 
     # DO THIS AGAIN
