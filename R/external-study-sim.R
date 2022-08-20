@@ -4,11 +4,14 @@
 
 library(geepack)
 library(data.table)
+library(MASS)
 .datatable.aware=TRUE
 
 # number of long infecteds for beta study
 N_LONG_INFECT=1500
 YEAR2DAY=365.25
+
+expit <- function(x) exp(x) / (1 + exp(x))
 
 #' This simulates the false recency rate using
 #' tail probabilities from the phi parameters
@@ -173,17 +176,37 @@ fit.cubic <- function(recent, durations, id){
   return(model)
 }
 
-#' Create phi probability predictions
-#' based on a model object and d durations
+get.cubic.ts <- function(minT, maxT, dt){
+  # generate a sequence of duration times, starting at 0 and
+  # up to max t, just to get the phi_hat
+  ts <- seq(minT, maxT, by=dt)
+  ts <- cbind(rep(1, length(ts)),
+              ts,
+              ts**2,
+              ts**3)
+  return(ts)
+}
+
+#' Create a phi matrix of d x d based on draws from the phi.hat function
 #'
-#' @export
-phi.hat <- function(d, model){
-  dmat <- cbind(
-    rep(1, length(d)),
-    d, d**2, d**3
-  )
-  lin <- dmat %*% matrix(model$beta)
-  return(exp(lin) / (1 + exp(lin)))
+#' @param d A vector
+#' @param n_approx Number of "draws" for phi.hat
+#' @param phi.hat A function that creates draws from a model object using d and any additional args ...
+#' @param ... Additional arguments to pass to phi.hat
+matrix.phi <- function(model, n_approx, minT, maxT, dt=0.001){
+
+  ts <- get.cubic.ts(minT=minT, maxT=maxT, dt=dt)
+  # get the linear predictor
+  lin_predictor <- ts %*% matrix(model$beta)
+
+  phi <- expit(lin_predictor)
+
+  lin_var <- ts %*% model$vbeta %*% t(ts)
+  delta_g <- exp(lin_predictor) / (1 + exp(lin_predictor))**2
+  jacob_g <- diag(c(delta_g))
+  phi_var <- jacob_g %*% lin_var %*% jacob_g
+
+  return(list(point=phi, covar=phi_var))
 }
 
 #' Estimate omega_T from a model object
@@ -191,22 +214,14 @@ phi.hat <- function(d, model){
 #' long follow_T parameter (like 9)
 #'
 #' @export
-integrate.phi <- function(model, minT=0, maxT=12){
-
-  # generate a sequence of duration times, starting at 0 and
-  # up to max t, just to get the phi_hat
-  dt <- 0.001
-  ts <- seq(minT, maxT, by=dt)
-  ts <- cbind(rep(1, length(ts)),
-              ts,
-              ts**2,
-              ts**3)
+integrate.phi <- function(model, minT=0, maxT=12, dt=0.001){
+  ts <- get.cubic.ts(minT=minT, maxT=maxT, dt=dt)
 
   # get the linear predictor
   lin_predictor <- ts %*% matrix(model$beta)
 
   # expit the linear predictor
-  phi <- exp(lin_predictor) / (1 + exp(lin_predictor))
+  phi <- expit(lin_predictor)
 
   # integrate the linear predictor over the times
   estimate <- sum(phi * dt)
@@ -234,7 +249,8 @@ integrate.phi <- function(model, minT=0, maxT=12){
 #' @param bigT The T^* time
 #' @param tau The maximum time
 #' @returns List of properties and their variances
-assay.properties.est <- function(study, bigT, tau, last_point=TRUE){
+assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=0.01,
+                                 ptest_times=NULL){
   model <- fit.cubic(recent=study$recent,
                      durations=study$durations,
                      id=study$id)
@@ -242,13 +258,63 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE){
   # get mu and omega
   if(last_point) tau <- max(study$durations)
 
-  mu_sim <- integrate.phi(model, minT=0, maxT=tau)
-  omega_sim <- integrate.phi(model, minT=0, maxT=bigT)
+  mu_sim <- integrate.phi(model, minT=0, maxT=tau, dt=dt)
+  omega_sim <- integrate.phi(model, minT=0, maxT=bigT, dt=dt)
+
+  # If we have prior test results, we need to calculate the
+  # following quantities that allow us to calculate the variance
+  # of the enhanced adjusted estimator that incorporates prior test results.
+  if(!is.null(ptest_times)){
+    if(any(is.na(ptest_times))) stop("Not implemented for q < 1.0, or any misspecification scenario.")
+
+    # Convert testing times to indices for integration using dt
+    time_indices <- round(-ptest_times/dt)
+
+    # Create covariance matrix between the phi estimates at different times
+    rho_mat <- matrix.phi(model, minT=0, maxT=tau, dt=dt)
+
+    # Define function to integrate over rectangles within the rho matrix
+    # starting at (1,1).
+    integrate_cov <- function(i, j) sum(rho_mat$covar[1:j, 1:i]) * dt^2
+
+    # Calculate the expectation of the integrated covariance matrix
+    # for individual i's
+    r_Tii <- mapply(integrate_cov, i=time_indices, j=time_indices) %>% mean
+
+    # Create grid over which to integrate for different i < j pairs
+    covar_grid <- expand.grid(i=time_indices, j=time_indices)
+    covar_grid <- covar_grid[covar_grid$i < covar_grid$j, ]
+
+    # Calculate the expectation of the integrated covariance matrix
+    # for i < j pairs.
+    r_Tij <- mapply(integrate_cov, i=covar_grid$i, j=covar_grid$j) %>% mean
+
+    # Define function for integrating across
+    integrate_point <- function(i) sum(rho_mat$point[1:i]) * dt
+
+    # Calculate the omega_Ti for each prior test time,
+    # then get its expectation and variance
+    # (this expectation and variance are with respect to the variability
+    # in the trial data T_i's, not the external study data.)
+    omega_Ti <- sapply(time_indices, integrate_point)
+    omega_Ti_est <- mean(omega_Ti)
+    omega_Ti_var <- var(omega_Ti)
+
+  } else {
+    r_Tii <- NULL
+    r_Tij <- NULL
+    omega_Ti_est <- NULL
+    omega_Ti_var <- NULL
+  }
 
   result <- list(mu_est=mu_sim$est,
                  mu_var=mu_sim$var,
                  omega_est=omega_sim$est,
                  omega_var=omega_sim$var,
+                 omega_Ti_est=omega_Ti_est,
+                 omega_Ti_var=omega_Ti_var,
+                 r_Tii=r_Tii,
+                 r_Tij=r_Tij,
                  beta_est=NA,
                  beta_var=NA)
   return(result)
@@ -282,12 +348,22 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE){
 #'                      bigT=2, tau=12)
 assay.properties.nsim <- function(n_sims, phi.func, bigT, tau,
                                   ext_FRR=FALSE, ext_df=NULL,
-                                  max_FRR=NULL, last_point=FALSE){
+                                  max_FRR=NULL, last_point=FALSE,
+                                  ptest_times=NULL){
   studies <- simulate.studies(n_sims, phi.func, ext_df=ext_df)
-  result <- sapply(studies, function(x) assay.properties.est(study=x,
-                                                             bigT=bigT,
-                                                             tau=tau,
-                                                             last_point=last_point))
+  if(is.null(ptest_times)){
+    result <- sapply(studies, function(x) assay.properties.est(study=x,
+                                                               bigT=bigT,
+                                                               tau=tau,
+                                                               last_point=last_point,
+                                                               ptest_times=ptest_times))
+  } else {
+    mfunc <- function(s, t) assay.properties.est(
+      study=s, bigT=bigT, tau=tau, last_point=last_point, ptest_times=t
+    )
+    result <- mapply(FUN=mfunc, s=studies, t=ptest_times)
+  }
+
   if(ext_FRR){
     frr_studies <- studies
   } else {

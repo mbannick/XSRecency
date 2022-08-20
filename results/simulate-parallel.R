@@ -42,14 +42,14 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                       last_point=FALSE,
                       pt=TRUE,
                       t_min=0,
-                      t_max=4,
-                      q=0.5,
+                      t_max=2,
+                      q=1.0,
                       gamma=0, # variance for the Gaussian noise to add to prior test time
                       eta=0.0, # the probability of incorrectly reporting negative test
                       nu=0.0, # the probability of failing to report prior test result
                       xi=0.0, # the probability of failing to report prior positive test results
                       mech2=FALSE,
-                      exclude_pt_bigT=TRUE
+                      exclude_pt_bigT=FALSE
                     ))
 
 # Capture date in the out directory

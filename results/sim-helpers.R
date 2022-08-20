@@ -100,8 +100,9 @@ simulate.pt <- function(n_sims, n, infection.function, phi.func,
   # Get assay parameters simulation based on external data simulation
   assay <- assay.properties.nsim(n_sims, phi.func=phi.func, bigT=bigT, tau=tau,
                                  ext_FRR=ext_FRR, ext_df=ext_df, max_FRR=max_FRR,
-                                 last_point=last_point)
-
+                                 last_point=last_point,
+                                 ptest_times=data$ptest_times)
+  browser()
   # # Calculate true assay parameters
   true_frr <- true.frr(phi.func=phi.func, bigT=bigT, tau=tau)
   true_mdri <- true.window.mdri(phi.func=phi.func, maxT=bigT)
