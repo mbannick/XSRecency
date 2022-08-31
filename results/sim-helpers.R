@@ -102,7 +102,7 @@ simulate.pt <- function(n_sims, n, infection.function, phi.func,
                                  ext_FRR=ext_FRR, ext_df=ext_df, max_FRR=max_FRR,
                                  last_point=last_point,
                                  ptest_times=data$ptest_times)
-  browser()
+
   # # Calculate true assay parameters
   true_frr <- true.frr(phi.func=phi.func, bigT=bigT, tau=tau)
   true_mdri <- true.window.mdri(phi.func=phi.func, maxT=bigT)
@@ -119,12 +119,17 @@ simulate.pt <- function(n_sims, n, infection.function, phi.func,
 
   # Compute estimates for adjusted enhanced estimator
   eadj.true <- get.adjusted.pt(n_r=data$n_r_pt, n_n=data$n_n, n_p=data$n_p, n=data$n,
-                           omega=true_mdri, omega_var=0,
-                           beta=true_frr, beta_var=0,
-                           big_T=bigT,
-                           num_beta=data$num_beta,
-                           den_omega=data$den_omega,
-                           den_beta=data$den_beta)
+                               omega=true_mdri, omega_var=0,
+                               beta=true_frr, beta_var=0,
+                               big_T=bigT,
+                               num_beta=data$num_beta,
+                               den_omega=data$den_omega,
+                               den_beta=data$den_beta,
+                               r_Tii=assay$r_Tii,
+                               r_Tij=assay$r_Tij,
+                               r_Tis=assay$r_Tis,
+                               omega_Ti_est=assay$omega_Ti_est,
+                               omega_Ti_var=assay$omega_Ti_var)
 
   eadj.est <- get.adjusted.pt(n_r=data$n_r_pt, n_n=data$n_n, n_p=data$n_p, n=data$n,
                           omega=assay$omega_est, omega_var=assay$omega_var,
@@ -132,7 +137,12 @@ simulate.pt <- function(n_sims, n, infection.function, phi.func,
                           big_T=bigT,
                           num_beta=data$num_beta,
                           den_omega=data$den_omega,
-                          den_beta=data$den_beta)
+                          den_beta=data$den_beta,
+                          r_Tii=assay$r_Tii,
+                          r_Tij=assay$r_Tij,
+                          r_Tis=assay$r_Tis,
+                          omega_Ti_est=assay$omega_Ti_est,
+                          omega_Ti_var=assay$omega_Ti_var)
 
   return(list(truth=rep(baseline_incidence, n_sims),
               adj_true_est=adj.true$est,

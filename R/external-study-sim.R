@@ -281,13 +281,22 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=0.01,
     # for individual i's
     r_Tii <- mapply(integrate_cov, i=time_indices, j=time_indices) %>% mean
 
-    # Create grid over which to integrate for different i < j pairs
-    covar_grid <- expand.grid(i=time_indices, j=time_indices)
-    covar_grid <- covar_grid[covar_grid$i < covar_grid$j, ]
+    # Create grid over which to integrate for different i \neq j pairs
+    id <- 1:length(time_indices)
+    idgrid <- expand.grid(id1=id, id2=id)
+    idgrid <- idgrid[idgrid$id1 != idgrid$id2,]
+
+    time1 <- time_indices[idgrid$id1]
+    time2 <- time_indices[idgrid$id2]
 
     # Calculate the expectation of the integrated covariance matrix
-    # for i < j pairs.
-    r_Tij <- mapply(integrate_cov, i=covar_grid$i, j=covar_grid$j) %>% mean
+    # for i \neq j pairs.
+    r_Tij <- mapply(integrate_cov, i=time1, j=time2) %>% mean
+
+    # Calculate the expectation of the integrated covariance matrix
+    # across i individuals with T^*
+    # Divide bigT by dt to get it on the index scale of rho_mat
+    r_Tis <- sapply(time_indices, integrate_cov, j=bigT/dt) %>% mean
 
     # Define function for integrating across
     integrate_point <- function(i) sum(rho_mat$point[1:i]) * dt
@@ -303,6 +312,7 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=0.01,
   } else {
     r_Tii <- NULL
     r_Tij <- NULL
+    r_Tis <- NULL
     omega_Ti_est <- NULL
     omega_Ti_var <- NULL
   }
@@ -315,6 +325,7 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=0.01,
                  omega_Ti_var=omega_Ti_var,
                  r_Tii=r_Tii,
                  r_Tij=r_Tij,
+                 r_Tis=r_Tis,
                  beta_est=NA,
                  beta_var=NA)
   return(result)

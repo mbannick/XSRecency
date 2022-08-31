@@ -23,8 +23,8 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                       inc=0.034,
                       window=101,
                       shadow=194,
-                      itype="piecewise",
-                      rho=0.0039,
+                      itype="constant",
+                      rho=0,
                       tau=10,
                       bigT=2,
                       phi_frr=NULL,
@@ -187,7 +187,7 @@ if(!a$pt){
   } else {
     t_noise <- NULL
   }
-
+  start <- Sys.time()
   sim <- simulate.pt(n_sims=a$n_sims, n=a$n,
                      infection.function=infection.function,
                      baseline_incidence=a$inc, prevalence=a$p, rho=a$rho,
@@ -206,6 +206,8 @@ if(!a$pt){
                      p_misrep=a$xi,
                      ptest.dist2=ptest.dist2,
                      exclude_pt_bigT=a$exclude_pt_bigT)
+  end <- Sys.time()
+  print(end - start)
 }
 
 df <- do.call(cbind, sim) %>% data.table
