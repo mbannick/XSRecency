@@ -20,7 +20,7 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                       n_sims=2,
                       n=1000,
                       p=0.29,
-                      inc=0.034,
+                      inc=0.032,
                       window=101,
                       shadow=194,
                       itype="constant",
@@ -42,7 +42,7 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                       last_point=FALSE,
                       pt=TRUE,
                       t_min=0,
-                      t_max=2,
+                      t_max=4,
                       q=1.0,
                       gamma=0, # variance for the Gaussian noise to add to prior test time
                       eta=0.0, # the probability of incorrectly reporting negative test
@@ -217,7 +217,6 @@ as <- do.call(c, a)
 for(i in 1:length(as)){
   df[, names(as[i]) := as[i]]
 }
-print(df)
 print(df)
 
 filename <- do.call(paste, a)

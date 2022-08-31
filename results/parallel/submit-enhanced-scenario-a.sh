@@ -14,7 +14,7 @@ TAU=12
 BIGT=2
 
 TMIN=0
-TMAX=$TAU
+TMAX=4
 
 ARGS="-n_sims=${NSIMS} -n=${N} -p ${P} -inc ${INC} -tau ${TAU} -bigT ${BIGT} -out_dir ${OUTDIR} -last_point"
 ASSAY="-window 101 -shadow 194"
