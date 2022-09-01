@@ -21,12 +21,12 @@ PT="-pt"
 
 BASELINE="${ARGS} ${RHO} ${TYPE} ${ASSAY} ${TAIL} ${PT}"
 
-for Q in 1.0
+for seed in 0715 0831 2022 1994 0410 0616 0320 9319 0810 0533 1850 1380 0926 1720 8919 3000 1000 4010 9884 0008
 do
   for TRANGE in "0 2"
   do
     set -- $TRANGE
-    PTARGS="-t_min $1 -t_max $2 -q $Q"
+    PTARGS="-t_min $1 -t_max $2 -q $Q -seed $SEED"
     # echo "qsub ${CONSTANTS} ${BASELINE} ${PTARGS}"
     qsub ${CONSTANTS} ${BASELINE} ${PTARGS}
   done
