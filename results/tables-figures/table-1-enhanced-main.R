@@ -62,39 +62,3 @@ tab <- xtable(TRUTH, align=rep("c", 9), digits=2)
 print(tab, include.rownames=FALSE,
       add.to.row = addtorow)
 
-
-# TEST OUT NEW FIGURE RATHER THAN TABLE
-
-library(ggplot2)
-summ$bias <- as.numeric(unlist(summ$bias)) / 100
-summ$se <- as.numeric(unlist(summ$se)) / 100
-summ$trange <- factor(summ$trange,
-                         levels=c("(0, 4)", "(1, 3)", "(0, 2)"))
-ref_df <- summ[estimator_type == "adj" & assay_vals == "true"]
-ref_bias <- unique(ref_df$bias)[1]
-ref_se <- unique(ref_df$se)[1]
-
-ggplot(summ[assay_vals == "true" & estimator_type == "eadj"]) +
-  geom_hline(yintercept=ref_bias, color='black') +
-  geom_hline(yintercept=c(ref_se, -ref_se),
-             color="black", linetype="dashed") +
-  geom_point(aes(x=factor(q),
-                 y=bias,
-                 color=trange,
-                 group=trange,
-                 shape=trange),
-             position=position_dodge(width=0.7),
-             size=3.5) +
-  geom_errorbar(aes(x=factor(q),
-                    ymax=bias+se,ymin=bias-se,
-                    color=trange,
-                    group=trange),
-                linetype='dashed',
-                position=position_dodge(width=0.7),
-                width=0.5) +
-  labs(x="Proportion with Tests Available",
-       y="Bias",
-       color="Range of Prior Testing Times",
-       shape="Range of Prior Testing Times") +
-  theme(legend.position="top")
-
