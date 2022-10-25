@@ -54,10 +54,10 @@ EST <- cbind(est.bias, est.se[, -c(1:3)], est.mse[, -c(1:3)]) %>% data.table
 TRUTH <- cbind(true.bias, true.se[, -c(1:3)], true.mse[, -c(1:3)]) %>% data.table
 
 addtorow <- list()
-addtorow$pos <- seq(2, nrow(TRUTH), by=2) %>% as.list
+addtorow$pos <- seq(2, nrow(EST), by=2) %>% as.list
 addtorow$command <- rep("\\hline \n", length(addtorow$pos))
 
-tab <- xtable(TRUTH, align=rep("c", 10), digits=2)
+tab <- xtable(EST, align=rep("c", 10), digits=2)
 print(tab, include.rownames=FALSE,
       add.to.row = addtorow)
 

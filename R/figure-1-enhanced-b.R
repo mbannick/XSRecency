@@ -59,25 +59,29 @@ summ_enh <- summ[estimator_type == "eadj"]
 detail_plot <- rbind(detail_enh, detail_ref)
 summ_plot <- rbind(summ_enh, summ_ref)
 
-summ_plot[eta == 0.0 & xi == 0.0, group := "Correct and complete\nreporting of prior test results"]
-summ_plot[eta == 0.1 & xi == 0.0, group := "10% with pos. prior\ntest report neg."]
-summ_plot[eta == 0.0 & xi == 0.1, group := "10% with pos. prior\ntest do not report"]
-detail_plot[eta == 0.0 & xi == 0.0, group := "Correct and complete\nreporting of prior test results"]
-detail_plot[eta == 0.1 & xi == 0.0, group := "10% with pos. prior\ntest report neg."]
-detail_plot[eta == 0.0 & xi == 0.1, group := "10% with pos. prior\ntest do not report"]
+g1 <- "Correct and complete\nreporting of prior test results"
+g2 <- "10% with positive prior\ntest say they've never been tested"
+g3 <- "10% with positive prior\ntest say it was negative"
+
+summ_plot[eta == 0.0 & xi == 0.0, group := g1]
+summ_plot[eta == 0.1 & xi == 0.0, group := g3] # These are intentionally in this order
+summ_plot[eta == 0.0 & xi == 0.1, group := g2]
+detail_plot[eta == 0.0 & xi == 0.0, group := g1]
+detail_plot[eta == 0.1 & xi == 0.0, group := g3]
+detail_plot[eta == 0.0 & xi == 0.1, group := g2]
 summ_plot[estimator_type == "adj", group := "Adjusted estimator"]
 detail_plot[estimator_type == "adj", group := "Adjusted estimator"]
 
 summ_plot[, group := factor(group,
                             levels=c("Adjusted estimator",
-                                     "Correct and complete\nreporting of prior test results",
-                                     "10% with pos. prior\ntest do not report",
-                                     "10% with pos. prior\ntest report neg."))]
+                                     g1,
+                                     g2,
+                                     g3))]
 detail_plot[, group := factor(group,
                               levels=c("Adjusted estimator",
-                                       "Correct and complete\nreporting of prior test results",
-                                       "10% with pos. prior\ntest do not report",
-                                       "10% with pos. prior\ntest report neg."))]
+                                       g1,
+                                       g2,
+                                       g3))]
 
 detail_plot[, q_group := factor(q,
                                 levels=c(0, 0.5, 1.0),
@@ -89,31 +93,24 @@ detail_plot[, gamma_type := factor(gamma,
                                             "No error",
                                             "1 month",
                                             "6 months"))]
+detail_plot <- detail_plot[q != 1]
 cols <- c("#000000", rev(brewer.pal(n=3,"Set1")))
 
 pdf("~/repos/Recency-Algorithm-with-Prior-HIV-Testing/misspec-bias-b.pdf",
     height=6, width=10)
 ggplot(detail_plot) +
   geom_hline(yintercept=TRUTH, color="black", linetype="dashed") +
-  geom_boxplot_pattern(aes(x=group,
+  geom_boxplot(aes(x=group,
                    y=estimate,
                    color=gamma_type,
-                   pattern=q_group,
                    group=interaction(gamma_type, group, q_group)),
                position=position_dodge2(preserve="single",
                                         padding=0.3),
-               pattern_color="black",
-               pattern_fill="black",
-               pattern_angle=45,
-               pattern_size=0.1,
-               pattern_spacing=0.025,
                outlier.size=1.5,
                outlier.alpha=0.5) +
   scale_color_manual(values=cols) +
-  scale_pattern_manual(values=c('none', 'stripe', 'crosshatch')) +
   labs(y="Estimate",
-       color="Measurement error in\ntiming of prior test (SD)",
-       pattern="Percent of people\nwith prior tests") +
+       color="Measurement error in\ntiming of prior test (SD)") +
   theme(legend.position="top",
         axis.title.x=element_blank(),
         legend.box="vertical",
@@ -121,6 +118,5 @@ ggplot(detail_plot) +
         legend.margin=margin(),
         legend.direction='horizontal',
         legend.justification='left') +
-  guides(color=guide_legend(override.aes=list(pattern=c('none', 'none', 'none', 'none'))),
-         fill=guide_legend(nrow=2, byrow=TRUE, ncol=1))
+  guides(fill=guide_legend(nrow=2, byrow=TRUE, ncol=1))
 dev.off()

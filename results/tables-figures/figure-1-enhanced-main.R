@@ -31,7 +31,7 @@ ref_df <- df[estimator_type == "adj" & assay_vals == "est"
 ref_df[, q := 0.0]
 ref_df[, trange := "No Testing"]
 
-enh_df <- df[estimator_type == "eadj"]
+enh_df <- df[estimator == "eadj_est"]
 
 plot_df <- rbind(enh_df, ref_df)
 plot_df[, tlabs := factor(trange,
