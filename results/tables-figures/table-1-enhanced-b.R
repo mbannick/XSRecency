@@ -36,9 +36,9 @@ for(q_val in unique(summ_all$q)){
   summ[, bias := bias * 100]
   summ[, se := se * 100]
   summ[, mse := mse * 100]
-  summ[, bias := lapply(bias, function(x) sprintf("%.3f", x))]
-  summ[, se := lapply(se, function(x) sprintf("%.3f", x))]
-  summ[, mse := lapply(mse, function(x) sprintf("%.3f", x))]
+  summ[, bias := lapply(bias, function(x) sprintf("%.5f", x))]
+  summ[, se := lapply(se, function(x) sprintf("%.5f", x))]
+  summ[, mse := lapply(mse, function(x) sprintf("%.5f", x))]
 
   est <- summ[assay_vals == "est"]
   true <- summ[assay_vals == "true"]
