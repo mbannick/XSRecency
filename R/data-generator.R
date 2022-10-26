@@ -317,7 +317,10 @@ simulate.recent <- function(sim_data, infection.function=NULL,
       den_omega=den_omega,
       den_beta=den_beta,
       q_eff=q_eff,
-      ptest_times=ptest_times
+      ptest_times=ptest_times,
+      ptest_delta=ptest_delta,
+      ptest_avail=available,
+      ri=ri_new
     )
     return(aspect_list)
   } else {

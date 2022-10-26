@@ -36,56 +36,86 @@ variance <- function(n_n, n_r, n_p, n, omega, omega_var, beta, beta_var, big_T, 
   return(variance)
 }
 
-variance.pt <- function(n_n, n_r, n_p, n,
-                        omega, omega_var,
-                        r_Tii, r_Tij, r_Tis,
-                        omega_Ti_est,
-                        omega_Ti_var,
-                        beta, beta_var,
-                        big_T){
+variance.pt <- function(
+    n_n, n_r, n_p, n,
+    omega, omega_var,
+    beta, beta_var, big_T,
+    r_TA, r_TAprime, r_TAstar,
+    omega_TA, omega_TA_var, omega_TAM, omega_TB,
+    mu_TB, mu_TBR,
+    p_A, p_B, p_AM,
+    incidence
+  ){
 
   p <- n_p / n
   pr <- n_r / n_p
-  prbt <- pr - beta
   obt <- omega - beta * big_T
 
-  EW1 <- n * p * prbt
+  delta_TB <- beta * incidence * (1-p) / p * (mu_TB - big_T)
+
+  EW1 <- n * p * (pr - beta * (1-p_B))
   EW2 <- n * p
   EW3 <- obt
-  EW4 <- n * p * omega_Ti_est
+  EW4 <- n * p * p_A * omega_TA
+  EW5 <- n * p * beta * p_B * mu_TB
 
-  VW1 <- n * p * (pr * (1-pr) + (1-p) * prbt**2 + beta_var * (1-p + n * p))
+  VW1 <- n * p * (
+    pr * (1-pr) + (1-p) * (pr - (1-p_B) * beta)**2 +
+    beta_var * (1 - p_B) * (1-p * (1-p_B) + n * p * (1-p_B)) +
+    beta * p_B * (beta * (1-p_B) - 2 * (pr - delta_TB))
+  )
   VW2 <- n * p * (1-p)
   VW3 <- omega_var + beta_var * big_T**2
-  VW4 <- n * p * ((1-p) * (omega_Ti_est**2 + r_Tij) +
-                  (omega_Ti_var + r_Tij * n * p + r_Tii))
-
-  C12 <- n * p * (1-p) * prbt
-  C13 <- n * p * beta_var * big_T
-  C14 <- n * p * omega_Ti_est * (1-p) * prbt
+  VW4 <- n * p * p_A * (
+    r_TA + p_A * r_TAprime * (n * p - p) +
+    omega_TA * (1-p * p_A) + omega_TA_var
+  )
+  VW5 <- n * p * p_B * (
+    beta_var * mu_TB**2 * p_B * n * p +
+    (beta_var + mu_TB**2 * (1-p_B * p))
+  )
+  C12 <- n * p * (1-p) * (pr - (1-p_B) * beta)
+  C13 <- n * p * beta_var * big_T * (1-p_B)
+  C14 <- n * p * (pr * p_AM * omega_TAM - p_A * omega_TA * (
+    beta * (1-p) + p * (p_B + pr)
+  ))
+  C15 <- n * p * p_B * (
+    beta * (delta_TB * mu_TBR - p * pr * mu_TB) +
+    p * (1-p_B) * mu_TB * (beta**2 + beta_var * (1-n))
+  )
   C23 <- rep(0, length(n))
-  C24 <- n * p * (1-p) * omega_Ti_est
-  C34 <- n * p * r_Tis
+  C24 <- n * p * (1-p) * p_A * omega_TA
+  C25 <- n * p * (1-p) * beta * p_B * mu_TB
+  C34 <- n * p * p_A * r_TAstar
+  C35 <- -n * p * big_T * p_B * mu_TB * beta_var
+  C45 <- n * p * p_A * p_B * omega_TA * mu_TB * (1 - p - beta)
 
-  varfunc <- function(ew1, ew2, ew3, ew4,
-                      vw1, vw2, vw3, vw4,
-                      c12, c13, c14, c23,
-                      c24, c34, N){
+  varfunc <- function(ew1, ew2, ew3, ew4, ew5,
+                      vw1, vw2, vw3, vw4, vw5,
+                      c12, c13, c14, c15,
+                      c23, c24, c25,
+                      c34, c35,
+                      c45,
+                      N){
+
+    d <- (ew4 + ew5) / ew2
 
     delta_gW <- c(
       1/ew1,
-      1/(N-ew2) + ew4/(ew3 * ew2**2 + ew4 + ew2),
-      -1/(ew3+ew4/ew2),
-      -1/(ew3*ew2 + ew4)
+      1/(N-ew2) + d/(ew3 * ew2 + ew5 + ew5),
+      -1/(ew3+d),
+      -1/(ew2 * (ew3 + d)),
+      -1/(ew2 * (ew3 + d))
     )
 
     cov_W <- matrix(
-      c(vw1, c12, c13, c14,
-        c12, vw2, c23, c24,
-        c13, c23, vw3, c34,
-        c14, c24, c34, vw4),
+      c(vw1, c12, c13, c14, c15,
+        c12, vw2, c23, c24, c25,
+        c13, c23, vw3, c34, c35,
+        c14, c24, c34, vw4, c45,
+        c15, c25, c35, c45, vw5),
       byrow=T,
-      nrow=4
+      nrow=5
     )
 
     logvar <- delta_gW %*% cov_W %*% delta_gW
@@ -98,16 +128,22 @@ variance.pt <- function(n_n, n_r, n_p, n,
     ew2=EW2,
     ew3=EW3,
     ew4=EW4,
+    ew5=EW5,
     vw1=VW1,
     vw2=VW2,
     vw3=VW3,
     vw4=VW4,
+    vw5=VW5,
     c12=C12,
     c13=C13,
     c14=C14,
+    c15=C15,
     c23=C23,
     c24=C24,
+    c25=C25,
     c34=C34,
+    c35=C35,
+    c45=C45,
     N=n
   )
 
@@ -150,8 +186,10 @@ var.log.to.var <- function(estimate, variance) (estimate ** 2) * variance
 get.adjusted.pt <- function(n_r_pt, n_n, n_p, n, omega, omega_var,
                          beta, beta_var, big_T, q=1,
                          num_beta, den_omega, den_beta,
-                         r_Tii, r_Tij, r_Tis,
-                         omega_Ti_est, omega_Ti_var){
+                         r_TA, r_TAprime, r_TAstar,
+                         omega_TA, omega_TA_var, omega_TAM, omega_TB,
+                         mu_TB, mu_TBR,
+                         p_A, p_B, p_AM){
 
   est <- adjusted.estimate.pt(n_r_pt=n_r_pt, n_n=n_n, n_p=n_p,
                               omega=omega, beta=beta, big_T=big_T,
@@ -160,10 +198,13 @@ get.adjusted.pt <- function(n_r_pt, n_n, n_p, n, omega, omega_var,
   logvar <- variance.pt(n_n=n_n, n_r=n_r_pt, n_p=n_p, n=n,
                         omega=omega, omega_var=omega_var,
                         beta=beta, beta_var=beta_var,
-                        r_Tii=r_Tii, r_Tij=r_Tij, r_Tis=r_Tis,
-                        omega_Ti_est=omega_Ti_est,
-                        omega_Ti_var=omega_Ti_var,
-                        big_T=big_T)
+                        r_TA=r_TA, r_TAprime=r_TAprime, r_TAstar=r_TAstar,
+                        omega_TA=omega_TA, omega_TA_var=omega_TA_var,
+                        omega_TAM=omega_TAM, omega_TB=omega_TB,
+                        mu_TB=mu_TB, mu_TBR=mu_TBR,
+                        p_A=p_A, p_B=p_B, p_AM=p_AM,
+                        big_T=big_T,
+                        incidence=est)
   estvar <- var.log.to.var(est, logvar)
   return(list(est=est, var=estvar))
 }

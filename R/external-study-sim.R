@@ -250,7 +250,10 @@ integrate.phi <- function(model, minT=0, maxT=12, dt=0.001){
 #' @param tau The maximum time
 #' @returns List of properties and their variances
 assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=0.01,
-                                 ptest_times=NULL){
+                                 ptest_times=NULL,
+                                 ptest_delta=NULL,
+                                 ptest_avail=NULL,
+                                 ri=ri){
   model <- fit.cubic(recent=study$recent,
                      durations=study$durations,
                      id=study$id)
@@ -264,70 +267,100 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=0.01,
   # If we have prior test results, we need to calculate the
   # following quantities that allow us to calculate the variance
   # of the enhanced adjusted estimator that incorporates prior test results.
-  if(!is.null(ptest_times)){
-    if(any(is.na(ptest_times))) stop("Not implemented for q < 1.0, or any misspecification scenario.")
+  if(!all(is.null(ptest_times))){
 
     # Convert testing times to indices for integration using dt
     time_indices <- round(-ptest_times/dt)
+    Ai <- as.numeric(((-ptest_times) <= bigT) & (ptest_avail))
+    Bi <- as.numeric(((-ptest_times) > bigT) & (ptest_avail))
 
     # Create covariance matrix between the phi estimates at different times
     rho_mat <- matrix.phi(model, minT=0, maxT=tau, dt=dt)
 
-    # Define function to integrate over rectangles within the rho matrix
-    # starting at (1,1).
-    integrate_cov <- function(i, j) sum(rho_mat$covar[1:j, 1:i]) * dt^2
+    # Define functions to integrate over rectangles within the rho matrix
+    # starting at (1,1), and also integrating over just the estimated phi func.
+    integrate.point <- function(i) sum(rho_mat$point[1:i]) * dt
+    integrate.cov <- function(i, j) sum(rho_mat$covar[1:j, 1:i]) * dt^2
+
+    # Calculate omega_t expectation, and conditional expectations
+    omega_ta <- sapply(time_indices[as.logical(Ai)], integrate.point)
+    omega_TA <- mean(omega_ta)
+    omega_TA_var <- var(omega_ta)
+
+    omega_TAM <- sapply(time_indices[as.logical(Ai & ri)], integrate.point) %>% mean
+    omega_TB <- sapply(time_indices[as.logical(Bi)], integrate.point) %>% mean
 
     # Calculate the expectation of the integrated covariance matrix
     # for individual i's
-    r_Tii <- mapply(integrate_cov, i=time_indices, j=time_indices) %>% mean
+    r_Tii <- mapply(integrate.cov,
+                    i=time_indices[as.logical(Ai)],
+                    j=time_indices[as.logical(Ai)])
+    r_TA <- mean(r_Tii)
+    var_TA <- var(r_Tii)
 
     # Create grid over which to integrate for different i \neq j pairs
-    id <- 1:length(time_indices)
-    idgrid <- expand.grid(id1=id, id2=id)
-    idgrid <- idgrid[idgrid$id1 != idgrid$id2,]
-
-    time1 <- time_indices[idgrid$id1]
-    time2 <- time_indices[idgrid$id2]
+    # Get unique pair combinations (use the below function so we don't duplicate
+    # the T_i, T_j with T_j, T_i, since it's a symmetric covariance matrix)
+    ids <- which(as.logical(Ai))
+    idgrid <- combn(ids, 2) %>% t
 
     # Calculate the expectation of the integrated covariance matrix
     # for i \neq j pairs.
-    r_Tij <- mapply(integrate_cov, i=time1, j=time2) %>% mean
+    r_TAprime <- mapply(integrate.cov,
+                        i=time_indices[idgrid[, 1]],
+                        j=time_indices[idgrid[, 2]]) %>% mean
 
     # Calculate the expectation of the integrated covariance matrix
     # across i individuals with T^*
     # Divide bigT by dt to get it on the index scale of rho_mat
-    r_Tis <- sapply(time_indices, integrate_cov, j=bigT/dt) %>% mean
+    r_TAstar <- sapply(time_indices[as.logical(Ai)], integrate.cov, j=bigT/dt) %>% mean
 
-    # Define function for integrating across
-    integrate_point <- function(i) sum(rho_mat$point[1:i]) * dt
+    # Calculate the expected time of prior tests
+    mu_TB <- -mean(ptest_times[as.logical(Bi)])
+    mu_TBR <- -mean(ptest_times[as.logical(Bi) & ri])
 
-    # Calculate the omega_Ti for each prior test time,
-    # then get its expectation and variance
-    # (this expectation and variance are with respect to the variability
-    # in the trial data T_i's, not the external study data.)
-    omega_Ti <- sapply(time_indices, integrate_point)
-    omega_Ti_est <- mean(omega_Ti)
-    omega_Ti_var <- var(omega_Ti)
+    # Calculate fraction of those with recent/non-recent prior tests
+    p_A <- mean(Ai)
+    p_B <- mean(Bi)
+
+    # Calculate fraction of those identified as recent by the new algorithm
+    # who had recent prior tests
+    p_AM <- mean(Ai[ri])
 
   } else {
-    r_Tii <- NULL
-    r_Tij <- NULL
-    r_Tis <- NULL
-    omega_Ti_est <- NULL
-    omega_Ti_var <- NULL
+    r_TA <- NULL
+    r_TAprime <- NULL
+    r_TAstar <- NULL
+    omega_TA <- NULL
+    omega_TAM <- NULL
+    omega_TB <- NULL
+    mu_TB <- NULL
+    mu_TBR <- NULL
+    p_A <- NULL
+    p_B <- NULL
+    p_AM <- NULL
   }
 
-  result <- list(mu_est=mu_sim$est,
-                 mu_var=mu_sim$var,
-                 omega_est=omega_sim$est,
-                 omega_var=omega_sim$var,
-                 omega_Ti_est=omega_Ti_est,
-                 omega_Ti_var=omega_Ti_var,
-                 r_Tii=r_Tii,
-                 r_Tij=r_Tij,
-                 r_Tis=r_Tis,
-                 beta_est=NA,
-                 beta_var=NA)
+  result <- list(
+    mu_est=mu_sim$est,
+    mu_var=mu_sim$var,
+    omega_est=omega_sim$est,
+    omega_var=omega_sim$var,
+    beta_est=NA,
+    beta_var=NA,
+    r_TA=r_TA,
+    r_TAprime=r_TAprime,
+    r_TAstar=r_TAstar,
+    omega_TA=omega_TA,
+    omega_TA_var=omega_TA_var,
+    omega_TAM=omega_TAM,
+    omega_TB=omega_TB,
+    mu_TB=mu_TB,
+    mu_TBR=mu_TBR,
+    p_A=p_A,
+    p_B=p_B,
+    p_AM=p_AM
+  )
   return(result)
 }
 
@@ -360,19 +393,28 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=0.01,
 assay.properties.nsim <- function(n_sims, phi.func, bigT, tau,
                                   ext_FRR=FALSE, ext_df=NULL,
                                   max_FRR=NULL, last_point=FALSE,
-                                  ptest_times=NULL){
+                                  ptest_times=NULL, ptest_delta=NULL,
+                                  ptest_avail=NULL, ri=NULL){
+
   studies <- simulate.studies(n_sims, phi.func, ext_df=ext_df)
   if(is.null(ptest_times)){
-    result <- sapply(studies, function(x) assay.properties.est(study=x,
-                                                               bigT=bigT,
-                                                               tau=tau,
-                                                               last_point=last_point,
-                                                               ptest_times=ptest_times))
+    result <- sapply(studies, function(x) assay.properties.est(
+      study=x,
+      bigT=bigT,
+      tau=tau,
+      last_point=last_point,
+      ptest_times=ptest_times,
+      ptest_delta=ptest_delta,
+      ptest_avail=ptest_avail,
+      ri=ri
+      ))
   } else {
-    mfunc <- function(s, t) assay.properties.est(
-      study=s, bigT=bigT, tau=tau, last_point=last_point, ptest_times=t
+    mfunc <- function(s, t, d, a, r) assay.properties.est(
+      study=s, bigT=bigT, tau=tau, last_point=last_point,
+      ptest_times=t, ptest_delta=d, ptest_avail=a, ri=r
     )
-    result <- mapply(FUN=mfunc, s=studies, t=ptest_times)
+    result <- mapply(FUN=mfunc, s=studies,
+                     t=ptest_times, d=ptest_delta, a=ptest_avail, r=ri)
   }
 
   if(ext_FRR){

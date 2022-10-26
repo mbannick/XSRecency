@@ -35,9 +35,9 @@ summ <- summ[, .(trange, q, estimator_type, assay_vals, bias, se, mse)]
 summ[, bias := bias * 100]
 summ[, se := se * 100]
 summ[, mse := mse * 100]
-summ[, bias := lapply(bias, function(x) sprintf("%.3f", x))]
-summ[, se := lapply(se, function(x) sprintf("%.3f", x))]
-summ[, mse := lapply(mse, function(x) sprintf("%.3f", x))]
+summ[, bias := lapply(bias, function(x) sprintf("%.5f", x))]
+summ[, se := lapply(se, function(x) sprintf("%.5f", x))]
+summ[, mse := lapply(mse, function(x) sprintf("%.5f", x))]
 
 est <- summ[assay_vals == "est"]
 true <- summ[assay_vals == "true"]
@@ -55,10 +55,10 @@ EST <- cbind(est.bias, est.se[, -c(1:2)], est.mse[, -c(1:2)]) %>% data.table
 TRUTH <- cbind(true.bias, true.se[, -c(1:2)], true.mse[, -c(1:2)]) %>% data.table
 
 addtorow <- list()
-addtorow$pos <- seq(5, nrow(TRUTH), by=5) %>% as.list
+addtorow$pos <- seq(5, nrow(EST), by=5) %>% as.list
 addtorow$command <- rep("\\hline \n", length(addtorow$pos))
 
-tab <- xtable(TRUTH, align=rep("c", 9), digits=2)
+tab <- xtable(EST, align=rep("c", 9), digits=2)
 print(tab, include.rownames=FALSE,
       add.to.row = addtorow)
 
