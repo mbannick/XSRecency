@@ -4,6 +4,7 @@ source("R/external-study-sim.R")
 source("R/external-study-data.R")
 source("R/estimators.R")
 source("R/estimators-pt.R")
+source("R/utils.R")
 
 library(magrittr)
 
@@ -119,6 +120,8 @@ simulate.pt <- function(n_sims, n, infection.function, phi.func,
     ri=data$ri
   )
 
+  wvec <- get.w.vec(data, assay, bigT)
+
   # Calculate true assay parameters
   true_frr <- true.frr(phi.func=phi.func, bigT=bigT, tau=tau)
   true_mdri <- true.window.mdri(phi.func=phi.func, maxT=bigT)
@@ -153,29 +156,38 @@ simulate.pt <- function(n_sims, n, infection.function, phi.func,
   eadj.true <- R.utils::doCall(.fcn=get.adjusted.pt, args=inputs_true, .ignoreUnusedArgs=TRUE)
   eadj.est <- R.utils::doCall(.fcn=get.adjusted.pt, args=inputs_est, .ignoreUnusedArgs=TRUE)
 
-  return(list(truth=rep(baseline_incidence, n_sims),
-              adj_true_est=adj.true$est,
-              adj_true_var=adj.true$var,
-              adj_est_est=adj.est$est,
-              adj_est_var=adj.est$var,
-              eadj_true_est=eadj.true$est,
-              eadj_true_var=eadj.true$var,
-              eadj_est_est=eadj.est$est,
-              eadj_est_var=eadj.est$var,
-              mu_est=assay$mu_est,
-              mu_var=assay$mu_var,
-              omega_est=assay$omega_est,
-              omega_var=assay$omega_var,
-              beta_est=assay$beta_est,
-              beta_var=assay$beta_var,
-              n_n=data$n_n,
-              n_r=data$n_r,
-              n_p=data$n_p,
-              n_r_pt=data$n_r_pt,
-              num_beta=data$num_beta,
-              den_omega=data$den_omega,
-              den_beta=data$den_beta,
-              q_eff=data$q_eff,
-              n=data$n
-  ))
+  results <- list(
+    truth=rep(baseline_incidence, n_sims),
+    adj_true_est=adj.true$est,
+    adj_true_var=adj.true$var,
+    adj_est_est=adj.est$est,
+    adj_est_var=adj.est$var,
+    eadj_true_est=eadj.true$est,
+    eadj_true_var=eadj.true$var,
+    eadj_est_est=eadj.est$est,
+    eadj_est_var=eadj.est$var,
+    mu_est=assay$mu_est,
+    mu_var=assay$mu_var,
+    omega_est=assay$omega_est,
+    omega_var=assay$omega_var,
+    beta_est=assay$beta_est,
+    beta_var=assay$beta_var,
+    n_n=data$n_n,
+    n_r=data$n_r,
+    n_p=data$n_p,
+    n_r_pt=data$n_r_pt,
+    num_beta=data$num_beta,
+    den_omega=data$den_omega,
+    den_beta=data$den_beta,
+    q_eff=data$q_eff,
+    n=data$n
+  )
+  for(w in names(wvec)){
+    results[[w]] <- wvec[[w]]
+  }
+  for(e in names(eadj.est$components_est)){
+    results[[e]] <- (eadj.est$components_est)[[e]]
+  }
+
+  return(results)
 }
