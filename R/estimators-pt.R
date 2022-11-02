@@ -74,11 +74,11 @@ variance.pt <- function(
   )
   VW5 <- n * p * p_B * (
     beta_var * mu_TB**2 * p_B * n * p +
-    (beta_var + mu_TB**2 * (1-p_B * p))
+    (beta_var + beta**2) * (var_TB + mu_TB**2 * (1-p_B * p))
   )
   C12 <- n * p * (1-p) * (pr - (1-p_B) * beta)
   C13 <- n * p * beta_var * big_T * (1-p_B)
-  C14 <- n * p * (
+  C14 <- n * p * p_A * (
     lamp * (omega_TAstar - omega_TA**2 - omega_TA_var) -
     omega_TA * (p + beta * (1 - p + p * p_B))
   )
@@ -97,7 +97,7 @@ variance.pt <- function(
   C25 <- n * p * (1-p) * beta * p_B * mu_TB
   C34 <- n * p * p_A * r_TAstar
   C35 <- -n * p * big_T * p_B * mu_TB * beta_var
-  C45 <- n * p * p_A * p_B * omega_TA * mu_TB * (1 - p - beta)
+  C45 <- - n * p^2 * p_A * p_B * omega_TA * mu_TB
 
   components_est <- list(
     EW1=EW1, EW2=EW2, EW3=EW3, EW4=EW4, EW5=EW5,
