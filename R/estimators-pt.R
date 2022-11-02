@@ -41,9 +41,9 @@ variance.pt <- function(
     omega, omega_var,
     beta, beta_var, big_T,
     r_TA, r_TAprime, r_TAstar,
-    omega_TA, omega_TA_var, omega_TAM, omega_TB,
-    mu_TB, mu_TBR,
-    p_A, p_B, p_AM,
+    omega_TA, omega_TA_var, omega_TAstar, omega_TB,
+    mu_TB, var_TB,
+    p_A, p_B,
     incidence
   ){
 
@@ -51,7 +51,7 @@ variance.pt <- function(
   pr <- n_r / n_p
   obt <- omega - beta * big_T
 
-  delta_TB <- beta * incidence * (1-p) / p * (mu_TB - big_T)
+  lamp <- incidence * (1-p) / p
 
   EW1 <- n * p * (pr - beta * (1-p_B))
   EW2 <- n * p
@@ -62,13 +62,15 @@ variance.pt <- function(
   VW1 <- n * p * (
     pr * (1-pr) + (1-p) * (pr - (1-p_B) * beta)**2 +
     beta_var * (1 - p_B) * (1-p * (1-p_B) + n * p * (1-p_B)) +
-    beta * p_B * (beta * (1-p_B) - 2 * (pr - delta_TB))
+    beta * p_B * (beta * (1-p_B) - 2 * (pr - lamp*(
+      omega + beta * (mu_TB - big_T)
+    )))
   )
   VW2 <- n * p * (1-p)
   VW3 <- omega_var + beta_var * big_T**2
   VW4 <- n * p * p_A * (
     r_TA + p_A * r_TAprime * (n * p - p) +
-    omega_TA * (1-p * p_A) + omega_TA_var
+    omega_TA**2 * (1-p * p_A) + omega_TA_var
   )
   VW5 <- n * p * p_B * (
     beta_var * mu_TB**2 * p_B * n * p +
@@ -76,12 +78,19 @@ variance.pt <- function(
   )
   C12 <- n * p * (1-p) * (pr - (1-p_B) * beta)
   C13 <- n * p * beta_var * big_T * (1-p_B)
-  C14 <- n * p * (pr * p_AM * omega_TAM - p_A * omega_TA * (
-    beta * (1-p) + p * (p_B + pr)
-  ))
+  C14 <- n * p * (
+    lamp * (omega_TAstar - omega_TA**2 - omega_TA_var) -
+    omega_TA * (p + beta * (1 - p + p * p_B))
+  )
   C15 <- n * p * p_B * (
-    beta * (delta_TB * mu_TBR - p * pr * mu_TB) +
-    p * (1-p_B) * mu_TB * (beta**2 + beta_var * (1-n))
+    beta * (
+      lamp * (
+        mu_TB * (omega - beta * big_T) +
+        beta * (var_TB + mu_TB**2)
+      ) - p * pr * mu_TB
+    ) +
+    p * (beta_var + beta**2) * mu_TB * (1 - p_B) -
+    beta_var * n * p * (1 - p_B) * mu_TB
   )
   C23 <- rep(0, length(n))
   C24 <- n * p * (1-p) * p_A * omega_TA
@@ -89,6 +98,15 @@ variance.pt <- function(
   C34 <- n * p * p_A * r_TAstar
   C35 <- -n * p * big_T * p_B * mu_TB * beta_var
   C45 <- n * p * p_A * p_B * omega_TA * mu_TB * (1 - p - beta)
+
+  components_est <- list(
+    EW1=EW1, EW2=EW2, EW3=EW3, EW4=EW4, EW5=EW5,
+    VW1=VW1, VW2=VW2, VW3=VW3, VW4=VW4, VW5=VW5,
+    C12=C12, C13=C13, C14=C14, C15=C15,
+    C23=C23, C24=C24, C25=C25,
+    C34=C34, C35=C35,
+    C45=C45
+  )
 
   varfunc <- function(ew1, ew2, ew3, ew4, ew5,
                       vw1, vw2, vw3, vw4, vw5,
@@ -147,7 +165,10 @@ variance.pt <- function(
     N=n
   )
 
-  return(logvars)
+  return(list(
+    logvars=logvars,
+    components_est=components_est
+  ))
 }
 
 #' Convert log variance to variance
@@ -187,9 +208,9 @@ get.adjusted.pt <- function(n_r_pt, n_n, n_p, n, omega, omega_var,
                          beta, beta_var, big_T, q=1,
                          num_beta, den_omega, den_beta,
                          r_TA, r_TAprime, r_TAstar,
-                         omega_TA, omega_TA_var, omega_TAM, omega_TB,
-                         mu_TB, mu_TBR,
-                         p_A, p_B, p_AM){
+                         omega_TA, omega_TA_var, omega_TAstar, omega_TB,
+                         mu_TB, var_TB,
+                         p_A, p_B){
 
   est <- adjusted.estimate.pt(n_r_pt=n_r_pt, n_n=n_n, n_p=n_p,
                               omega=omega, beta=beta, big_T=big_T,
@@ -200,11 +221,11 @@ get.adjusted.pt <- function(n_r_pt, n_n, n_p, n, omega, omega_var,
                         beta=beta, beta_var=beta_var,
                         r_TA=r_TA, r_TAprime=r_TAprime, r_TAstar=r_TAstar,
                         omega_TA=omega_TA, omega_TA_var=omega_TA_var,
-                        omega_TAM=omega_TAM, omega_TB=omega_TB,
-                        mu_TB=mu_TB, mu_TBR=mu_TBR,
-                        p_A=p_A, p_B=p_B, p_AM=p_AM,
+                        omega_TAstar=omega_TAstar, omega_TB=omega_TB,
+                        mu_TB=mu_TB, var_TB=var_TB,
+                        p_A=p_A, p_B=p_B,
                         big_T=big_T,
                         incidence=est)
-  estvar <- var.log.to.var(est, logvar)
-  return(list(est=est, var=estvar))
+  estvar <- var.log.to.var(est, logvar$logvar)
+  return(list(est=est, var=estvar, components_est=logvar$components_est))
 }
