@@ -8,7 +8,7 @@ library(tidyr)
 # Get the input and output directories
 args <- commandArgs(trailingOnly=TRUE)
 in.dir <- args[1]
-in.dir <- "~/Documents/FileZilla/xs-recent/enhanced/31-08-2022-22-12-03/"
+# in.dir <- "~/Documents/FileZilla/xs-recent/enhanced/31-08-2022-22-12-03/"
 
 # Read in files
 f <- list.files(in.dir, full.names=T)
@@ -73,7 +73,7 @@ results[, mse := bias**2 + se**2]
 results[, estimator_type := lapply(.SD, function(x) gsub("_est$", "", gsub("_true$", "", x))), .SDcols="estimator"]
 results[, assay_vals := lapply(.SD, function(x) ifelse(grepl("true", x), "true", "est")), .SDcols="estimator"]
 
-results[estimator_type %in% c("adj", "eadj")] %>% View
+# results[estimator_type %in% c("adj", "eadj")] %>% View
 
 write.csv(results, paste0(in.dir, "/summary.csv"), row.names=F)
 
