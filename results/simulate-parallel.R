@@ -18,8 +18,8 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                     defaults=list(
                       seed=100,
                       n_sims=5,
-                      n=100,
-                      p=0.7,
+                      n=5000,
+                      p=0.32,
                       inc=0.034,
                       window=101,
                       shadow=194,
@@ -43,7 +43,7 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                       pt=TRUE,
                       t_min=1,
                       t_max=3,
-                      q=0.6,
+                      q=1.0,
                       gamma=0, # variance for the Gaussian noise to add to prior test time
                       eta=0.0, # the probability of incorrectly reporting negative test
                       nu=0.0, # the probability of failing to report prior test result
