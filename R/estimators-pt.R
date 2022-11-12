@@ -97,7 +97,7 @@ variance.pt <- function(
   C25 <- n * p * (1-p) * beta * p_B * mu_TB
   C34 <- n * p * p_A * r_TAstar
   C35 <- -n * p * big_T * p_B * mu_TB * beta_var
-  C45 <- - n * p^2 * p_A * p_B * omega_TA * mu_TB
+  C45 <- - n * p^2 * p_A * p_B * beta * omega_TA * mu_TB
 
   components_est <- list(
     EW1=EW1, EW2=EW2, EW3=EW3, EW4=EW4, EW5=EW5,
