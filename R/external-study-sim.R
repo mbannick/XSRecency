@@ -193,20 +193,69 @@ get.cubic.ts <- function(minT, maxT, dt){
 #' @param n_approx Number of "draws" for phi.hat
 #' @param phi.hat A function that creates draws from a model object using d and any additional args ...
 #' @param ... Additional arguments to pass to phi.hat
-matrix.phi <- function(model, minT, maxT, dt=0.001){
+matrix.phi <- function(model, minT, maxT, dt=0.01){
 
+  # Get the set of t's that we want, in design matrix form
   ts <- get.cubic.ts(minT=minT, maxT=maxT, dt=dt)
-  # get the linear predictor
+  # Get the linear predictor
   lin_predictor <- ts %*% matrix(model$beta)
-
+  # Exponentiate the linear predictor
   phi <- expit(lin_predictor)
 
-  lin_var <- ts %*% model$vbeta %*% t(ts)
-  delta_g <- exp(lin_predictor) / (1 + exp(lin_predictor))**2
-  jacob_g <- diag(c(delta_g))
-  phi_var <- jacob_g %*% lin_var %*% jacob_g
+  # Calculate cumulative phi and convert to a data frame
+  cphi <- cumsum(phi * dt)
+  cphi_d <- data.table(
+    index=1:length(cphi),
+    phi=cphi
+  )
 
-  return(list(point=phi, covar=phi_var))
+  # We have by delta method Var(T \beta) = T %*% Var(\beta) %*% T^t
+  # Also by delta method, Var(expit(T \beta)) = J %*% T %*% Var(\beta) %*% T^t J
+  # where J is the Jacobian of the expit() transformation.
+
+  # For efficiency's sake, we can instead first calculate J %*% T
+  # since (J %*% T)^t = T^t %*% J^t = T^t %*% J
+  # and then calculate the Cholesky decomposition of Var(\beta) so that we
+  # can write Var(\beta) = U^t U where U is the upper triangular
+  # matrix from the decomposition (what chol function returns).
+
+  # Then we have, with R = J %*% T %*% U^t,
+  # the final variance-covariance matrix is R %*% R^t.
+
+  # 1. Var(\beta) and Cholesky decomposition
+  U <- chol(model$vbeta)
+
+  # 2. Jacobial of transformation
+  delta_g <- exp(lin_predictor) / (1 + exp(lin_predictor))**2
+  J <- diag(c(delta_g))
+
+  # 3. Calculate R matrix
+  R <- J %*% ts %*% t(U)
+
+  # 4. Calculate final variance
+  phi_var <- R %*% t(R)
+
+  # This is the old way of calculating it -- which is extremely expensive
+  # and might (probably will) crash your R.
+
+  # lin_var <- ts %*% model$vbeta %*% t(ts)
+  # delta_g <- exp(lin_predictor) / (1 + exp(lin_predictor))**2
+  # jacob_g <- diag(c(delta_g))
+  # phi_var2 <- jacob_g %*% lin_var %*% jacob_g
+
+  # Calculate the 2-d integral of the variance-covariance matrix
+  # at all grid points by using cumsum on the rows and columns.
+  csum <- t(apply(apply(phi_var * dt^2, 2, cumsum), 1, cumsum))
+
+  # Reshape the matrix into a data frame so that it's easier to work with
+  # and merge onto the id grid.
+  csum <- data.table(csum)
+  csum <- csum[, indexX := .I]
+  csum_d <- melt(csum, id.vars="indexX")
+  csum_d <- csum_d[, variable := as.numeric(gsub("V", "", variable))]
+  setnames(csum_d, c("variable", "value"), c("indexY", "rho"))
+
+  return(list(cphi=cphi_d, csum=csum_d))
 }
 
 #' Estimate omega_T from a model object
@@ -249,15 +298,15 @@ integrate.phi <- function(model, minT=0, maxT=12, dt=0.01){
 #' @param bigT The T^* time
 #' @param tau The maximum time
 #' @returns List of properties and their variances
-assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=0.01,
+assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
                                  ptest_times=NULL,
                                  ptest_delta=NULL,
                                  ptest_avail=NULL,
                                  ri=ri){
+  start.time <- Sys.time()
   model <- fit.cubic(recent=study$recent,
                      durations=study$durations,
                      id=study$id)
-  cat(".")
   # get mu and omega
   if(last_point) tau <- max(study$durations)
 
@@ -278,110 +327,98 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=0.01,
     p_A <- mean(Ai)
     p_B <- mean(Bi)
 
-    # Create covariance matrix between the phi estimates at different times
-    rho_mat <- matrix.phi(model, minT=0, maxT=tau, dt=dt)
+    if(p_A == 0){
 
-    # Define functions to integrate over rectangles within the rho matrix
-    # starting at (1,1), and also integrating over just the estimated phi func.
-    integrate.point <- function(i) sum(rho_mat$point[1:i]) * dt
-    integrate.cov <- function(i, j) sum(rho_mat$covar[1:j, 1:i]) * dt^2
-    integrate.cov2 <- function(i1, i2, j1, j2){
-      sum(rho_mat$covar[i1:i2, j1:j2]*dt^2)
+      omega_TA     <- 0
+      omega_TA_var <- 0
+      omega_TAstar <- 0
+
+      r_TA         <- 0
+      var_TA       <- 0
+      r_TAprime    <- 0
+      r_TAstar     <- 0
+
+      nATO         <- 0
+
+    } else {
+
+      # Create point estimates and covariance matrix between
+      # the phi estimates at different times
+      cat("Creating rho matrix\n")
+      cphi <- matrix.phi(model, minT=0, maxT=tau, dt=dt)
+      cphi_point <- cphi$cphi
+      cphi_covar <- cphi$csum
+
+      # Get ids for those who have a test, and their
+      # corresponding time index
+      has_test <- which(as.logical(Ai))
+      idmap <- data.table(
+        id=has_test,
+        index=time_indices[has_test]
+      )
+      # Get unique combinations of the ids
+      # for the covariance calculation
+      idmap_covar <- combn(idmap$id, 2) %>% t %>% data.table
+      setnames(idmap_covar, c("idX", "idY"))
+      idmap_covar <- merge(idmap_covar, idmap, by.x="idX", by.y="id")
+      setnames(idmap_covar, "index", "indexX")
+      idmap_covar <- merge(idmap_covar, idmap, by.x="idY", by.y="id")
+      setnames(idmap_covar, "index", "indexY")
+
+      # Calculate omega_T conditional expectation and variance
+      omega_ta     <- merge(idmap, cphi_point, by="index", all.x=TRUE)
+      omega_TA     <- mean(omega_ta$phi)
+      omega_TA_var <- var(omega_ta$phi)
+
+      # Calculate omega_T * T conditional expectation
+      omega_ta <- omega_ta[, tastar := index * dt * phi]
+      omega_TAstar <- mean(omega_ta$tastar)
+
+      # Calculate r_TiTi conditional expectation and variance
+      idmap2 <- idmap
+      idmap2 <- idmap2[, indexX := index]
+      idmap2 <- idmap2[, indexY := index]
+      cat("Merge for TiTi\n")
+      r_Tii  <- merge(idmap2, cphi_covar, by=c("indexX", "indexY"), all.x=T)
+      r_TA   <- mean(r_Tii$rho)
+      var_TA <- var(r_Tii$rho)
+
+      # Calculate r_TiTj conditional expectation
+      cat("Merge for TiTj\n")
+      r_Tij <- merge(idmap_covar, cphi_covar, by=c("indexX", "indexY"), all.x=T)
+      r_TAprime <- mean(r_Tij$rho)
+
+      # Calculate r_TiTstar conditional expectation
+      idmap3 <- idmap
+      idmap3 <- idmap3[, indexX := index]
+      idmap3 <- idmap3[, indexY := round(bigT/dt)]
+      cat("Merge for TiTstar\n")
+      r_Tistar <- merge(idmap3, cphi_covar, by=c("indexX", "indexY"), all.X=T)
+      r_TAstar <- mean(r_Tistar$rho)
+
+      # To compare variance terms in debugging
+      nATO <- sum(omega_ta$phi)
     }
 
-    # Calculate omega_t expectation, and conditional expectations
-    # Set them to zero if we don't observe any Ai or Bi, respectively
-    # Otherwise they will be NA
-    omega_ta <- sapply(time_indices[as.logical(Ai)], integrate.point)
-    omega_TA <- ifelse(p_A > 0, mean(omega_ta), 0)
-    omega_TA_var <- ifelse(p_A > 0, var(omega_ta), 0)
+    if(p_B == 0){
 
-    omega_tastar <- omega_ta * -ptest_times[as.logical(Ai)]
-    omega_TAstar <- ifelse(p_A > 0, mean(omega_tastar), 0)
+      mu_TB  <- 0
+      var_TB <- 0
+      nB     <- 0
+      nBT    <- 0
 
-    omega_tb <- sapply(time_indices[as.logical(Bi)], integrate.point)
-    omega_TB <- ifelse(p_B > 0, mean(omega_tb), 0)
+    } else {
 
-    # Calculate the expectation of the integrated covariance matrix
-    # for individual i's
-    r_Tii <- mapply(integrate.cov,
-                    i=time_indices[as.logical(Ai)],
-                    j=time_indices[as.logical(Ai)])
-    r_TA <- ifelse(p_A > 0, mean(r_Tii), 0)
-    var_TA <- ifelse(p_A > 0, var(r_Tii), 0)
+      # Calculate the expected time of prior tests
+      tb <- -ptest_times[as.logical(Bi)]
+      mu_TB <- mean(tb)
+      var_TB <- var(tb)
 
-    # Create grid over which to integrate for different i \neq j pairs
-    # Get unique pair combinations (use the below function so we don't duplicate
-    # the T_i, T_j with T_j, T_i, since it's a symmetric covariance matrix)
-    ids <- which(as.logical(Ai))
-    idgrid <- combn(ids, 2) %>% t
+      # To compare variance terms for debugging
+      nB <- sum(Bi)
+      nBT <- sum(-ptest_times[as.logical(Bi)])
 
-    # START OVER
-    # cumrhomat <- t(apply(apply(rho_mat$covar * dt^2, 2, cumsum), 1, cumsum))
-    #
-    # uniquetimes <- c(time_indices[idgrid[, 1]], time_indices[idgrid[, 2]])
-    # idgrid2 <- expand.grid(t1=uniquetimes, t2=uniquetimes)
-    # idgrid3 <- cbind(pmin(idgrid2[, 1], idgrid2[, 2]),
-    #                  pmax(idgrid2[, 1], idgrid2[, 2]))
-    # idgrid3 <- unique(idgrid3)
-    #
-    # grab.index <- function(t1, t2) cumrhomat[t1, t2]
-    # cumsums <- mapply(grab.index, t1=idgrid[, 1], t2=idgrid[, 2])
-    #
-    # idgrid4 <- cbind(idgrid3, cumsums) %>% data.table
-    # setnames(idgrid4, c("time_min", "time_max", "cumsum"))
-    #
-    # mat <- cbind(idgrid, time_indices[idgrid[, 1]], time_indices[idgrid[, 2]])
-    # mat <- data.table(mat)
-    # setnames(mat, c("id1", "id2", "time1", "time2"))
-    # setorder(mat, time1, time2)
-    #
-    # mat[, time_min := pmin(time1, time2)]
-    # mat[, time_max := pmax(time1, time2)]
-    # setorder(mat, time_min, time_max)
-    #
-    # dd <- merge(mat, idgrid4, by=c("time_min", "time_max"), all.x=TRUE)
-    #
-    #
-    # mat[, timei_end := time_min]
-    # mat[, timej_end := time_max]
-    #
-    # mat[, timei_start := lapply(.SD, function(x) shift(x, n=1)), .SDcols="time_min"]
-    # mat[, timej_start := lapply(.SD, function(x) shift(x, n=1)), .SDcols="time_max"]
-    #
-    # mat[is.na(timei_start), timei_start := 0]
-    # mat[is.na(timej_start), timej_start := 0]
-    #
-    # increments <- mapply(
-    #   integrate.cov2,
-    #   i1=mat$timei_start, i2=mat$timei_end,
-    #   j1=mat$timej_start, j2=mat$timej_end
-    # )
-    # r_TAprime <- cumsum(increments) %>% mean
-
-    # Calculate the expectation of the integrated covariance matrix
-    # for i \neq j pairs.
-    r_taprime <- mapply(integrate.cov,
-                        i=time_indices[idgrid[, 1]],
-                        j=time_indices[idgrid[, 2]])
-    r_TAprime <- ifelse(p_A > 0, mean(r_taprime), 0)
-
-    # Calculate the expectation of the integrated covariance matrix
-    # across i individuals with T^*
-    # Divide bigT by dt to get it on the index scale of rho_mat
-    r_tastar <- sapply(time_indices[as.logical(Ai)], integrate.cov, j=bigT/dt)
-    r_TAstar <- ifelse(p_A > 0, mean(r_tastar), 0)
-
-    # Calculate the expected time of prior tests
-    tb <- -ptest_times[as.logical(Bi)]
-    mu_TB <- ifelse(p_B > 0, mean(tb), 0)
-    var_TB <- ifelse(p_B > 0, var(tb), 0)
-
-    # Get things for the W components that we will
-    # use to compare the variance
-    nB <- sum(Bi)
-    nBT <- sum(-ptest_times[as.logical(Bi)])
-    nATO <- sum(omega_ta)
+    }
 
   } else {
     r_TA <- NULL
@@ -389,7 +426,6 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=0.01,
     r_TAstar <- NULL
     omega_TA <- NULL
     omega_TAstar <- NULL
-    omega_TB <- NULL
     mu_TB <- NULL
     var_TB <- NULL
     p_A <- NULL
@@ -412,7 +448,6 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=0.01,
     omega_TA=omega_TA,
     omega_TA_var=omega_TA_var,
     omega_TAstar=omega_TAstar,
-    omega_TB=omega_TB,
     mu_TB=mu_TB,
     var_TB=var_TB,
     p_A=p_A,
@@ -421,7 +456,8 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=0.01,
     nBT=nBT,
     nATO=nATO
   )
-  browser()
+  end.time <- Sys.time()
+  print(end.time - start.time)
   return(result)
 }
 
