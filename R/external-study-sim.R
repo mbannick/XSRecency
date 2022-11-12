@@ -421,6 +421,7 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=0.01,
     nBT=nBT,
     nATO=nATO
   )
+  browser()
   return(result)
 }
 
