@@ -330,17 +330,26 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
   # of the enhanced adjusted estimator that incorporates prior test results.
   if(!all(is.null(ptest_times))){
     # Map testing times to indices for integration using dt
-    get.closest.index <- function(time){
-      index <- ts_index[which.min(abs(time - ts_index$ts)),]
-      return(index)
-    }
-    closest <- lapply(-ptest_times, get.closest.index) %>% rbindlist
+    closest <- data.table(
+      ts_orig=-ptest_times,
+      has_test=ptest_avail
+    )
     closest[, id := .I]
-    closest[, ts_orig := -ptest_times]
+    closest[, index := NA]
 
-    closest[, Ai := as.numeric((ts <= bigT_index[, ts]) & (ptest_avail))]
-    closest[, Bi := as.numeric((ts > bigT_index[, ts]) & (ptest_avail))]
-    closest[, has_test := as.logical(Ai | Bi)]
+    get.closest.index <- function(t){
+      if(is.na(t)){
+        idx <- NA
+      } else {
+        idx <- ts_index[which.min(abs(t - ts_index$ts)), index]
+      }
+    }
+    closest_index <- sapply(closest$ts_orig, get.closest.index)
+    closest[, index := closest_index]
+    closest <- merge(closest, ts_index, by="index", all.x=T)
+
+    closest[, Ai := as.numeric((ts <= bigT_index[, ts]) & (has_test))]
+    closest[, Bi := as.numeric((ts > bigT_index[, ts]) & (has_test))]
 
     # Calculate fraction of those with recent/non-recent prior tests
     p_A <- mean(closest$Ai)
