@@ -298,15 +298,15 @@ integrate.phi <- function(model, minT=0, maxT=12, dt=0.01){
 #' @param bigT The T^* time
 #' @param tau The maximum time
 #' @returns List of properties and their variances
-assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=0.01,
+assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
                                  ptest_times=NULL,
                                  ptest_delta=NULL,
                                  ptest_avail=NULL,
                                  ri=ri){
+  start.time <- Sys.time()
   model <- fit.cubic(recent=study$recent,
                      durations=study$durations,
                      id=study$id)
-  cat(".")
   # get mu and omega
   if(last_point) tau <- max(study$durations)
 
@@ -344,6 +344,7 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=0.01,
 
       # Create point estimates and covariance matrix between
       # the phi estimates at different times
+      cat("Creating rho matrix\n")
       cphi <- matrix.phi(model, minT=0, maxT=tau, dt=dt)
       cphi_point <- cphi$cphi
       cphi_covar <- cphi$csum
@@ -377,11 +378,13 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=0.01,
       idmap2 <- idmap
       idmap2 <- idmap2[, indexX := index]
       idmap2 <- idmap2[, indexY := index]
+      cat("Merge for TiTi\n")
       r_Tii  <- merge(idmap2, cphi_covar, by=c("indexX", "indexY"), all.x=T)
       r_TA   <- mean(r_Tii$rho)
       var_TA <- var(r_Tii$rho)
 
       # Calculate r_TiTj conditional expectation
+      cat("Merge for TiTj\n")
       r_Tij <- merge(idmap_covar, cphi_covar, by=c("indexX", "indexY"), all.x=T)
       r_TAprime <- mean(r_Tij$rho)
 
@@ -389,11 +392,12 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=0.01,
       idmap3 <- idmap
       idmap3 <- idmap3[, indexX := index]
       idmap3 <- idmap3[, indexY := round(bigT/dt)]
+      cat("Merge for TiTstar\n")
       r_Tistar <- merge(idmap3, cphi_covar, by=c("indexX", "indexY"), all.X=T)
       r_TAstar <- mean(r_Tistar$rho)
 
       # To compare variance terms in debugging
-      nATO <- sum(omega_ta)
+      nATO <- sum(omega_ta$phi)
     }
 
     if(p_B == 0){
@@ -452,7 +456,8 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=0.01,
     nBT=nBT,
     nATO=nATO
   )
-  browser()
+  end.time <- Sys.time()
+  print(end.time - start.time)
   return(result)
 }
 
