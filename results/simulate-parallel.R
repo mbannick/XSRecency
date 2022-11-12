@@ -18,9 +18,9 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                     defaults=list(
                       seed=100,
                       n_sims=5,
-                      n=1000,
+                      n=5000,
                       p=0.29,
-                      inc=0.034,
+                      inc=0.032,
                       window=101,
                       shadow=194,
                       itype="constant",
@@ -217,7 +217,6 @@ as <- do.call(c, a)
 for(i in 1:length(as)){
   df[, names(as[i]) := as[i]]
 }
-print(df)
 print(df)
 
 filename <- do.call(paste, a)

@@ -176,15 +176,21 @@ fit.cubic <- function(recent, durations, id){
   return(model)
 }
 
-get.cubic.ts <- function(minT, maxT, dt){
+get.ts <- function(minT, maxT, dt){
+  index <- seq(minT/dt, maxT/dt, by=1)
+  ts <- index*dt
+  return(data.table(index=index,
+                    ts=ts))
+}
+
+get.cubic.ts <- function(ts){
   # generate a sequence of duration times, starting at 0 and
   # up to max t, just to get the phi_hat
-  ts <- seq(minT, maxT, by=dt)
-  ts <- cbind(rep(1, length(ts)),
+  ts.cube <- cbind(rep(1, length(ts)),
               ts,
               ts**2,
               ts**3)
-  return(ts)
+  return(ts.cube)
 }
 
 #' Create a phi matrix of d x d based on draws from the phi.hat function
@@ -193,19 +199,18 @@ get.cubic.ts <- function(minT, maxT, dt){
 #' @param n_approx Number of "draws" for phi.hat
 #' @param phi.hat A function that creates draws from a model object using d and any additional args ...
 #' @param ... Additional arguments to pass to phi.hat
-matrix.phi <- function(model, minT, maxT, dt=0.01){
+matrix.phi <- function(model, ts_index, dt){
 
   # Get the set of t's that we want, in design matrix form
-  ts <- get.cubic.ts(minT=minT, maxT=maxT, dt=dt)
+  ts.cube <- get.cubic.ts(ts_index$ts)
   # Get the linear predictor
-  lin_predictor <- ts %*% matrix(model$beta)
+  lin_predictor <- ts.cube %*% matrix(model$beta)
   # Exponentiate the linear predictor
   phi <- expit(lin_predictor)
-
   # Calculate cumulative phi and convert to a data frame
   cphi <- cumsum(phi * dt)
   cphi_d <- data.table(
-    index=1:length(cphi),
+    t=ts_index$ts,
     phi=cphi
   )
 
@@ -235,14 +240,6 @@ matrix.phi <- function(model, minT, maxT, dt=0.01){
   # 4. Calculate final variance
   phi_var <- R %*% t(R)
 
-  # This is the old way of calculating it -- which is extremely expensive
-  # and might (probably will) crash your R.
-
-  # lin_var <- ts %*% model$vbeta %*% t(ts)
-  # delta_g <- exp(lin_predictor) / (1 + exp(lin_predictor))**2
-  # jacob_g <- diag(c(delta_g))
-  # phi_var2 <- jacob_g %*% lin_var %*% jacob_g
-
   # Calculate the 2-d integral of the variance-covariance matrix
   # at all grid points by using cumsum on the rows and columns.
   csum <- t(apply(apply(phi_var * dt^2, 2, cumsum), 1, cumsum))
@@ -250,9 +247,10 @@ matrix.phi <- function(model, minT, maxT, dt=0.01){
   # Reshape the matrix into a data frame so that it's easier to work with
   # and merge onto the id grid.
   csum <- data.table(csum)
-  csum <- csum[, indexX := .I]
+  # Need to subtract one because the indexing starts at 0
+  csum <- csum[, indexX := .I-1]
   csum_d <- melt(csum, id.vars="indexX")
-  csum_d <- csum_d[, variable := as.numeric(gsub("V", "", variable))]
+  csum_d <- csum_d[, variable := as.numeric(gsub("V", "", variable))-1]
   setnames(csum_d, c("variable", "value"), c("indexY", "rho"))
 
   return(list(cphi=cphi_d, csum=csum_d))
@@ -263,8 +261,8 @@ matrix.phi <- function(model, minT, maxT, dt=0.01){
 #' long follow_T parameter (like 9)
 #'
 #' @export
-integrate.phi <- function(model, minT=0, maxT=12, dt=0.01){
-  ts <- get.cubic.ts(minT=minT, maxT=maxT, dt=dt)
+integrate.phi <- function(model, ts, dt=0.01){
+  ts <- get.cubic.ts(ts)
 
   # get the linear predictor
   lin_predictor <- ts %*% matrix(model$beta)
@@ -298,7 +296,7 @@ integrate.phi <- function(model, minT=0, maxT=12, dt=0.01){
 #' @param bigT The T^* time
 #' @param tau The maximum time
 #' @returns List of properties and their variances
-assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
+assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=0.01,
                                  ptest_times=NULL,
                                  ptest_delta=NULL,
                                  ptest_avail=NULL,
@@ -307,12 +305,17 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
   model <- fit.cubic(recent=study$recent,
                      durations=study$durations,
                      id=study$id)
+
   # get mu and omega
   if(last_point) tau <- max(study$durations)
 
-  mu_sim <- integrate.phi(model, minT=0, maxT=tau, dt=dt)
-  omega_sim <- integrate.phi(model, minT=0, maxT=bigT, dt=dt)
+  ts_index <- get.ts(minT=0, maxT=tau, dt=dt)
+  ts_mu <- ts_index$ts
+  ts_omega <- ts_index[ts <= bigT]$ts
 
+  mu_sim <- integrate.phi(model, ts_mu, dt=dt)
+  omega_sim <- integrate.phi(model, ts_omega, dt=dt)
+  browser()
   # If we have prior test results, we need to calculate the
   # following quantities that allow us to calculate the variance
   # of the enhanced adjusted estimator that incorporates prior test results.

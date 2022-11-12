@@ -8,7 +8,6 @@ library(tidyr)
 # Get the input and output directories
 args <- commandArgs(trailingOnly=TRUE)
 in.dir <- args[1]
-in.dir <- "~/Documents/FileZilla/xs-recent/enhanced/25-10-2022-21-17-15/"
 
 # Read in files
 f <- list.files(in.dir, full.names=T)
@@ -53,6 +52,11 @@ variance[, estimator := lapply(.SD, function(x) gsub("_var$", "", x)), .SDcols="
 df2 <- merge(estimate, variance, by=c(id.vars, "estimator"))
 df2[, bias := estimate - truth]
 df2[, width := qnorm(0.975) * variance ** 0.5]
+df2[, lower := estimate - width]
+df2[, upper := estimate + width]
+df2[, cover := (truth < upper) & (truth > lower)]
+
+df2[, width := qnorm(0.975) * variance**0.5]
 df2[, lower := estimate - width]
 df2[, upper := estimate + width]
 df2[, cover := (truth < upper) & (truth > lower)]

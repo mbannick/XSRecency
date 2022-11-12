@@ -15,7 +15,6 @@ BIGT=2
 
 TMIN=1
 TMAX=3
-Q=1
 
 ARGS="-n_sims=${NSIMS} -n=${N} -p ${P} -inc ${INC} -tau ${TAU} -bigT ${BIGT} -out_dir ${OUTDIR} -last_point"
 ASSAY="-window 101 -shadow 194"
@@ -25,23 +24,20 @@ PT="-pt"
 
 BASELINE="${ARGS} ${RHO} ${TYPE} ${ASSAY} ${TAIL} ${PT}"
 
-for GAMMA in 0 0.1 0.5
+for Q in 0.5 1
 do
-  for ETA in 0.0 0.1 0.25
+  for GAMMA in 0 0.1 0.5
   do
-    for NU in 0.0 0.1 0.25
+    for ETA in 0.0 0.1 0.25
     do
-      PTARGS="-t_min $TMIN -t_max $TMAX -q $Q -gamma $GAMMA -eta $ETA -nu $NU"
+      PTARGS="-t_min $TMIN -t_max $TMAX -q $Q -gamma $GAMMA -eta $ETA -xi 0"
+      qsub ${CONSTANTS} ${BASELINE} ${PTARGS}
+    done
+    for XI in 0.1 0.25
+    do
+      PTARGS="-t_min $TMIN -t_max $TMAX -q $Q -gamma $GAMMA -eta 0 -xi $XI"
       qsub ${CONSTANTS} ${BASELINE} ${PTARGS}
     done
   done
 done
 
-for GAMMA in 0 0.1 0.5
-do
-  for XI in 0.0 0.1 0.25
-  do
-    PTARGS="-t_min $TMIN -t_max $TMAX -q $Q -gamma $GAMMA -eta $ETA -nu $NU -xi $XI"
-    qsub ${CONSTANTS} ${BASELINE} ${PTARGS}
-  done
-done
