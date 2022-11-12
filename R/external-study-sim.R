@@ -210,7 +210,7 @@ matrix.phi <- function(model, ts_index, dt){
   # Calculate cumulative phi and convert to a data frame
   cphi <- cumsum(phi * dt)
   cphi_d <- data.table(
-    t=ts_index$ts,
+    index=ts_index$index,
     phi=cphi
   )
 
@@ -235,7 +235,7 @@ matrix.phi <- function(model, ts_index, dt){
   J <- diag(c(delta_g))
 
   # 3. Calculate R matrix
-  R <- J %*% ts %*% t(U)
+  R <- J %*% ts.cube %*% t(U)
 
   # 4. Calculate final variance
   phi_var <- R %*% t(R)
@@ -249,9 +249,14 @@ matrix.phi <- function(model, ts_index, dt){
   csum <- data.table(csum)
   # Need to subtract one because the indexing starts at 0
   csum <- csum[, indexX := .I-1]
-  csum_d <- melt(csum, id.vars="indexX")
-  csum_d <- csum_d[, variable := as.numeric(gsub("V", "", variable))-1]
-  setnames(csum_d, c("variable", "value"), c("indexY", "rho"))
+  csum_d <- melt.data.table(csum, id.vars="indexX")
+
+  ts_index[, row := .I]
+
+  csum_d <- csum_d[, variable := as.numeric(gsub("V", "", variable))]
+  csum_d <- merge(csum_d, ts_index[, .(row, index)], by.x="variable", by.y="row")
+  setnames(csum_d, c("index", "value"), c("indexY", "rho"))
+  csum_d <- csum_d[, .(indexX, indexY, rho)]
 
   return(list(cphi=cphi_d, csum=csum_d))
 }
@@ -296,7 +301,7 @@ integrate.phi <- function(model, ts, dt=0.01){
 #' @param bigT The T^* time
 #' @param tau The maximum time
 #' @returns List of properties and their variances
-assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=0.01,
+assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
                                  ptest_times=NULL,
                                  ptest_delta=NULL,
                                  ptest_avail=NULL,
@@ -310,25 +315,36 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=0.01,
   if(last_point) tau <- max(study$durations)
 
   ts_index <- get.ts(minT=0, maxT=tau, dt=dt)
+
+  # Convert bigT onto the grid
+  bigT_index <- ts_index[which.min(abs(bigT - ts_index$ts))]
+
   ts_mu <- ts_index$ts
-  ts_omega <- ts_index[ts <= bigT]$ts
+  ts_omega <- ts_index[ts <= bigT_index[, ts]]$ts
 
   mu_sim <- integrate.phi(model, ts_mu, dt=dt)
   omega_sim <- integrate.phi(model, ts_omega, dt=dt)
-  browser()
+
   # If we have prior test results, we need to calculate the
   # following quantities that allow us to calculate the variance
   # of the enhanced adjusted estimator that incorporates prior test results.
   if(!all(is.null(ptest_times))){
+    # Map testing times to indices for integration using dt
+    get.closest.index <- function(time){
+      index <- ts_index[which.min(abs(time - ts_index$ts)),]
+      return(index)
+    }
+    closest <- lapply(-ptest_times, get.closest.index) %>% rbindlist
+    closest[, id := .I]
+    closest[, ts_orig := -ptest_times]
 
-    # Convert testing times to indices for integration using dt
-    time_indices <- round(-ptest_times/dt)
-    Ai <- as.numeric(((-ptest_times) <= bigT) & (ptest_avail))
-    Bi <- as.numeric(((-ptest_times) > bigT) & (ptest_avail))
+    closest[, Ai := as.numeric((ts <= bigT_index[, ts]) & (ptest_avail))]
+    closest[, Bi := as.numeric((ts > bigT_index[, ts]) & (ptest_avail))]
+    closest[, has_test := as.logical(Ai | Bi)]
 
     # Calculate fraction of those with recent/non-recent prior tests
-    p_A <- mean(Ai)
-    p_B <- mean(Bi)
+    p_A <- mean(closest$Ai)
+    p_B <- mean(closest$Bi)
 
     if(p_A == 0){
 
@@ -348,24 +364,22 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=0.01,
       # Create point estimates and covariance matrix between
       # the phi estimates at different times
       cat("Creating rho matrix\n")
-      cphi <- matrix.phi(model, minT=0, maxT=tau, dt=dt)
+
+      mat_index <- ts_index[ts <= max(closest[Ai ==1, ts], bigT_index[, ts]),]
+      cphi <- matrix.phi(model, mat_index, dt=dt)
       cphi_point <- cphi$cphi
       cphi_covar <- cphi$csum
 
-      # Get ids for those who have a test, and their
+      # Get ids for those who have a recent prior test, and their
       # corresponding time index
-      has_test <- which(as.logical(Ai))
-      idmap <- data.table(
-        id=has_test,
-        index=time_indices[has_test]
-      )
+      idmap <- closest[Ai == 1, .(id, index, ts)]
       # Get unique combinations of the ids
       # for the covariance calculation
       idmap_covar <- combn(idmap$id, 2) %>% t %>% data.table
       setnames(idmap_covar, c("idX", "idY"))
-      idmap_covar <- merge(idmap_covar, idmap, by.x="idX", by.y="id")
+      idmap_covar <- merge(idmap_covar, idmap[, .(id, index)], by.x="idX", by.y="id")
       setnames(idmap_covar, "index", "indexX")
-      idmap_covar <- merge(idmap_covar, idmap, by.x="idY", by.y="id")
+      idmap_covar <- merge(idmap_covar, idmap[, .(id, index)], by.x="idY", by.y="id")
       setnames(idmap_covar, "index", "indexY")
 
       # Calculate omega_T conditional expectation and variance
@@ -374,13 +388,13 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=0.01,
       omega_TA_var <- var(omega_ta$phi)
 
       # Calculate omega_T * T conditional expectation
-      omega_ta <- omega_ta[, tastar := index * dt * phi]
+      omega_ta <- omega_ta[, tastar := ts * phi]
       omega_TAstar <- mean(omega_ta$tastar)
 
       # Calculate r_TiTi conditional expectation and variance
       idmap2 <- idmap
-      idmap2 <- idmap2[, indexX := index]
-      idmap2 <- idmap2[, indexY := index]
+      idmap2[, indexX := index]
+      idmap2[, indexY := index]
       cat("Merge for TiTi\n")
       r_Tii  <- merge(idmap2, cphi_covar, by=c("indexX", "indexY"), all.x=T)
       r_TA   <- mean(r_Tii$rho)
@@ -393,8 +407,9 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=0.01,
 
       # Calculate r_TiTstar conditional expectation
       idmap3 <- idmap
-      idmap3 <- idmap3[, indexX := index]
-      idmap3 <- idmap3[, indexY := round(bigT/dt)]
+      idmap3[, indexX := index]
+
+      idmap3[, indexY := bigT_index[, index]]
       cat("Merge for TiTstar\n")
       r_Tistar <- merge(idmap3, cphi_covar, by=c("indexX", "indexY"), all.X=T)
       r_TAstar <- mean(r_Tistar$rho)
@@ -413,13 +428,13 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=0.01,
     } else {
 
       # Calculate the expected time of prior tests
-      tb <- -ptest_times[as.logical(Bi)]
+      tb <- closest[Bi == 1, ts_orig]
       mu_TB <- mean(tb)
       var_TB <- var(tb)
 
       # To compare variance terms for debugging
-      nB <- sum(Bi)
-      nBT <- sum(-ptest_times[as.logical(Bi)])
+      nB <- length(tb)
+      nBT <- sum(tb)
 
     }
 
