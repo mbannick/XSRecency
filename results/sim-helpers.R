@@ -122,6 +122,8 @@ simulate.pt <- function(n_sims, n, infection.function, phi.func,
 
   wvec <- get.w.vec(data, assay, bigT)
 
+  # DEBUGGING FOR COV_14
+
   # Calculate true assay parameters
   true_frr <- true.frr(phi.func=phi.func, bigT=bigT, tau=tau)
   true_mdri <- true.window.mdri(phi.func=phi.func, maxT=bigT)
@@ -187,6 +189,12 @@ simulate.pt <- function(n_sims, n, infection.function, phi.func,
   }
   for(e in names(eadj.est$components_est)){
     results[[e]] <- (eadj.est$components_est)[[e]]
+  }
+  for(e in colnames(assay)){
+    if(e %in% c("mu_est", "mu_var",
+                "omega_est", "omega_var",
+                "beta_est", "beta_var")) next
+    results[[e]] <- assay[[e]]
   }
 
   return(results)

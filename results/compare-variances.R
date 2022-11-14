@@ -7,15 +7,20 @@ library(dplyr)
 library(tidyr)
 
 # Get the input and output directories
-in.dir <- "~/Documents/FileZilla/xs-recent/enhanced/02-11-2022-11-40-45"
+ISINFILE <- FALSE
 
-# Read in files
-f <- list.files(in.dir, full.names=T)
-f <- f[!grepl("summary", f)]
-f <- f[!grepl("detail", f)]
-f <- f[!grepl("README.md", f)]
-df <- lapply(f, fread) %>% rbindlist(fill=T)
-df[, V1 := NULL]
+if(ISINFILE){
+  # in.dir <- "~/Documents/FileZilla/xs-recent/enhanced/02-11-2022-11-40-45"
+  in.dir <- "~/Documents/FileZilla/xs-recent/enhanced/12-11-2022-14-52-04"
+
+  # Read in files
+  f <- list.files(in.dir, full.names=T)
+  f <- f[!grepl("summary", f)]
+  f <- f[!grepl("detail", f)]
+  f <- f[!grepl("README.md", f)]
+  df <- lapply(f, fread) %>% rbindlist(fill=T)
+  df[, V1 := NULL]
+}
 
 id.vars <- c("truth", "n_sims", "seed", "n", "p", "inc", "tau", "bigT", "itype",
              "window", "shadow")
@@ -31,10 +36,6 @@ for(var in c("rho", "phi_frr", "phi_tfrr", "phi_norm_mu",
     id.vars <- c(id.vars, var)
   }
 }
-
-# This is now fixed when it's re-run but for version 02-11-2022-11-40-45
-# we were missing this term.
-df[, C45 := C45 * beta_est]
 
 wbar <- df[, lapply(.SD, mean), .SDcols=c("W1", "W2", "W3", "W4", "W5"), by=id.vars]
 west <- df[, lapply(.SD, mean), .SDcols=c("EW1", "EW2", "EW3", "EW4", "EW5"), by=id.vars]
@@ -70,12 +71,27 @@ cbar <- df %>%
     C34 = cov(W3, W4),
     C35 = cov(W3, W5),
     C45 = cov(W4, W5),
+    C14_A = cov(C14_1, C14_2),
+    C14_B = cov(C14_2, C14_3),
     .groups="drop"
   )
 
 # Mean of the estimated covariance of W's
 cest <- df[, lapply(.SD, mean), .SDcols=c("C12", "C13", "C14", "C15", "C23", "C24", "C25",
                                           "C34", "C35", "C45"), by=id.vars]
+
+df[, p_est := n_p/n]
+df[, pr := n_r/n_p]
+df[, c14_1 := n * p_est * (
+  EMiAiOi - p_est * pr * p_A * omega_TA -
+    beta_est * (p_A * omega_TA - p_est * (1-p_B) * p_A * omega_TA)
+)]
+mean(df$c14_1)
+cbar$C14
+cest$C14
+
+df[, p := as.numeric(p)]
+df[, test := truth * (1-p) / p * (p_A * omega_TAstar - p_A * (omega_TA**2 + omega_var))]
 
 # Mean of estimated variance of W's
 setnames(cest, c("C12", "C13", "C14", "C15", "C23", "C24", "C25", "C34", "C35", "C45"),

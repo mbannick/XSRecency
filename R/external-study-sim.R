@@ -332,7 +332,8 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
     # Map testing times to indices for integration using dt
     closest <- data.table(
       ts_orig=-ptest_times,
-      has_test=ptest_avail
+      has_test=ptest_avail,
+      Mi=as.numeric(ri)
     )
     closest[, id := .I]
     closest[, index := NA]
@@ -381,7 +382,7 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
 
       # Get ids for those who have a recent prior test, and their
       # corresponding time index
-      idmap <- closest[Ai == 1, .(id, index, ts)]
+      idmap <- closest[Ai == 1, .(id, index, ts, Mi)]
       # Get unique combinations of the ids
       # for the covariance calculation
       idmap_covar <- combn(idmap$id, 2) %>% t %>% data.table
@@ -425,6 +426,10 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
 
       # To compare variance terms in debugging
       nATO <- sum(omega_ta$phi)
+
+      # More comparison for variance terms
+      omega_ta[, MiAiOi := Mi * phi]
+      EMiAiOi <- mean(omega_ta$MiAiOi) * p_A
     }
 
     if(p_B == 0){
@@ -460,6 +465,7 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
     nB <- NULL
     nBT <- NULL
     nATO <- NULL
+    EMiAiOi <- NULL
   }
 
   result <- list(
@@ -481,7 +487,8 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
     p_B=p_B,
     nB=nB,
     nBT=nBT,
-    nATO=nATO
+    nATO=nATO,
+    EMiAiOi=EMiAiOi
   )
   end.time <- Sys.time()
   print(end.time - start.time)

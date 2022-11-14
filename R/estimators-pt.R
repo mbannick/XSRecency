@@ -80,7 +80,7 @@ variance.pt <- function(
   C13 <- n * p * beta_var * big_T * (1-p_B)
   C14 <- n * p * p_A * (
     lamp * (omega_TAstar - omega_TA**2 - omega_TA_var) -
-    omega_TA * (p + beta * (1 - p + p * p_B))
+    omega_TA * (p * pr + beta * (1 - p + p * p_B))
   )
   C15 <- n * p * p_B * (
     beta * (
@@ -99,13 +99,21 @@ variance.pt <- function(
   C35 <- -n * p * big_T * p_B * mu_TB * beta_var
   C45 <- - n * p^2 * p_A * p_B * beta * omega_TA * mu_TB
 
+  # MORE DEBUGGING FOR W1, W4 TERM
+  C14_1 <- n_r
+  C14_2 <- n * p * p_A * omega_TA
+  C14_3 <- n * p * beta * (1-p_B)
+
   components_est <- list(
     EW1=EW1, EW2=EW2, EW3=EW3, EW4=EW4, EW5=EW5,
     VW1=VW1, VW2=VW2, VW3=VW3, VW4=VW4, VW5=VW5,
     C12=C12, C13=C13, C14=C14, C15=C15,
     C23=C23, C24=C24, C25=C25,
     C34=C34, C35=C35,
-    C45=C45
+    C45=C45,
+    C14_1=C14_1,
+    C14_2=C14_2,
+    C14_3=C14_3
   )
 
   varfunc <- function(ew1, ew2, ew3, ew4, ew5,
