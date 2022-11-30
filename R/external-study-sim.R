@@ -24,7 +24,7 @@ simulate.beta <- function(phi.func, minT, maxT, recent=NULL){
 
   if(is.null(recent)){
     inf_times <- runif(n=N, min=minT, max=maxT)
-    recent <- rbinom(n=N, size=1, p=phi.func(inf_times))
+    recent <- rbinom(n=N, size=1, prob=phi.func(inf_times))
   } else {
     # If we already have recency indicators, then don't
     # apply the phi function.
@@ -361,6 +361,7 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
       omega_TA     <- 0
       omega_TA_var <- 0
       omega_TAstar <- 0
+      omega_TA2    <- 0
 
       r_TA         <- 0
       var_TA       <- 0
@@ -396,6 +397,7 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
       omega_ta     <- merge(idmap, cphi_point, by="index", all.x=TRUE)
       omega_TA     <- mean(omega_ta$phi)
       omega_TA_var <- var(omega_ta$phi)
+      omega_TA2    <- mean(omega_ta$phi**2)
 
       # Calculate omega_T * T conditional expectation
       omega_ta <- omega_ta[, tastar := ts * phi]
@@ -457,6 +459,8 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
     r_TAprime <- NULL
     r_TAstar <- NULL
     omega_TA <- NULL
+    omega_TA2 <- NULL
+    omega_TA_var <- NULL
     omega_TAstar <- NULL
     mu_TB <- NULL
     var_TB <- NULL
@@ -481,6 +485,7 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
     omega_TA=omega_TA,
     omega_TA_var=omega_TA_var,
     omega_TAstar=omega_TAstar,
+    omega_TA2=omega_TA2,
     mu_TB=mu_TB,
     var_TB=var_TB,
     p_A=p_A,

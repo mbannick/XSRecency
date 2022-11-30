@@ -41,7 +41,7 @@ variance.pt <- function(
     omega, omega_var,
     beta, beta_var, big_T,
     r_TA, r_TAprime, r_TAstar,
-    omega_TA, omega_TA_var, omega_TAstar,
+    omega_TA, omega_TA_var, omega_TAstar, omega_TA2,
     mu_TB, var_TB,
     p_A, p_B,
     incidence
@@ -76,11 +76,17 @@ variance.pt <- function(
     beta_var * mu_TB**2 * p_B * n * p +
     (beta_var + beta**2) * (var_TB + mu_TB**2 * (1-p_B * p))
   )
+
   C12 <- n * p * (1-p) * (pr - (1-p_B) * beta)
   C13 <- n * p * beta_var * big_T * (1-p_B)
+
   C14 <- n * p * p_A * (
     lamp * (omega_TAstar - omega_TA**2 - omega_TA_var) -
     omega_TA * (p * pr + beta * (1 - p + p * p_B))
+  )
+  C14 <- n * p * p_A * (
+    lamp * (omega_TAstar - omega_TA2 + (omega - beta * big_T)) -
+    omega_TA * p * (pr - beta * (1-p_B))
   )
   C15 <- n * p * p_B * (
     beta * (
@@ -216,7 +222,7 @@ get.adjusted.pt <- function(n_r_pt, n_n, n_p, n, omega, omega_var,
                          beta, beta_var, big_T, q=1,
                          num_beta, den_omega, den_beta,
                          r_TA, r_TAprime, r_TAstar,
-                         omega_TA, omega_TA_var, omega_TAstar,
+                         omega_TA, omega_TA_var, omega_TAstar, omega_TA2,
                          mu_TB, var_TB,
                          p_A, p_B){
 
@@ -228,7 +234,7 @@ get.adjusted.pt <- function(n_r_pt, n_n, n_p, n, omega, omega_var,
                         omega=omega, omega_var=omega_var,
                         beta=beta, beta_var=beta_var,
                         r_TA=r_TA, r_TAprime=r_TAprime, r_TAstar=r_TAstar,
-                        omega_TA=omega_TA, omega_TA_var=omega_TA_var,
+                        omega_TA=omega_TA, omega_TA_var=omega_TA_var, omega_TA2=omega_TA2,
                         omega_TAstar=omega_TAstar,
                         mu_TB=mu_TB, var_TB=var_TB,
                         p_A=p_A, p_B=p_B,
