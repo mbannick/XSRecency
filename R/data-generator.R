@@ -227,60 +227,58 @@ simulate.recent <- function(sim_data, infection.function=NULL,
                           it=t_infect,
                           d=ptest_delta)
 
-    # Define a function for getting the new recency indicator
-    # if there are prior test results.
-    enhanced.r <- function(ti, ri, di){
-      di[is.na(di)] <- 1
-      ti[is.na(ti)] <- 0
-      ri_star <- (di == 0) & (-ti <= bigT)
-      ri_tild <- 1 - ((-ti > bigT) & (di == 1))
-      ri_new <- (ri | ri_star) & ri_tild
-      return(ri_new)
+    Ai <- list()
+    Bi <- list()
+    Mi <- list()
+    BiTi <- list()
+
+    for(k in 1:n_sims){
+      Aik <- rep(0, n_p[k])
+      Bik <- rep(0, n_p[k])
+      BiTik <- rep(0, n_p[k])
+
+      Cik <- -ptest_times[[k]] <= bigT
+      Qik <- as.logical(available[[k]])
+
+      Dik <- ptest_delta[[k]]
+
+      Aik[Cik & Qik] <- 1
+      Bik[!Cik & Qik] <- 1
+
+      # This is the old recency indicator
+      Rik <- indicators[[k]]
+
+      # This is the new recency indicator
+      Mik <- Rik * (1 - Bik * Dik) + (1 - Rik) * Aik * (1 - Dik)
+      Mik[!Qik] <- Rik[!Qik]
+
+      BiTik[Qik] <- -ptest_times[[k]][Qik] * Bik[Qik]
+
+      Ai[[k]] <- Aik
+      Bi[[k]] <- Bik
+      Mi[[k]] <- Mik
+      BiTi[[k]] <- BiTik
     }
-
-    integrate.tinan <- function(ti) ifelse(is.na(ti), NA, integrate(phi.func, 0, ti)$value)
-    integrate.ti <- function(ti) sapply(ti, function(t) integrate.tinan(t))
-
-    # Compute terms that will be used in the estimator
-    ri_new <- mapply(FUN=enhanced.r, ti=ptest_times, ri=indicators, di=ptest_delta)
-
-    ptest_temp <- ptest_times
-    for(i in 1:length(ptest_temp)){
-      ptest_temp[[i]][is.na(ptest_temp[[i]])] <- 0
-    }
-
-    recent_ti <- lapply(ptest_temp, function(x) -x <= bigT)
-
-    recent_temp <- recent_ti
-    for(i in 1:length(recent_temp)){
-      recent_temp[[i]][is.na(recent_temp[[i]])] <- 1
-    }
-
-    int_phi_ti <- lapply(ptest_temp, function(x) -x - integrate.ti(-x))
-    recent_int_ti <- mapply(FUN=function(x, y) x * y, x=recent_temp, y=int_phi_ti)
-    int_phi_ti_ti <- mapply(FUN=function(x, y) (1-x) * -y, x=recent_temp, y=ptest_temp)
   }
 
   if(summarize == TRUE){
     # number of recents
-    n_r <- lapply(indicators, sum) %>% unlist
-    n_d <- lapply(available, sum) %>% unlist
+    n_r <- sapply(indicators, sum)
+    n_d <- sapply(available, sum)
     q_eff <- n_d / n_p
 
     # Additional info from prior test results
     if(!is.null(ptest.dist)){
       # This is N^*_{rec}
-      n_r_pt <- lapply(ri_new, function(x) sum(x, na.rm=T)) %>% unlist
-      # This is \sum I(T_i \leq T^*)
-      num_beta <- lapply(recent_temp, function(x) sum(x, na.rm=T)) %>% unlist
-      # This is \sum I(T_i \leq T^*) * int_0^{T_i} (1 - \phi(u)) du
-      den_omega <- lapply(recent_int_ti, function(x) sum(x, na.rm=T)) %>% unlist
+      n_r_pt <- sapply(Mi, sum)
+      # This is \sum 1 - I(T_i > T^*)
+      num_beta <- sapply(Bi, function(x) sum(!x))
       # This is I(T_i > T^*) * T_i
-      den_beta <- lapply(int_phi_ti_ti, function(x) sum(x, na.rm=T)) %>% unlist
+      den_beta <- sapply(BiTi, function(x) sum(x))
+
     } else {
       n_r_pt <- NULL
       num_beta <- NULL
-      den_omega <- NULL
       den_beta <- NULL
       q_eff <- NULL
     }
@@ -290,7 +288,6 @@ simulate.recent <- function(sim_data, infection.function=NULL,
       n_r       <- matrix(n_r, nrow=n_times, ncol=n_sims, byrow=FALSE)
       n_r_pt    <- matrix(n_r_pt, nrow=n_times, ncol=n_sims, byrow=FALSE)
       num_beta  <- matrix(num_beta, nrow=n_times, ncol=n_sims, byrow=FALSE)
-      den_omega <- matrix(den_omega, nrow=n_times, ncol=n_sims, byrow=FALSE)
       den_beta  <- matrix(den_beta, nrow=n_times, ncol=n_sims, byrow=FALSE)
       q_eff     <- matrix(q_eff, nrow=n_times, ncol=n_sims, byrow=FALSE)
       n_p       <- sim_data$n_p
@@ -314,13 +311,12 @@ simulate.recent <- function(sim_data, infection.function=NULL,
       times=times,
       n_r_pt=n_r_pt,
       num_beta=num_beta,
-      den_omega=den_omega,
       den_beta=den_beta,
       q_eff=q_eff,
       ptest_times=ptest_times,
       ptest_delta=ptest_delta,
       ptest_avail=available,
-      ri=ri_new
+      ri=Mi
     )
     return(aspect_list)
   } else {

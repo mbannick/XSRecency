@@ -362,6 +362,7 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
       omega_TA_var <- 0
       omega_TAstar <- 0
       omega_TA2    <- 0
+      den_omega    <- 0
 
       r_TA         <- 0
       var_TA       <- 0
@@ -401,7 +402,9 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
 
       # Calculate omega_T * T conditional expectation
       omega_ta <- omega_ta[, tastar := ts * phi]
+      omega_ta <- omega_ta[, tastarneg := ts - tastar]
       omega_TAstar <- mean(omega_ta$tastar)
+      den_omega <- sum(omega_ta$tastarneg)
 
       # Calculate r_TiTi conditional expectation and variance
       idmap2 <- idmap
@@ -462,6 +465,7 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
     omega_TA2 <- NULL
     omega_TA_var <- NULL
     omega_TAstar <- NULL
+    den_omega <- NULL
     mu_TB <- NULL
     var_TB <- NULL
     p_A <- NULL
@@ -486,6 +490,7 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
     omega_TA_var=omega_TA_var,
     omega_TAstar=omega_TAstar,
     omega_TA2=omega_TA2,
+    den_omega=den_omega,
     mu_TB=mu_TB,
     var_TB=var_TB,
     p_A=p_A,
