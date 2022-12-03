@@ -37,18 +37,19 @@ variance <- function(n_n, n_r, n_p, n, omega, omega_var, beta, beta_var, big_T, 
 }
 
 variance.pt <- function(
-    n_n, n_r, n_p, n,
+    n_n, n_r_pt, n_r, n_p, n,
     omega, omega_var,
     beta, beta_var, big_T,
     r_TA, r_TAprime, r_TAstar,
     omega_TA, omega_TA_var, omega_TAstar, omega_TA2,
-    mu_TB, var_TB,
+    mu_TA, var_TA, mu_TB, var_TB,
     p_A, p_B,
     incidence
   ){
 
   p <- n_p / n
-  pr <- n_r / n_p
+  pr <- n_r_pt / n_p # This is P_R^*
+  pr_old <- n_r / n_p # This is P_R
   obt <- omega - beta * big_T
 
   lamp <- incidence * (1-p) / p
@@ -69,8 +70,9 @@ variance.pt <- function(
   VW2 <- n * p * (1-p)
   VW3 <- omega_var + beta_var * big_T**2
   VW4 <- n * p * p_A * (
-    r_TA + p_A * r_TAprime * (n * p - p) +
-    omega_TA**2 * (1-p * p_A) + omega_TA_var
+    var_TA + omega_TA_var + mu_TA**2 + omega_TA**2 +
+    (1 - p * p_A) * (mu_TA - omega_TA)**2 +
+    r_TA + r_TAprime * (n * p - p) - 2 * omega_TAstar
   )
   VW5 <- n * p * p_B * (
     beta_var * mu_TB**2 * p_B * n * p +
@@ -79,14 +81,9 @@ variance.pt <- function(
 
   C12 <- n * p * (1-p) * (pr - (1-p_B) * beta)
   C13 <- n * p * beta_var * big_T * (1-p_B)
-
   C14 <- n * p * p_A * (
-    lamp * (omega_TAstar - omega_TA**2 - omega_TA_var) -
-    omega_TA * (p * pr + beta * (1 - p + p * p_B))
-  )
-  C14 <- n * p * p_A * (
-    lamp * (omega_TAstar - omega_TA2 + (omega - beta * big_T)) -
-    omega_TA * p * (pr - beta * (1-p_B))
+    (mu_TA - omega_TA) * (pr_old - p * pr + beta * (1 - p + p * p_B)) +
+    lamp * (mu_TA**2 + var_TA + omega_TA**2 + omega_TA_var)
   )
   C15 <- n * p * p_B * (
     beta * (
@@ -99,16 +96,16 @@ variance.pt <- function(
     beta_var * n * p * (1 - p_B) * mu_TB
   )
   C23 <- rep(0, length(n))
-  C24 <- n * p * (1-p) * p_A * omega_TA
+  C24 <- n * p * (1-p) * p_A * (mu_TA - omega_TA)
   C25 <- n * p * (1-p) * beta * p_B * mu_TB
-  C34 <- n * p * p_A * r_TAstar
+  C34 <- -n * p * p_A * r_TAstar
   C35 <- -n * p * big_T * p_B * mu_TB * beta_var
-  C45 <- - n * p^2 * p_A * p_B * beta * omega_TA * mu_TB
+  C45 <- -n * p^2 * p_A * p_B * beta * mu_TB * (mu_TA - omega_TA)
 
   # MORE DEBUGGING FOR W1, W4 TERM
-  C14_1 <- n_r
-  C14_2 <- n * p * p_A * omega_TA
-  C14_3 <- n * p * beta * (1-p_B)
+  # C14_1 <- n_r
+  # C14_2 <- n * p * p_A * omega_TA
+  # C14_3 <- n * p * beta * (1-p_B)
 
   components_est <- list(
     EW1=EW1, EW2=EW2, EW3=EW3, EW4=EW4, EW5=EW5,
@@ -116,10 +113,10 @@ variance.pt <- function(
     C12=C12, C13=C13, C14=C14, C15=C15,
     C23=C23, C24=C24, C25=C25,
     C34=C34, C35=C35,
-    C45=C45,
-    C14_1=C14_1,
-    C14_2=C14_2,
-    C14_3=C14_3
+    C45=C45
+    # C14_1=C14_1,
+    # C14_2=C14_2,
+    # C14_3=C14_3
   )
 
   varfunc <- function(ew1, ew2, ew3, ew4, ew5,
@@ -218,24 +215,25 @@ var.log.to.var <- function(estimate, variance) (estimate ** 2) * variance
 #'              omega=0.36, omega_var=0, beta=0.02, beta_var=0, big_T=2, q=1)
 #' get.adjusted(n_r=c(2, 3), n_n=c(50, 48), n_p=c(10, 12), n=c(60, 60),
 #'              omega=0.36, omega_var=0, beta=0.02, beta_var=0, big_T=2)
-get.adjusted.pt <- function(n_r_pt, n_n, n_p, n, omega, omega_var,
+get.adjusted.pt <- function(n_r_pt, n_r, n_n, n_p, n, omega, omega_var,
                          beta, beta_var, big_T, q=1,
                          num_beta, den_omega, den_beta,
                          r_TA, r_TAprime, r_TAstar,
                          omega_TA, omega_TA_var, omega_TAstar, omega_TA2,
-                         mu_TB, var_TB,
+                         mu_TA, var_TA, mu_TB, var_TB,
                          p_A, p_B){
 
   est <- adjusted.estimate.pt(n_r_pt=n_r_pt, n_n=n_n, n_p=n_p,
                               omega=omega, beta=beta, big_T=big_T,
                               num_beta=num_beta,
                               den_omega=den_omega, den_beta=den_beta)
-  logvar <- variance.pt(n_n=n_n, n_r=n_r_pt, n_p=n_p, n=n,
+  logvar <- variance.pt(n_n=n_n, n_r_pt=n_r_pt, n_r=n_r, n_p=n_p, n=n,
                         omega=omega, omega_var=omega_var,
                         beta=beta, beta_var=beta_var,
                         r_TA=r_TA, r_TAprime=r_TAprime, r_TAstar=r_TAstar,
                         omega_TA=omega_TA, omega_TA_var=omega_TA_var, omega_TA2=omega_TA2,
                         omega_TAstar=omega_TAstar,
+                        mu_TA=mu_TA, var_TA=var_TA,
                         mu_TB=mu_TB, var_TB=var_TB,
                         p_A=p_A, p_B=p_B,
                         big_T=big_T,

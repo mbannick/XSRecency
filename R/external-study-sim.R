@@ -402,9 +402,9 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
 
       # Calculate omega_T * T conditional expectation
       omega_ta <- omega_ta[, tastar := ts * phi]
-      omega_ta <- omega_ta[, tastarneg := ts - tastar]
+      omega_ta <- omega_ta[, taneg := ts - phi]
       omega_TAstar <- mean(omega_ta$tastar)
-      den_omega <- sum(omega_ta$tastarneg)
+      den_omega <- sum(omega_ta$taneg)
 
       # Calculate r_TiTi conditional expectation and variance
       idmap2 <- idmap
@@ -430,11 +430,16 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
       r_TAstar <- mean(r_Tistar$rho)
 
       # To compare variance terms in debugging
-      nATO <- sum(omega_ta$phi)
+      nATO <- den_omega
 
       # More comparison for variance terms
-      omega_ta[, MiAiOi := Mi * phi]
+      omega_ta[, MiAiOi := Mi * taneg]
       EMiAiOi <- mean(omega_ta$MiAiOi) * p_A
+
+      # Calculate the expected time of prior tests
+      ta <- closest[Ai == 1, ts_orig]
+      mu_TA <- mean(ta)
+      var_TA <- var(ta)
     }
 
     if(p_B == 0){
@@ -466,7 +471,9 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
     omega_TA_var <- NULL
     omega_TAstar <- NULL
     den_omega <- NULL
+    mu_TA <- NULL
     mu_TB <- NULL
+    var_TA <- NULL
     var_TB <- NULL
     p_A <- NULL
     p_B <- NULL
@@ -491,7 +498,9 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
     omega_TAstar=omega_TAstar,
     omega_TA2=omega_TA2,
     den_omega=den_omega,
+    mu_TA=mu_TA,
     mu_TB=mu_TB,
+    var_TA=var_TA,
     var_TB=var_TB,
     p_A=p_A,
     p_B=p_B,
