@@ -440,6 +440,10 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
       ta <- closest[Ai == 1, ts_orig]
       mu_TA <- mean(ta)
       var_TA <- var(ta)
+
+      # DEBUGGING
+      cov45_1 <- sum(omega_ta[, ts]) - sum(omega_ta[, phi])
+      cov45_2 <- sum(closest[Bi == 1, ts])
     }
 
     if(p_B == 0){
@@ -507,7 +511,9 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
     nB=nB,
     nBT=nBT,
     nATO=nATO,
-    EMiAiOi=EMiAiOi
+    EMiAiOi=EMiAiOi,
+    cov45_1=cov45_1,
+    cov45_2=cov45_2
   )
   end.time <- Sys.time()
   print(end.time - start.time)
