@@ -70,8 +70,8 @@ variance.pt <- function(
   VW2 <- n * p * (1-p)
   VW3 <- omega_var + beta_var * big_T**2
   VW4 <- n * p * p_A * (
-    var_TA + omega_TA_var + mu_TA**2 + omega_TA**2 +
-    (1 - p * p_A) * (mu_TA - omega_TA)**2 +
+    var_TA + omega_TA_var + mu_TA**2 + omega_TA**2 -
+    p * p_A * (mu_TA - omega_TA)**2 +
     r_TA + r_TAprime * (n * p - p) - 2 * omega_TAstar
   )
   VW5 <- n * p * p_B * (
@@ -83,7 +83,7 @@ variance.pt <- function(
   C13 <- n * p * beta_var * big_T * (1-p_B)
   C14 <- n * p * p_A * (
     (mu_TA - omega_TA) * (pr_old - p * pr + beta * (1 - p + p * p_B)) +
-    lamp * (mu_TA**2 + var_TA + omega_TA**2 + omega_TA_var)
+    lamp * (mu_TA**2 + var_TA + omega_TA**2 + omega_TA_var - 2*omega_TAstar)
   )
   C15 <- n * p * p_B * (
     beta * (
