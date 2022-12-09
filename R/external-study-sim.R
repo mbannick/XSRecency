@@ -553,25 +553,16 @@ assay.properties.nsim <- function(n_sims, phi.func, bigT, tau,
                                   ptest_avail=NULL, ri=NULL){
 
   studies <- simulate.studies(n_sims, phi.func, ext_df=ext_df)
-  if(is.null(ptest_times)){
-    result <- sapply(studies, function(x) assay.properties.est(
-      study=x,
-      bigT=bigT,
-      tau=tau,
-      last_point=last_point,
-      ptest_times=ptest_times,
-      ptest_delta=ptest_delta,
-      ptest_avail=ptest_avail,
-      ri=ri
-      ))
-  } else {
-    mfunc <- function(s, t, d, a, r) assay.properties.est(
-      study=s, bigT=bigT, tau=tau, last_point=last_point,
-      ptest_times=t, ptest_delta=d, ptest_avail=a, ri=r
-    )
-    result <- mapply(FUN=mfunc, s=studies,
-                     t=ptest_times, d=ptest_delta, a=ptest_avail, r=ri)
-  }
+  result <- sapply(studies, function(x) assay.properties.est(
+    study=x,
+    bigT=bigT,
+    tau=tau,
+    last_point=last_point,
+    ptest_times=ptest_times,
+    ptest_delta=ptest_delta,
+    ptest_avail=ptest_avail,
+    ri=ri
+    ))
 
   if(ext_FRR){
     frr_studies <- studies
@@ -585,6 +576,50 @@ assay.properties.nsim <- function(n_sims, phi.func, bigT, tau,
   }
   beta_sim <- simulate.nbeta(nsims=n_sims, phi.func=phi.func,
                              minT=bigT, maxT=b.maxT, studies=frr_studies)
+  result[c("beta_est", "beta_var"), ] <- beta_sim
+
+  result <- t(result)
+  result <- data.table(result)
+  columns <- colnames(result)
+  cols <- lapply(columns, function(x) unlist(result[[x]]))
+  df <- do.call(cbind, cols) %>% data.table
+  names(df) <- columns
+  return(df)
+}
+
+assay.nsim.pt <- function(n_sims, phi.func, tau, bigT,
+                          ext_FRR=FALSE, ext_df=NULL,
+                          max_FRR=NULL){
+
+  studies <- simulate.studies(n_sims, phi.func, ext_df=ext_df)
+
+  if(ext_FRR){
+    frr_studies <- studies
+  } else {
+    frr_studies <- NULL
+  }
+  if(!is.null(max_FRR)){
+    b.maxT <- max_FRR
+  } else {
+    b.maxT <- tau
+  }
+  beta_sim <- simulate.nbeta(nsims=n_sims, phi.func=phi.func,
+                             minT=bigT, maxT=b.maxT, studies=frr_studies)
+
+  return(list(studies=studies, beta_sim=beta_sim))
+}
+
+assay.properties.pt <- function(studies, beta_sim, bigT, tau, last_point,
+                                  ptest_times=NULL, ptest_delta=NULL,
+                                  ptest_avail=NULL, ri=NULL){
+
+  mfunc <- function(s, t, d, a, r) assay.properties.est(
+    study=s, bigT=bigT, tau=tau, last_point=last_point,
+    ptest_times=t, ptest_delta=d, ptest_avail=a, ri=r
+  )
+  result <- mapply(FUN=mfunc, s=studies,
+                   t=ptest_times, d=ptest_delta, a=ptest_avail, r=ri)
+
   result[c("beta_est", "beta_var"), ] <- beta_sim
 
   result <- t(result)

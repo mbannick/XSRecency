@@ -84,6 +84,13 @@ simulate.pt <- function(n_sims, n, infection.function, phi.func,
                      ptest.dist2=NULL,
                      exclude_pt_bigT=FALSE){
 
+  # Generate assay simulations
+  assay.nsim <- assay.nsim.pt(
+    n_sims=n_sims, phi.func=phi.func, tau=tau, bigT=bigT,
+    ext_FRR=ext_FRR, ext_df=ext_df,
+    max_FRR=max_FRR
+  )
+
   # Generate trial data
   data <- generate.data(
     n=n, n_sims=n_sims,
@@ -104,15 +111,13 @@ simulate.pt <- function(n_sims, n, infection.function, phi.func,
     exclude_pt_bigT=exclude_pt_bigT
   )
 
-  # Get assay parameters simulation based on external data simulation
-  assay <- assay.properties.nsim(
-    n_sims,
-    phi.func=phi.func,
+  # Compute assay parameters based on external data simulation and
+  # assay simulation from before
+  assay <- assay.properties.pt(
+    studies=assay.nsim$studies,
+    beta_sim=assay.nsim$beta_sim,
     bigT=bigT,
     tau=tau,
-    ext_FRR=ext_FRR,
-    ext_df=ext_df,
-    max_FRR=max_FRR,
     last_point=last_point,
     ptest_times=data$ptest_times,
     ptest_delta=data$ptest_delta,
