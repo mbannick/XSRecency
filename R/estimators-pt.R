@@ -57,7 +57,7 @@ variance.pt <- function(
   EW1 <- n * p * (pr - beta * (1-p_B))
   EW2 <- n * p
   EW3 <- obt
-  EW4 <- n * p * p_A * omega_TA
+  EW4 <- n * p * p_A * (mu_TA  - omega_TA)
   EW5 <- n * p * beta * p_B * mu_TB
 
   VW1 <- n * p * (
