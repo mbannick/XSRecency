@@ -364,19 +364,19 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
       omega_TA2    <- 0
       den_omega    <- 0
 
-      r_TA         <- 0
+      mu_TA        <- 0
       var_TA       <- 0
+      r_TA         <- 0
       r_TAprime    <- 0
       r_TAstar     <- 0
 
       nATO         <- 0
+      EMiAiOi      <- 0
 
     } else {
 
       # Create point estimates and covariance matrix between
       # the phi estimates at different times
-      cat("Creating rho matrix\n")
-
       mat_index <- ts_index[ts <= max(closest[Ai ==1, ts], bigT_index[, ts]),]
       cphi <- matrix.phi(model, mat_index, dt=dt)
       cphi_point <- cphi$cphi
@@ -410,13 +410,12 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
       idmap2 <- idmap
       idmap2[, indexX := index]
       idmap2[, indexY := index]
-      cat("Merge for TiTi\n")
+
       r_Tii  <- merge(idmap2, cphi_covar, by=c("indexX", "indexY"), all.x=T)
       r_TA   <- mean(r_Tii$rho)
       var_TA <- var(r_Tii$rho)
 
       # Calculate r_TiTj conditional expectation
-      cat("Merge for TiTj\n")
       r_Tij <- merge(idmap_covar, cphi_covar, by=c("indexX", "indexY"), all.x=T)
       r_TAprime <- mean(r_Tij$rho)
 
@@ -425,7 +424,7 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
       idmap3[, indexX := index]
 
       idmap3[, indexY := bigT_index[, index]]
-      cat("Merge for TiTstar\n")
+
       r_Tistar <- merge(idmap3, cphi_covar, by=c("indexX", "indexY"), all.X=T)
       r_TAstar <- mean(r_Tistar$rho)
 
@@ -440,10 +439,6 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
       ta <- closest[Ai == 1, ts_orig]
       mu_TA <- mean(ta)
       var_TA <- var(ta)
-
-      # DEBUGGING
-      cov45_1 <- sum(omega_ta[, ts]) - sum(omega_ta[, phi])
-      cov45_2 <- sum(closest[Bi == 1, ts])
     }
 
     if(p_B == 0){
@@ -511,9 +506,7 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
     nB=nB,
     nBT=nBT,
     nATO=nATO,
-    EMiAiOi=EMiAiOi,
-    cov45_1=cov45_1,
-    cov45_2=cov45_2
+    EMiAiOi=EMiAiOi
   )
   end.time <- Sys.time()
   print(end.time - start.time)
