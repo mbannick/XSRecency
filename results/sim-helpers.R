@@ -163,6 +163,8 @@ simulate.pt <- function(n_sims, n, infection.function, phi.func,
   eadj.true <- R.utils::doCall(.fcn=get.adjusted.pt, args=inputs_true, .ignoreUnusedArgs=TRUE)
   eadj.est <- R.utils::doCall(.fcn=get.adjusted.pt, args=inputs_est, .ignoreUnusedArgs=TRUE)
 
+  # The first component of get.adjusted.pt$var is the more robust variance (rob)
+  # The second is assumption-based (asm)
   results <- list(
     truth=rep(baseline_incidence, n_sims),
     adj_true_est=adj.true$est,
@@ -170,9 +172,11 @@ simulate.pt <- function(n_sims, n, infection.function, phi.func,
     adj_est_est=adj.est$est,
     adj_est_var=adj.est$var,
     eadj_true_est=eadj.true$est,
-    eadj_true_var=eadj.true$var,
+    eadj_true_var_rob=eadj.true$var[[1]],
+    eadj_true_var_asm=eadj.true$var[[2]],
     eadj_est_est=eadj.est$est,
-    eadj_est_var=eadj.est$var,
+    eadj_est_var_rob=eadj.est$var[[1]],
+    eadj_est_var_asm=eadj.est$var[[2]],
     mu_est=assay$mu_est,
     mu_var=assay$mu_var,
     omega_est=assay$omega_est,
@@ -193,7 +197,10 @@ simulate.pt <- function(n_sims, n, infection.function, phi.func,
     results[[w]] <- wvec[[w]]
   }
   for(e in names(eadj.est$components_est)){
-    results[[e]] <- (eadj.est$components_est)[[e]]
+    e_rob <- paste0(e, "_rob")
+    e_asm <- paste0(e, "_asm")
+    results[[e_rob]] <- (eadj.est$components_est)[[e]][[1]]
+    results[[e_asm]] <- (eadj.est$components_est)[[e]][[2]]
   }
   for(e in colnames(assay)){
     if(e %in% c("mu_est", "mu_var",

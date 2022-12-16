@@ -44,7 +44,7 @@ variance.pt <- function(
     omega_TA, omega_TA_var, omega_TAstar, omega_TA2,
     mu_TA, var_TA, mu_TB, var_TB,
     p_A, p_B,
-    incidence
+    incidence=NULL
   ){
 
   p <- n_p / n
@@ -52,7 +52,16 @@ variance.pt <- function(
   pr_old <- n_r / n_p # This is P_R
   obt <- omega - beta * big_T
 
-  lamp <- incidence * (1-p) / p
+  # If incidence is not provided,
+  # use the relationship with pr_old instead.
+  # This is theoretically more robust to assumption violations.
+  if(is.null(incidence)){
+    lamp <- (pr_old - beta) / obt
+  } else {
+    lamp <- incidence * (1-p) / p
+    # replace pr_old with the "assumption"-based pr.
+    pr_old <- beta + obt * lamp
+  }
 
   EW1 <- n * p * (pr - beta * (1-p_B))
   EW2 <- n * p
@@ -131,7 +140,7 @@ variance.pt <- function(
 
     delta_gW <- c(
       1/ew1,
-      1/(N-ew2) + d/(ew3 * ew2 + ew5 + ew5),
+      1/(N-ew2) + d/(ew3 * ew2 + ew4 + ew5),
       -1/(ew3+d),
       -1/(ew2 * (ew3 + d)),
       -1/(ew2 * (ew3 + d))
@@ -227,17 +236,26 @@ get.adjusted.pt <- function(n_r_pt, n_r, n_n, n_p, n, omega, omega_var,
                               omega=omega, beta=beta, big_T=big_T,
                               num_beta=num_beta,
                               den_omega=den_omega, den_beta=den_beta)
-  logvar <- variance.pt(n_n=n_n, n_r_pt=n_r_pt, n_r=n_r, n_p=n_p, n=n,
-                        omega=omega, omega_var=omega_var,
-                        beta=beta, beta_var=beta_var,
-                        r_TA=r_TA, r_TAprime=r_TAprime, r_TAstar=r_TAstar,
-                        omega_TA=omega_TA, omega_TA_var=omega_TA_var, omega_TA2=omega_TA2,
-                        omega_TAstar=omega_TAstar,
-                        mu_TA=mu_TA, var_TA=var_TA,
-                        mu_TB=mu_TB, var_TB=var_TB,
-                        p_A=p_A, p_B=p_B,
-                        big_T=big_T,
-                        incidence=est)
-  estvar <- var.log.to.var(est, logvar$logvar)
-  return(list(est=est, var=estvar, components_est=logvar$components_est))
+
+  var <- list()
+  components_est <- list()
+  for(i in 1:2){
+    if(i == 1) inc.i <- NULL
+    if(i == 2) inc.i <- est
+    logvar <- variance.pt(n_n=n_n, n_r_pt=n_r_pt, n_r=n_r, n_p=n_p, n=n,
+                          omega=omega, omega_var=omega_var,
+                          beta=beta, beta_var=beta_var,
+                          r_TA=r_TA, r_TAprime=r_TAprime, r_TAstar=r_TAstar,
+                          omega_TA=omega_TA, omega_TA_var=omega_TA_var, omega_TA2=omega_TA2,
+                          omega_TAstar=omega_TAstar,
+                          mu_TA=mu_TA, var_TA=var_TA,
+                          mu_TB=mu_TB, var_TB=var_TB,
+                          p_A=p_A, p_B=p_B,
+                          big_T=big_T,
+                          incidence=inc.i)
+    estvar <- var.log.to.var(est, logvar$logvar)
+    var[[i]] <- estvar
+    components_est[[i]] <- logvar$components_est
+  }
+  return(list(est=est, var=var, components_est=components_est))
 }
