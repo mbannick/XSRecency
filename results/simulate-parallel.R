@@ -17,7 +17,7 @@ source("./R/phi-functions.R")
 a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                     defaults=list(
                       seed=100,
-                      n_sims=10,
+                      n_sims=100,
                       n=5000,
                       p=0.29,
                       inc=0.032,
@@ -41,7 +41,7 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                       max_FRR=NULL,
                       last_point=FALSE,
                       pt=TRUE,
-                      t_min=0,
+                      t_min=2,
                       t_max=4,
                       q=0.2,
                       gamma=0, # variance for the Gaussian noise to add to prior test time
@@ -215,6 +215,7 @@ df[, sim := .I]
 
 as <- do.call(c, a)
 for(i in 1:length(as)){
+  if((names(as[i])) %in% colnames(df)) next
   df[, names(as[i]) := as[i]]
 }
 print(df)

@@ -1,6 +1,6 @@
 # ----------------------------------------------------------------
-# TABLES AND FIGURES FOR CROSS-SECTIONAL RECENCY ASSAY PERFORMANCE
-# FEB 2021
+# TABLE 1 COMPARISON OF ENHANCED ESTIMATOR V. ADJUSED
+# DEC 2022
 # ----------------------------------------------------------------
 # ----------------------------------------------------------------
 
@@ -18,11 +18,11 @@ source("~/repos/XSRecency/R/data-generator.R")
 # READ IN VERSIONED RESULTS ---------------------------------
 
 # MAIN VERSION, LAST POINT INTEGRATION + NEW PHI FUNCTION
-version <- "~/Documents/FileZilla/xs-recent/enhanced/15-06-22-12-2/"
-version <- "~/Documents/FileZilla/xs-recent/enhanced/22-06-2022-12-14-23/"
-version <- "~/Documents/FileZilla/xs-recent/enhanced/25-10-2022-21-17-15/"
+version <- "~/Documents/FileZilla/xs-recent/enhanced/15-12-2022-17-11-12/"
 
 summ <- fread(paste0(version , "summary.csv"))
+
+TYPE <- "est"
 
 # TABLE RESULTS ---------------------------------------------
 
@@ -30,47 +30,43 @@ summ[, tname := ifelse(itype == "constant", "Constant", ifelse(itype == "linear"
 summ[, pname := "Constant"]
 summ[, sname := "1B"]
 
+summ <- summ[assay_vals == TYPE]
+
 summ[, trange := paste0("(", t_min, ", ", t_max, ")")]
 
-summ <- summ[, .(trange, q, estimator_type, assay_vals, bias, se, see, mse)]
-# summ[, bias := bias * 100]
-# summ[, se := se * 100]
-# summ[, see := see * 100]
-# summ[, mse := mse * 100]
-# summ[, bias := lapply(bias, function(x) sprintf("%.3f", x))]
-# summ[, se := lapply(se, function(x) sprintf("%.3f", x))]
-# summ[, see := lapply(see, function(x) sprintf("%.3f", x))]
-# summ[, mse := lapply(mse, function(x) sprintf("%.3f", x))]
+adj.mse <- summ[estimator_type == "adj" & q == 1 & trange == "(0, 2)", mse]
+summ[, rmse := 1 - (mse / adj.mse)]
 
-est <- summ[assay_vals == "est"]
-true <- summ[assay_vals == "true"]
+summ <- summ[, .(trange, q, estimator_type, bias, se, see, mse, rmse, cover)]
+summ[, bias := bias * 100]
+summ[, se := se * 100]
+summ[, see := see * 100]
+summ[, mse := mse * 100]
+summ[, rmse := rmse * 100]
+summ[, cover := cover * 100]
+summ[, bias := lapply(bias, function(x) sprintf("%.2f", x))]
+summ[, se := lapply(se, function(x) sprintf("%.2f", x))]
+summ[, see := lapply(see, function(x) sprintf("%.2f", x))]
+summ[, mse := lapply(mse, function(x) sprintf("%.2f", x))]
+summ[, rmse := lapply(rmse, function(x) sprintf("%.2f", x))]
+summ[, cover := lapply(cover, function(x) sprintf("%.2f", x))]
 
-est.bias <- dcast(est, trange + q ~ estimator_type, value.var=c("bias"))
-true.bias <- dcast(true, trange + q ~ estimator_type, value.var=c("bias"))
+bias   <- dcast(summ, trange + q ~ estimator_type, value.var=c("bias"))
+se     <- dcast(summ, trange + q ~ estimator_type, value.var=c("se"))
+see    <- dcast(summ, trange + q ~ estimator_type, value.var=c("see"))
+cover  <- dcast(summ, trange + q ~ estimator_type, value.var=c("cover"))
+re     <- dcast(summ, trange + q ~ estimator_type, value.var=c("rmse"))
 
-est.se <- dcast(est, trange + q ~ estimator_type, value.var=c("se"))
-true.se <- dcast(true, trange + q ~ estimator_type, value.var=c("se"))
-
-est.see <- dcast(est, trange + q ~ estimator_type, value.var=c("see"))
-true.see <- dcast(true, trange + q ~ estimator_type, value.var=c("see"))
-
-est.mse <- dcast(est, trange + q ~ estimator_type, value.var=c("mse"))
-true.mse <- dcast(true, trange + q ~ estimator_type, value.var=c("mse"))
-
-# TEMP
-setnames(est.se, c("trange", "q", "adj_se", "eadj_se"))
-setnames(est.see, c("trange", "q", "adj_see", "eadj_see"))
-dd <- merge(est.se, est.see, by=c("trange", "q")) %>% data.table()
-dd[, ratio := eadj_se / eadj_see]
-
-EST <- cbind(est.bias, est.se[, -c(1:2)], est.see[, -c(1:2)], est.mse[, -c(1:2)]) %>% data.table
-TRUTH <- cbind(true.bias, true.se[, -c(1:2)], est.see[, -c(1:2)], true.mse[, -c(1:2)]) %>% data.table
+ADJ <- c("--", "--", bias[5,]$adj, se[5,]$adj, see[5,]$adj, cover[5,]$adj, re[5,]$adj)
+EST <- cbind(bias$trange, bias$q, bias$eadj, se$eadj, see$eadj, cover$eadj, re$eadj)
+DF <- rbind(ADJ, EST)
+colnames(DF) <- c("trange", "q", "Bias x 100", "SE x 100", "SEE x 100", "Coverage", "Reduction in Variance")
 
 addtorow <- list()
-addtorow$pos <- seq(5, nrow(EST), by=5) %>% as.list
+addtorow$pos <- as.list(c(1, seq(1+5, nrow(DF), by=5)))
 addtorow$command <- rep("\\hline \n", length(addtorow$pos))
 
-tab <- xtable(EST, align=rep("c", 11), digits=2)
+tab <- xtable(DF, align=rep("c", 8), digits=2)
 print(tab, include.rownames=FALSE,
       add.to.row = addtorow)
 
