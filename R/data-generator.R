@@ -138,7 +138,6 @@ simulate.recent <- function(sim_data, infection.function=NULL,
                          t=times, n=n_p, u=infect_duration)
 
     # Apply noise to the testing times if desired
-
     if(!is.null(t_noise)){
       test_times <- lapply(test_times, function(t) sapply(t, t_noise))
     }
@@ -188,6 +187,7 @@ simulate.recent <- function(sim_data, infection.function=NULL,
 
     # Generate vector with prior time or NA if not available
     ptest_times <- mapply(function(t, a) ifelse(a, t, NA), t=test_times, a=available)
+    available <- mapply(function(t, a) ifelse(is.na(t), 0, a), t=test_times, a=available)
 
     # See whether or not the test was positive
     ptest_delta <- mapply(function(it, pt) as.integer(it < pt), pt=ptest_times, it=t_infect)
