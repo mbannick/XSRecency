@@ -9,8 +9,6 @@ library(tidyr)
 args <- commandArgs(trailingOnly=TRUE)
 in.dir <- args[1]
 
-in.dir <- "~/Documents/FileZilla/xs-recent/enhanced/20-07-2022-10-39-02/"
-
 # Read in files
 f <- list.files(in.dir, full.names=T)
 f <- f[!grepl("summary", f)]
@@ -19,7 +17,7 @@ f <- f[!grepl("README.md", f)]
 df <- lapply(f, fread) %>% rbindlist(fill=T)
 df[, V1 := NULL]
 
-id.vars <- c("truth", "n_sims", "sim", "seed", "n", "p", "inc", "tau", "bigT", "itype",
+id.vars <- c("truth", "n_sims", "sim", "n", "p", "inc", "tau", "bigT", "itype",
              "window", "shadow")
 
 for(var in c("rho", "phi_frr", "phi_tfrr", "phi_norm_mu",
