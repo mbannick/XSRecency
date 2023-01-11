@@ -7,7 +7,8 @@ library(tidyr)
 
 # Get the input and output directories
 args <- commandArgs(trailingOnly=TRUE)
-in.dir <- args[1]
+version <- args[1]
+in.dir <- paste0("~/Documents/FileZilla/xs-recent/enhanced/", version)
 
 # Read in files
 f <- list.files(in.dir, full.names=T)
@@ -18,14 +19,14 @@ df <- lapply(f, fread) %>% rbindlist(fill=T)
 df[, V1 := NULL]
 
 id.vars <- c("truth", "n_sims", "sim", "n", "p", "inc", "tau", "bigT", "itype",
-             "window", "shadow")
+             "window", "shadow", "seed")
 
 for(var in c("rho", "phi_frr", "phi_tfrr", "phi_norm_mu",
              "phi_norm_sd", "phi_norm_div",
              "phi_pnorm_mu", "phi_pnorm_sd", "phi_pnorm_div",
              "frr_mix_start", "frr_mix_end",
              "ext_FRR", "duong_scale", "max_FRR", "last_point",
-             "pt", "t_min", "t_max", "q", "gamma", "eta", "nu",
+             "pt", "t_min", "t_max", "q", "q_eff", "gamma", "eta", "nu",
              "xi", "mech2", "exclude_pt_bigT")){
   if(var %in% colnames(df)){
     id.vars <- c(id.vars, var)

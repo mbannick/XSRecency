@@ -8,8 +8,8 @@ library(pbapply)
 
 # Get the input and output directories
 args <- commandArgs(trailingOnly=TRUE)
-in.dir <- args[1]
-in.dir <- "~/Documents/FileZilla/xs-recent/enhanced/15-12-2022-17-11-12/"
+version <- args[1]
+in.dir <- paste0("~/Documents/FileZilla/xs-recent/enhanced/", version)
 
 # Read in files
 f <- list.files(in.dir, full.names=T)
@@ -65,27 +65,33 @@ variance.asm[, estimator := lapply(.SD, function(x) gsub("_var_asm$", "", x)), .
 df2 <- merge(estimate, variance.rob, by=c(id.vars, "estimator"))
 df2 <- merge(df2, variance.asm, by=c(id.vars, "estimator"))
 df2[, bias := estimate - truth]
-df2[, width := qnorm(0.975) * variance ** 0.5]
-df2[, lower := estimate - width]
-df2[, upper := estimate + width]
-df2[, cover := (truth < upper) & (truth > lower)]
 
-df2[, width := qnorm(0.975) * variance**0.5]
-df2[, lower := estimate - width]
-df2[, upper := estimate + width]
-df2[, cover := (truth < upper) & (truth > lower)]
+df2[, width_rob := qnorm(0.975) * variance_rob ** 0.5]
+df2[, lower_rob := estimate - width_rob]
+df2[, upper_rob := estimate + width_rob]
+df2[, cover_rob := (truth < upper_rob) & (truth > lower_rob)]
+
+df2[, width_asm := qnorm(0.975) * variance_asm ** 0.5]
+df2[, lower_asm := estimate - width_asm]
+df2[, upper_asm := estimate + width_asm]
+df2[, cover_asm := (truth < upper_asm) & (truth > lower_asm)]
 
 bias <- df2[, lapply(.SD, median), by=id.vars.nosim.est, .SDcols="bias"]
 se <- df2[, lapply(.SD, function(x) var(x, na.rm=T)**0.5), by=id.vars.nosim.est, .SDcols="estimate"]
-see <- df2[, lapply(.SD, function(x) median(x**0.5, na.rm=T)), by=id.vars.nosim.est, .SDcols="variance"]
-cover <- df2[, lapply(.SD, mean, na.rm=T), by=id.vars.nosim.est, .SDcols="cover"]
+see_rob <- df2[, lapply(.SD, function(x) median(x**0.5, na.rm=T)), by=id.vars.nosim.est, .SDcols="variance_rob"]
+see_asm <- df2[, lapply(.SD, function(x) median(x**0.5, na.rm=T)), by=id.vars.nosim.est, .SDcols="variance_asm"]
+cover_rob <- df2[, lapply(.SD, mean, na.rm=T), by=id.vars.nosim.est, .SDcols="cover_rob"]
+cover_asm <- df2[, lapply(.SD, mean, na.rm=T), by=id.vars.nosim.est, .SDcols="cover_asm"]
 
 setnames(se, "estimate", "se")
-setnames(see, "variance", "see")
+setnames(see_rob, "variance_rob", "see_rob")
+setnames(see_asm, "variance_asm", "see_asm")
 
 results <- merge(bias, se, by=id.vars.nosim.est)
-results <- merge(results, see, by=id.vars.nosim.est)
-results <- merge(results, cover, by=id.vars.nosim.est)
+results <- merge(results, see_rob, by=id.vars.nosim.est)
+results <- merge(results, see_asm, by=id.vars.nosim.est)
+results <- merge(results, cover_rob, by=id.vars.nosim.est)
+results <- merge(results, cover_asm, by=id.vars.nosim.est)
 results[, mse := bias**2 + se**2]
 
 results[, estimator_type := lapply(.SD, function(x) gsub("_est$", "", gsub("_true$", "", x))), .SDcols="estimator"]

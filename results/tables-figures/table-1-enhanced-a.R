@@ -17,8 +17,17 @@ source("~/repos/XSRecency/R/data-generator.R")
 
 # READ IN VERSIONED RESULTS ---------------------------------
 
-version <- "~/Documents/FileZilla/xs-recent/enhanced/11-07-2022-16-13-12/"
+version <- "~/Documents/FileZilla/xs-recent/enhanced/15-12-2022-17-23-00/"
 summ <- fread(paste0(version , "summary.csv"))
+
+detail <- fread(paste0(version, "/detail.csv"))
+
+# DETAIL RESULTS FOR Q EFF ---------------------------------------------
+
+detail <- detail[, .(q, mech2, q_eff)]
+detail <- detail[, lapply(.SD, mean), .SDcols=c("q_eff"), by=c("q", "mech2")]
+
+summ <- merge(summ, detail, by=c("q", "mech2"))
 
 # TABLE RESULTS ---------------------------------------------
 

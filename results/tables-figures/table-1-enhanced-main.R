@@ -23,6 +23,7 @@ version <- "~/Documents/FileZilla/xs-recent/enhanced/15-12-2022-17-11-12/"
 summ <- fread(paste0(version , "summary.csv"))
 
 TYPE <- "est"
+VARTYPE <- "rob"
 
 # TABLE RESULTS ---------------------------------------------
 
@@ -36,6 +37,14 @@ summ[, trange := paste0("(", t_min, ", ", t_max, ")")]
 
 adj.mse <- summ[estimator_type == "adj" & q == 1 & trange == "(0, 2)", mse]
 summ[, rmse := 1 - (mse / adj.mse)]
+
+if(VARTYPE == "rob"){
+  summ[, see := see_rob]
+  summ[, cover := cover_rob]
+} else {
+  summ[, see := see_asm]
+  summ[, cover := cover_asm]
+}
 
 summ <- summ[, .(trange, q, estimator_type, bias, se, see, mse, rmse, cover)]
 summ[, bias := bias * 100]
