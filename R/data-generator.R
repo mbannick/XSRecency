@@ -137,7 +137,10 @@ simulate.recent <- function(sim_data, infection.function=NULL,
     test_times <- mapply(function(t, n, u) t - ptest.dist(n, u),
                          t=times, n=n_p, u=infect_duration)
 
-    # Apply noise to the testing times if desired
+    # See whether or not the test was positive
+    ptest_delta <- mapply(function(it, pt) as.integer(it < pt), pt=test_times, it=t_infect)
+
+    # Apply noise to the testing times if desired, but not changing ptest_delta
     if(!is.null(t_noise)){
       test_times <- lapply(test_times, function(t) sapply(t, t_noise))
     }
@@ -189,9 +192,6 @@ simulate.recent <- function(sim_data, infection.function=NULL,
     ptest_times <- mapply(function(t, a) ifelse(a, t, NA), t=test_times, a=available)
     available <- mapply(function(t, a) ifelse(is.na(t), 0, a), t=test_times, a=available)
 
-    # See whether or not the test was positive
-    ptest_delta <- mapply(function(it, pt) as.integer(it < pt), pt=ptest_times, it=t_infect)
-
     # Apply misreporting of positive tests
     if(!is.null(d_misrep)){
       z <- lapply(n_p, function(n) rbinom(n, size=1, prob=1-d_misrep))
@@ -219,10 +219,8 @@ simulate.recent <- function(sim_data, infection.function=NULL,
     # Generate vector with prior time or NA if not available
     ptest_times <- mapply(function(t, a) ifelse(a, t, NA), t=ptest_times, a=available)
 
-    # See whether or not the test was positive
-    # We need to take into account the original ptest_delta vector that we had
-    # because it may have been modified according to d_misrep
-    ptest_delta <- mapply(function(it, pt, d) ifelse(is.na(pt), NA, as.integer((it < pt) & d)),
+    # Modify ptest_delta to have NA's when not available
+    ptest_delta <- mapply(function(it, pt, d) ifelse(is.na(pt), NA, d),
                           pt=ptest_times,
                           it=t_infect,
                           d=ptest_delta)
