@@ -1,29 +1,25 @@
 library(magrittr)
 
 #' Generates raw data of number positive, negative, and screened
-#' based on study parameters
-#' that can be used later to simulate infection times.
+#' based on study parameters that can be used later to simulate infection times.
 #'
 #' @param n_sims Number of simulations
 #' @param n Number of observations per time point
 #' @param prevalence Constant prevalence
-#' @param times Times at which enrollment happens
-generate.raw.data <- function(n_sims, n, prevalence, times=c(0)){
-  # number of times
-  n_times <- length(times)
+#' @param e.func Function to simulate infection time from a 0-1 value
+sim.screening.closure <- function(prevalence, e.func){
+  sim.screening <- function(n){
 
-  # number of positive subjects
-  n_p <- replicate(n_times, rbinom(n=n_sims, size=n, prob=prevalence)) %>% t
+    # number of positive subjects
+    pos <- rbinom(n=n, size=1, prob=prevalence)
 
-  # number of negative subjects
-  n_n <- n - n_p
+    return(pos)
+  }
+  return(sim.screening)
+}
 
-  return(list(
-    n=matrix(n, nrow=n_times, ncol=n_sims),
-    n_p=n_p,
-    n_n=n_n,
-    times=matrix(rep(times, n_sims), ncol=n_sims, byrow=FALSE)
-  ))
+sim.recency.data <- function(screening_data){
+
 }
 
 #' Simulate recency indicators based on the data, true phi function,
@@ -104,6 +100,8 @@ simulate.recent <- function(sim_data, infection.function=NULL,
   times <- as.vector(sim_data$times)
   n_p <- as.vector(sim_data$n_p)
   n_n <- as.vector(sim_data$n_n)
+
+  browser()
 
   # infection time
   if(!is.null(infection.function)){

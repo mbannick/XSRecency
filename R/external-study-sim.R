@@ -293,6 +293,138 @@ integrate.phi <- function(model, ts, dt=0.01){
   return(list(est=estimate, var=variance))
 }
 
+ELEM <- list(
+  omega_TA     = 0,
+  omega_TA_var = 0,
+  omega_TAstar = 0,
+  den_omega    = 0,
+  mu_TA        = 0,
+  var_TA       = 0,
+  r_TA         = 0,
+  r_TAprime    = 0,
+  r_TAstar     = 0,
+  mu_TB        = 0,
+  var_TB       = 0,
+  p_A          = 0,
+  p_B          = 0
+)
+
+#' @examples
+#' pt.properties.est(ptest_times=runif(100, 1, 4),
+#'                   ptest_delta=rbinom(100, 1, 0.5),
+#'                   ptest_avail=rbinom(100, 1, 0.5))
+pt.properties.est <- function(ptest_times,
+                              ptest_delta,
+                              ptest_avail,
+                              dt=1/365.25){
+
+  elem <- copy(ELEM)
+
+  # Map testing times to indices for integration using dt
+  closest <- data.table(
+    ts_orig=-ptest_times,
+    has_test=ptest_avail
+  )
+  closest[, id := .I]
+  closest[, index := NA]
+
+  # TODO: FIGURE OUT HOW TO GET TS_INDEX OUTSIDE OF THIS FUNCTION
+  # AND THE MODEL OBJECT -- HOW WILL SOMEONE PASS THE MODEL?
+
+  get.closest.index <- function(t){
+    if(is.na(t)){
+      idx <- NA
+    } else {
+      idx <- ts_index[which.min(abs(t - ts_index$ts)), index]
+    }
+  }
+  closest_index <- sapply(closest$ts_orig, get.closest.index)
+  closest[, index := closest_index]
+  closest <- merge(closest, ts_index, by="index", all.x=T)
+
+  closest[, Ai := as.numeric((ts <= bigT_index[, ts]) & (has_test))]
+  closest[, Bi := as.numeric((ts > bigT_index[, ts]) & (has_test))]
+
+  # Calculate fraction of those with recent/non-recent prior tests
+  p_A <- mean(closest$Ai)
+  p_B <- mean(closest$Bi)
+
+  elem[["p_A"]] <- p_A
+  elem[["p_B"]] <- p_B
+
+  if(p_A > 0){
+
+    # Create point estimates and covariance matrix between
+    # the phi estimates at different times
+    mat_index <- ts_index[ts <= max(closest[Ai ==1, ts], bigT_index[, ts]),]
+    cphi <- matrix.phi(model, mat_index, dt=dt)
+    cphi_point <- cphi$cphi
+    cphi_covar <- cphi$csum
+
+    # Get ids for those who have a recent prior test, and their
+    # corresponding time index
+    idmap <- closest[Ai == 1, .(id, index, ts, Mi)]
+    # Get unique combinations of the ids
+    # for the covariance calculation
+    idmap_covar <- combn(idmap$id, 2) %>% t %>% data.table
+    setnames(idmap_covar, c("idX", "idY"))
+    idmap_covar <- merge(idmap_covar, idmap[, .(id, index)], by.x="idX", by.y="id")
+    setnames(idmap_covar, "index", "indexX")
+    idmap_covar <- merge(idmap_covar, idmap[, .(id, index)], by.x="idY", by.y="id")
+    setnames(idmap_covar, "index", "indexY")
+
+    # Calculate omega_T conditional expectation and variance
+    omega_ta     <- merge(idmap, cphi_point, by="index", all.x=TRUE)
+    elem[["omega_TA"]] <- mean(omega_ta$phi)
+    elem[["omega_TA_var"]] <- var(omega_ta$phi)
+
+    # Calculate omega_T * T conditional expectation
+    omega_ta <- omega_ta[, tastar := ts * phi]
+    omega_ta <- omega_ta[, taneg := ts - phi]
+    elem[["omega_TAstar"]] <- mean(omega_ta$tastar)
+    elem[["den_omega"]] <- sum(omega_ta$taneg)
+
+    # Calculate r_TiTi conditional expectation and variance
+    idmap2 <- idmap
+    idmap2[, indexX := index]
+    idmap2[, indexY := index]
+
+    r_Tii  <- merge(idmap2, cphi_covar, by=c("indexX", "indexY"), all.x=T)
+    elem[["r_TA"]]   <- mean(r_Tii$rho)
+    elem[["var_TA"]] <- var(r_Tii$rho)
+
+    # Calculate r_TiTj conditional expectation
+    r_Tij <- merge(idmap_covar, cphi_covar, by=c("indexX", "indexY"), all.x=T)
+    elem[["r_TAprime"]] <- mean(r_Tij$rho)
+
+    # Calculate r_TiTstar conditional expectation
+    idmap3 <- idmap
+    idmap3[, indexX := index]
+
+    idmap3[, indexY := bigT_index[, index]]
+
+    r_Tistar <- merge(idmap3, cphi_covar, by=c("indexX", "indexY"), all.X=T)
+    elem[["r_TAstar"]] <- mean(r_Tistar$rho)
+
+    # Calculate the expected time of prior tests
+    ta <- closest[Ai == 1, ts_orig]
+    elem[["mu_TA"]] <- mean(ta)
+    elem[["var_TA"]] <- var(ta)
+  }
+
+  if(p_B > 0){
+
+    # Calculate the expected time of prior tests
+    tb <- closest[Bi == 1, ts_orig]
+    elem[["mu_TB"]] <- mean(tb)
+    elem[["var_TB"]] <- var(tb)
+
+  }
+
+  # Return list of elements that were estimated
+  return(elem)
+}
+
 #' Use an assay df with recent (yes/no) and duration columns
 #' to calculate the mean window period and MDRI of the assay
 #'
@@ -304,8 +436,7 @@ integrate.phi <- function(model, ts, dt=0.01){
 assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
                                  ptest_times=NULL,
                                  ptest_delta=NULL,
-                                 ptest_avail=NULL,
-                                 ri=ri){
+                                 ptest_avail=NULL){
   start.time <- Sys.time()
   model <- fit.cubic(recent=study$recent,
                      durations=study$durations,
@@ -329,157 +460,18 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
   # following quantities that allow us to calculate the variance
   # of the enhanced adjusted estimator that incorporates prior test results.
   if(!all(is.null(ptest_times))){
-    # Map testing times to indices for integration using dt
-    closest <- data.table(
-      ts_orig=-ptest_times,
-      has_test=ptest_avail,
-      Mi=as.numeric(ri)
+
+    elem <- pt.properties.est(
+      ptest_times=ptest_times,
+      ptest_delta=ptest_delta,
+      ptest_avail=ptest_avail,
+      dt=dt
     )
-    closest[, id := .I]
-    closest[, index := NA]
-
-    get.closest.index <- function(t){
-      if(is.na(t)){
-        idx <- NA
-      } else {
-        idx <- ts_index[which.min(abs(t - ts_index$ts)), index]
-      }
-    }
-    closest_index <- sapply(closest$ts_orig, get.closest.index)
-    closest[, index := closest_index]
-    closest <- merge(closest, ts_index, by="index", all.x=T)
-
-    closest[, Ai := as.numeric((ts <= bigT_index[, ts]) & (has_test))]
-    closest[, Bi := as.numeric((ts > bigT_index[, ts]) & (has_test))]
-
-    # Calculate fraction of those with recent/non-recent prior tests
-    p_A <- mean(closest$Ai)
-    p_B <- mean(closest$Bi)
-
-    if(p_A == 0){
-
-      omega_TA     <- 0
-      omega_TA_var <- 0
-      omega_TAstar <- 0
-      omega_TA2    <- 0
-      den_omega    <- 0
-
-      mu_TA        <- 0
-      var_TA       <- 0
-      r_TA         <- 0
-      r_TAprime    <- 0
-      r_TAstar     <- 0
-
-      nATO         <- 0
-      EMiAiOi      <- 0
-
-    } else {
-
-      # Create point estimates and covariance matrix between
-      # the phi estimates at different times
-      mat_index <- ts_index[ts <= max(closest[Ai ==1, ts], bigT_index[, ts]),]
-      cphi <- matrix.phi(model, mat_index, dt=dt)
-      cphi_point <- cphi$cphi
-      cphi_covar <- cphi$csum
-
-      # Get ids for those who have a recent prior test, and their
-      # corresponding time index
-      idmap <- closest[Ai == 1, .(id, index, ts, Mi)]
-      # Get unique combinations of the ids
-      # for the covariance calculation
-      idmap_covar <- combn(idmap$id, 2) %>% t %>% data.table
-      setnames(idmap_covar, c("idX", "idY"))
-      idmap_covar <- merge(idmap_covar, idmap[, .(id, index)], by.x="idX", by.y="id")
-      setnames(idmap_covar, "index", "indexX")
-      idmap_covar <- merge(idmap_covar, idmap[, .(id, index)], by.x="idY", by.y="id")
-      setnames(idmap_covar, "index", "indexY")
-
-      # Calculate omega_T conditional expectation and variance
-      omega_ta     <- merge(idmap, cphi_point, by="index", all.x=TRUE)
-      omega_TA     <- mean(omega_ta$phi)
-      omega_TA_var <- var(omega_ta$phi)
-      omega_TA2    <- mean(omega_ta$phi**2)
-
-      # Calculate omega_T * T conditional expectation
-      omega_ta <- omega_ta[, tastar := ts * phi]
-      omega_ta <- omega_ta[, taneg := ts - phi]
-      omega_TAstar <- mean(omega_ta$tastar)
-      den_omega <- sum(omega_ta$taneg)
-
-      # Calculate r_TiTi conditional expectation and variance
-      idmap2 <- idmap
-      idmap2[, indexX := index]
-      idmap2[, indexY := index]
-
-      r_Tii  <- merge(idmap2, cphi_covar, by=c("indexX", "indexY"), all.x=T)
-      r_TA   <- mean(r_Tii$rho)
-      var_TA <- var(r_Tii$rho)
-
-      # Calculate r_TiTj conditional expectation
-      r_Tij <- merge(idmap_covar, cphi_covar, by=c("indexX", "indexY"), all.x=T)
-      r_TAprime <- mean(r_Tij$rho)
-
-      # Calculate r_TiTstar conditional expectation
-      idmap3 <- idmap
-      idmap3[, indexX := index]
-
-      idmap3[, indexY := bigT_index[, index]]
-
-      r_Tistar <- merge(idmap3, cphi_covar, by=c("indexX", "indexY"), all.X=T)
-      r_TAstar <- mean(r_Tistar$rho)
-
-      # To compare variance terms in debugging
-      nATO <- den_omega
-
-      # More comparison for variance terms
-      omega_ta[, MiAiOi := Mi * taneg]
-      EMiAiOi <- mean(omega_ta$MiAiOi) * p_A
-
-      # Calculate the expected time of prior tests
-      ta <- closest[Ai == 1, ts_orig]
-      mu_TA <- mean(ta)
-      var_TA <- var(ta)
-    }
-
-    if(p_B == 0){
-
-      mu_TB  <- 0
-      var_TB <- 0
-      nB     <- 0
-      nBT    <- 0
-
-    } else {
-
-      # Calculate the expected time of prior tests
-      tb <- closest[Bi == 1, ts_orig]
-      mu_TB <- mean(tb)
-      var_TB <- var(tb)
-
-      # To compare variance terms for debugging
-      nB <- length(tb)
-      nBT <- sum(tb)
-
-    }
 
   } else {
-    r_TA <- NULL
-    r_TAprime <- NULL
-    r_TAstar <- NULL
-    omega_TA <- NULL
-    omega_TA2 <- NULL
-    omega_TA_var <- NULL
-    omega_TAstar <- NULL
-    den_omega <- NULL
-    mu_TA <- NULL
-    mu_TB <- NULL
-    var_TA <- NULL
-    var_TB <- NULL
-    p_A <- NULL
-    p_B <- NULL
-    nB <- NULL
-    nBT <- NULL
-    nATO <- NULL
-    EMiAiOi <- NULL
+
+    elem <- copy(ELEM)
+
   }
 
   result <- list(
@@ -488,26 +480,13 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
     omega_est=omega_sim$est,
     omega_var=omega_sim$var,
     beta_est=NA,
-    beta_var=NA,
-    r_TA=r_TA,
-    r_TAprime=r_TAprime,
-    r_TAstar=r_TAstar,
-    omega_TA=omega_TA,
-    omega_TA_var=omega_TA_var,
-    omega_TAstar=omega_TAstar,
-    omega_TA2=omega_TA2,
-    den_omega=den_omega,
-    mu_TA=mu_TA,
-    mu_TB=mu_TB,
-    var_TA=var_TA,
-    var_TB=var_TB,
-    p_A=p_A,
-    p_B=p_B,
-    nB=nB,
-    nBT=nBT,
-    nATO=nATO,
-    EMiAiOi=EMiAiOi
+    beta_var=NA
   )
+
+  for(el in names(elem)){
+    result[[el]] <- elem[[el]]
+  }
+
   end.time <- Sys.time()
   print(end.time - start.time)
   return(result)

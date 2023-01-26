@@ -111,11 +111,6 @@ variance.pt <- function(
   C35 <- -n * p * big_T * p_B * mu_TB * beta_var
   C45 <- -n * p^2 * p_A * p_B * beta * mu_TB * (mu_TA - omega_TA)
 
-  # MORE DEBUGGING FOR W1, W4 TERM
-  # C14_1 <- n_r
-  # C14_2 <- n * p * p_A * omega_TA
-  # C14_3 <- n * p * beta * (1-p_B)
-
   components_est <- list(
     EW1=EW1, EW2=EW2, EW3=EW3, EW4=EW4, EW5=EW5,
     VW1=VW1, VW2=VW2, VW3=VW3, VW4=VW4, VW5=VW5,
@@ -123,9 +118,6 @@ variance.pt <- function(
     C23=C23, C24=C24, C25=C25,
     C34=C34, C35=C35,
     C45=C45
-    # C14_1=C14_1,
-    # C14_2=C14_2,
-    # C14_3=C14_3
   )
 
   varfunc <- function(ew1, ew2, ew3, ew4, ew5,
@@ -196,7 +188,7 @@ variance.pt <- function(
 #' @export
 var.log.to.var <- function(estimate, variance) (estimate ** 2) * variance
 
-#' Adjusted estimator and variance (Kassanjee et al. 2012)
+#' Enhanced estimator and variance (Bannick and Gao 2023+)
 #'
 #'   \deqn{
 #'     \hat{\lambda} = \frac{N_{rec}/q - N_{pos} \hat{\beta}_{T^*}}{N_{neg} (\hat{\Omega}_{T^*} - \hat{\beta}_{T^*} T^*)}
@@ -220,17 +212,22 @@ var.log.to.var <- function(estimate, variance) (estimate ** 2) * variance
 #' @param q The fraction of positives that were given recency tests, defaults to 1
 #' @return Returns a list of the estimate and the variance.
 #' @examples
-#' get.adjusted(n_r=2, n_n=50, n_p=10, n=60,
-#'              omega=0.36, omega_var=0, beta=0.02, beta_var=0, big_T=2, q=1)
-#' get.adjusted(n_r=c(2, 3), n_n=c(50, 48), n_p=c(10, 12), n=c(60, 60),
-#'              omega=0.36, omega_var=0, beta=0.02, beta_var=0, big_T=2)
+#' get.adjusted.pt(n_r_pt=3, n_r=2, n_n=50, n_p=10, n=60,
+#'                 omega=0.36, omega_var=0, beta=0.02, beta_var=0, big_T=2, q=1)
+#' get.adjusted.pt(n_r=c(2, 3), n_n=c(50, 48), n_p=c(10, 12), n=c(60, 60),
+#'                 omega=0.36, omega_var=0, beta=0.02, beta_var=0, big_T=2)
 get.adjusted.pt <- function(n_r_pt, n_r, n_n, n_p, n, omega, omega_var,
-                         beta, beta_var, big_T, q=1,
-                         num_beta, den_omega, den_beta,
-                         r_TA, r_TAprime, r_TAstar,
-                         omega_TA, omega_TA_var, omega_TAstar, omega_TA2,
-                         mu_TA, var_TA, mu_TB, var_TB,
-                         p_A, p_B){
+                            beta, beta_var, big_T, pt_data, q=1){
+
+}
+
+get.adjusted.pt.internal <- function(n_r_pt, n_r, n_n, n_p, n, omega, omega_var,
+                                     beta, beta_var, big_T, q=1,
+                                     num_beta, den_omega, den_beta,
+                                     r_TA, r_TAprime, r_TAstar,
+                                     omega_TA, omega_TA_var, omega_TAstar, omega_TA2,
+                                     mu_TA, var_TA, mu_TB, var_TB,
+                                     p_A, p_B){
 
   est <- adjusted.estimate.pt(n_r_pt=n_r_pt, n_n=n_n, n_p=n_p,
                               omega=omega, beta=beta, big_T=big_T,
