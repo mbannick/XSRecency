@@ -17,9 +17,8 @@ source("~/repos/XSRecency/R/data-generator.R")
 
 # READ IN VERSIONED RESULTS ---------------------------------
 
-version <- "~/Documents/FileZilla/xs-recent/enhanced/15-12-2022-17-23-00/"
-summ <- fread(paste0(version , "summary.csv"))
-
+version <- "~/Documents/FileZilla/xs-recent/enhanced/21-12-2022-12-41-07/"
+summ <- fread(paste0(version , "/summary.csv"))
 detail <- fread(paste0(version, "/detail.csv"))
 
 # DETAIL RESULTS FOR Q EFF ---------------------------------------------
@@ -39,34 +38,34 @@ summ[mech2 == TRUE, mechtype := "Base + RI"]
 
 summ[, trange := paste0("(", t_min, ", ", t_max, ")")]
 
-summ <- summ[, .(q, mechtype, q_eff, estimator_type, assay_vals, bias, se, mse)]
+summ <- summ[, .(q, mechtype, q_eff, estimator_type, assay_vals, bias, se, mse, cover_rob)]
 summ[, bias := bias * 100]
 summ[, se := se * 100]
-summ[, mse := mse * 100]
+summ[, mse := mse * 1e4]
+summ[, cover_rob := cover_rob * 100]
 summ[, bias := lapply(bias, function(x) sprintf("%.3f", x))]
 summ[, se := lapply(se, function(x) sprintf("%.3f", x))]
 summ[, mse := lapply(mse, function(x) sprintf("%.3f", x))]
+summ[, cover_rob := lapply(cover_rob, function(x) sprintf("%.3f", x))]
+summ[, q_eff := sapply(q_eff, function(x) sprintf("%.3f", x))]
 
 est <- summ[assay_vals == "est"]
-true <- summ[assay_vals == "true"]
 
-est.bias <- dcast(est, q + mechtype + q_eff ~ estimator_type, value.var=c("bias"))
-true.bias <- dcast(true, q + mechtype + q_eff ~ estimator_type, value.var=c("bias"))
+bias <- dcast(est, q + mechtype + q_eff ~ estimator_type, value.var=c("bias"))
+se <- dcast(est, q + mechtype + q_eff ~ estimator_type, value.var=c("se"))
+mse <- dcast(est, q + mechtype + q_eff ~ estimator_type, value.var=c("mse"))
+cover <- dcast(est, q + mechtype + q_eff ~ estimator_type, value.var=c("cover_rob"))
 
-est.se <- dcast(est, q + mechtype + q_eff ~ estimator_type, value.var=c("se"))
-true.se <- dcast(true, q + mechtype + q_eff ~ estimator_type, value.var=c("se"))
-
-est.mse <- dcast(est, q + mechtype + q_eff ~ estimator_type, value.var=c("mse"))
-true.mse <- dcast(true, q + mechtype + q_eff ~ estimator_type, value.var=c("mse"))
-
-EST <- cbind(est.bias, est.se[, -c(1:3)], est.mse[, -c(1:3)]) %>% data.table
-TRUTH <- cbind(true.bias, true.se[, -c(1:3)], true.mse[, -c(1:3)]) %>% data.table
+ADJ <- c("--", "--", "--", bias[1,]$adj, se[1,]$adj, mse[1,]$adj, cover[1,]$adj)
+EST <- cbind(bias$q, bias$mechtype,  bias$q_eff, bias$eadj, se$eadj, mse$eadj, cover$eadj)
+DF <- rbind(unlist(ADJ), EST)
+colnames(DF) <- c("q", "mechtype", "q_eff", "Bias x 100", "SE x 100", "MSE x 100", "Coverage")
 
 addtorow <- list()
-addtorow$pos <- seq(2, nrow(EST), by=2) %>% as.list
+addtorow$pos <- seq(1, nrow(DF), by=2) %>% as.list
 addtorow$command <- rep("\\hline \n", length(addtorow$pos))
 
-tab <- xtable(EST, align=rep("c", 10), digits=2)
+tab <- xtable(DF, align=rep("c", 8), digits=2)
 print(tab, include.rownames=FALSE,
       add.to.row = addtorow)
 

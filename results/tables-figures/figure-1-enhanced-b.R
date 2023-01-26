@@ -7,9 +7,12 @@ rm(list=ls())
 
 library(data.table)
 library(xtable)
+library(utile.visuals)
 library(ggplot2)
+library(grid)
 library(ggpattern)
 library(ggh4x)
+library(ggtext)
 library(RColorBrewer)
 library(magrittr)
 source("~/repos/XSRecency/R/phi-functions.R")
@@ -17,7 +20,7 @@ source("~/repos/XSRecency/R/data-generator.R")
 
 # READ IN VERSIONED RESULTS ---------------------------------
 
-version <- "~/Documents/FileZilla/xs-recent/enhanced/21-12-2022-10-49-35"
+version <- "~/Documents/FileZilla/xs-recent/enhanced/12-01-2023-06-50-52"
 summ <- fread(paste0(version , "/summary.csv"))
 detail <- fread(paste0(version, "/detail.csv"))
 
@@ -98,9 +101,9 @@ detail_plot[, gamma_type := factor(gamma,
 detail_plot <- detail_plot[q != 1]
 cols <- c("#000000", rev(brewer.pal(n=3,"Set1")))
 patts <- c("magick", "stripe", "crosshatch", "circle")
-summ_plot[, cover_labs := paste0(sprintf("%.3f", cover_rob))]
+summ_plot[, cover_labs := paste0(sprintf("%.1f", cover_rob*100), "%")]
 
-pdf("~/repos/Recency-Algorithm-with-Prior-HIV-Testing/misspec-bias-b-5.pdf",
+pdf("~/repos/Recency-Algorithm-with-Prior-HIV-Testing/misspec-bias-b-6.pdf",
     height=7, width=11)
 
 fig <- ggplot(detail_plot) +
