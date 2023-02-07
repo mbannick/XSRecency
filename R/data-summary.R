@@ -1,0 +1,315 @@
+
+# All elements that would be used in the estimators,
+# defaults to zero for each.
+
+ELEMENTS <- c(
+  "n", "n_p", "n_n", "n_r",
+  "n_r_pt", "q_eff",
+  "p_A", "p_B",
+  "num_beta", "den_beta", "den_omega",
+  "omega_TA", "omega_TA_var", "omega_TAstar",
+  "mu_TA", "var_TA", "mu_TB", "var_TB",
+  "r_TA", "r_TAprime", "r_TAstar"
+)
+
+LISTKEY <- sapply(ELEMENTS, function(x) 0)
+
+# Function that summarizes a dataset
+summarize.data <- function(df){
+
+  s <- copy(LISTKEY)
+  s[["n"]] <- nrow(df)
+  s[["n_p"]] <- sum(df$di)
+  s[["n_n"]] <- n - n_p
+  s[["n_r"]] <- sum(df$ri, na.rm=TRUE)
+
+  return(s)
+}
+
+.test.phi <- function(phidat, formula, use_geese=TRUE, ...){
+
+  if(use_geese){
+    modfunc <- geese
+  } else {
+    modfunc <- glm
+  }
+  mod <- modfunc(formula=formula, ..., data=phidat)
+  dat <- data.frame(
+    ri=rnorm(10),
+    ui=1:10
+  )
+  newdat <- model.matrix(formula, data=dat)
+  tryCatch(
+    expr={
+      if(use_geese){
+        coefs <- mod$beta
+      } else {
+        coefs <- coef(mod)
+      }
+      preds <- coefs %*% newdat
+    },
+    error=function(e){
+      msg <- paste0(
+        "cannot create predictions from model specifications",
+        "\noriginal error: ", e
+      )
+      stop(msg)
+    }
+  )
+}
+
+.get.ts <- function(minT, maxT, dt){
+  index <- seq(minT/dt, maxT/dt, by=1)
+  ts <- index*dt
+  return(data.table(index=index, ts=ts))
+}
+
+# The algorithm to get recent classification
+# based on recency assay + prior testing
+.get.Mi <- function(ptdf){
+
+  Np <- nrow(ptdf)
+
+  Ai   <- rep(0, Np)
+  Bi   <- rep(0, Np)
+  BiTi <- rep(0, Np)
+
+  Qi   <- as.logical(ptdf$qi)
+  Di   <- ptdf$deltai
+  Ti   <- ptdf$ti
+  Ci   <- Ti <= bigT
+
+  Ai[Ci & Qi]  <- 1
+  Bi[!Ci & Qi] <- 1
+
+  # This is the old recency indicator
+  Ri <- ptdf$ri
+
+  # This is the new recency indicator
+  Mi <- Ri * (1 - Bi * Di) + (1 - Ri) * Ai * (1 - Di)
+  Mi[!Qi] <- Ri[!Qi]
+
+  return(Mi)
+}
+
+.map.to.tgrid <- function(ts_index, ptdf, bigT_index){
+
+  closest <- data.table(
+    ts_orig=ptdf$ti,
+    has_test=ptdf$qi,
+    Mi=ptdf$mi
+  )
+  closest[, id := .I]
+  closest[, index := NA]
+
+  get.closest.index <- function(t){
+    if(is.na(t)){
+      idx <- NA
+    } else {
+      idx <- ts_index[which.min(abs(t - ts_index$ts)), index]
+    }
+  }
+  closest_index <- sapply(closest$ts_orig, get.closest.index)
+  closest[, index := closest_index]
+  closest <- merge(closest, ts_index, by="index", all.x=T)
+
+  closest[, Ai := as.numeric((ts <= bigT_index[, ts]) & (has_test))]
+  closest[, Bi := as.numeric((ts > bigT_index[, ts]) & (has_test))]
+
+  return(closest)
+}
+
+.pt.properties.est <- function(closest, cphi){
+
+  elem <- copy(LISTKEY)
+
+  # Calculate fraction of those with recent/non-recent prior tests
+  p_A <- mean(closest$Ai)
+  p_B <- mean(closest$Bi)
+
+  elem[["p_A"]] <- p_A
+  elem[["p_B"]] <- p_B
+
+  if(p_A > 0){
+
+    # Create point estimates and covariance matrix between
+    # the phi estimates at different times
+
+    cphi_point <- cphi$cphi
+    cphi_covar <- cphi$csum
+
+    # Get ids for those who have a recent prior test, and their
+    # corresponding time index
+    idmap <- closest[Ai == 1, .(id, index, ts, Mi)]
+    # Get unique combinations of the ids
+    # for the covariance calculation
+    idmap_covar <- combn(idmap$id, 2) %>% t %>% data.table
+    setnames(idmap_covar, c("idX", "idY"))
+    idmap_covar <- merge(idmap_covar, idmap[, .(id, index)], by.x="idX", by.y="id")
+    setnames(idmap_covar, "index", "indexX")
+    idmap_covar <- merge(idmap_covar, idmap[, .(id, index)], by.x="idY", by.y="id")
+    setnames(idmap_covar, "index", "indexY")
+
+    # Calculate omega_T conditional expectation and variance
+    omega_ta     <- merge(idmap, cphi_point, by="index", all.x=TRUE)
+    elem[["omega_TA"]] <- mean(omega_ta$phi)
+    elem[["omega_TA_var"]] <- var(omega_ta$phi)
+
+    # Calculate omega_T * T conditional expectation
+    omega_ta <- omega_ta[, tastar := ts * phi]
+    omega_ta <- omega_ta[, taneg := ts - phi]
+    elem[["omega_TAstar"]] <- mean(omega_ta$tastar)
+    elem[["den_omega"]] <- sum(omega_ta$taneg)
+
+    # Calculate r_TiTi conditional expectation and variance
+    idmap2 <- idmap
+    idmap2[, indexX := index]
+    idmap2[, indexY := index]
+
+    r_Tii  <- merge(idmap2, cphi_covar, by=c("indexX", "indexY"), all.x=T)
+    elem[["r_TA"]]   <- mean(r_Tii$rho)
+    elem[["var_TA"]] <- var(r_Tii$rho)
+
+    # Calculate r_TiTj conditional expectation
+    r_Tij <- merge(idmap_covar, cphi_covar, by=c("indexX", "indexY"), all.x=T)
+    elem[["r_TAprime"]] <- mean(r_Tij$rho)
+
+    # Calculate r_TiTstar conditional expectation
+    idmap3 <- idmap
+    idmap3[, indexX := index]
+
+    idmap3[, indexY := bigT_index[, index]]
+
+    r_Tistar <- merge(idmap3, cphi_covar, by=c("indexX", "indexY"), all.X=T)
+    elem[["r_TAstar"]] <- mean(r_Tistar$rho)
+
+    # Calculate the expected time of prior tests
+    ta <- closest[Ai == 1, ts_orig]
+    elem[["mu_TA"]] <- mean(ta)
+    elem[["var_TA"]] <- var(ta)
+  }
+
+  if(p_B > 0){
+
+    # Calculate the expected time of prior tests
+    tb <- closest[Bi == 1, ts_orig]
+    elem[["mu_TB"]] <- mean(tb)
+    elem[["var_TB"]] <- var(tb)
+
+  }
+  return(elem)
+}
+
+#' Function that summarizes a dataset + prior test results
+#'
+#' @param bigT The T^* parameter for defining recent infection.
+#' @param use_geese Indicator to fit a gee model using geese(), or a glm model with glm()
+#' @param formula Formula for fitting the model to phidat.
+#'                Formula argument must take in only ui as the newdata.
+#'                For example, do not create a ui^2 variable. Use poly(ui, ...) function
+#'                to fit polynomial terms.
+#' @param dt An integration step size. Should be no more than 1 day.
+#' @param ptdf Data frame of prior testing data. These records should
+#'             only be from people who are HIV positive. They need to have
+#'             recency testing data as well as prior testing data.
+#' @param n Required total sample size n if `ptdf` is used instead of `df`
+#' @param n_p Required number of positives if `ptdf` is used instead of `df`
+#' @param df Instead of passing ptdf, can pass a data frame with one row
+#'           for each person, regardless of HIV status, and NA for all
+#'           of the prior testing data for HIV negative people
+#' @param phidat Data to fit a modfunc model to. Must have column names ri
+#'               for recency indicator and ui for infection duration.
+#'               Can have more columns, e.g., if an id is needed for geese.
+#' @param ... Additional arguments to either glm or geese(..., data=phidat).
+summarize.data.pt.closure <- function(bigT, dt=1/365.25,
+                                      use_geese=NULL, formula=NULL, ...){
+
+  summarize.data.pt <- function(ptdf=NULL, n=NULL, n_p=NULL, df=NULL,
+                                phidat=NULL){
+
+    # PART 1: SUMMARIZE TRIAL DATA AND GET NEW RECENCY INDICATOR
+    # ----------------------------------------------------------
+
+    if(!is.null(ptdf)){
+
+      if(is.null(n))   stop("must provide n with ptdf")
+      if(is.null(n_p)) stop("must provide n_p with ptdr")
+      if(!is.null(df)) stop("can only provide one of df or ptdf")
+
+      s <- copy(LISTKEY)
+      s[["n"]]   <- n
+      s[["n_p"]] <- n_p
+      s[["n_n"]] <- n - n_p
+
+    } else {
+
+      if(is.null(df))  stop("need to provide either df or ptdf")
+
+      # First get the summary based on trial data
+      s <- summarize.data(df)
+      ptdf <- df[df$di == 1]
+
+    }
+
+    # Generate recency indicator based on new algorithm
+    ptdf$Mi <- .get.Mi(ptdf)
+
+    # Calculate the new number of recents, and q effective
+    # (proportion of positives w/ a prior test result)
+    s[["n_r_pt"]] <- sum(ptdf$Mi)
+    n_d <- sum(ptdf$qi)
+    s[["q_eff"]] <- n_d / s[["n_p"]]
+
+    # PART 2: MAP TESTING TIMES TO A TIME GRID BASED ON DT
+    # ----------------------------------------------------
+
+    ts_index <- .get.ts(minT=0, maxT=max(ptdf$ti, bigT), dt=dt)
+
+    # Convert bigT onto the grid
+    bigT_index <- ts_index[which.min(abs(bigT - ts_index$ts))]
+
+    closest <- .map.to.tgrid(ts_index=ts_index,
+                             ptdf=ptdf,
+                             bigT_index=bigT_index)
+
+    # PART 3: GET AN ESTIMATED PHI FUNCTION AND COVARIANCE MATRIX
+    # -----------------------------------------------------------
+
+    # Make sure model works based on the user arguments
+    .test.phi(phidat=phidat, use_geese=use_geese, formula=formula, ...)
+
+    if(use_geese){
+      modfunc <- geese
+    } else {
+      modfunc <- glm
+    }
+
+    # Fit the model
+    mod <- modfunc(formula=formula, ..., data=phidat)
+
+    # Construct cumulative phi vector and cumulative covariance matrix
+    cphi <- .matrix.phi(model=mod, ts_index=ts_index)
+
+    # PART 4: ESTIMATE OMEGA_T^*
+    # ----------------------
+    ts_omega <- ts_index[ts <= bigT_index[, ts]]$ts
+    omega <- integrate.phi(model, ts_omega, dt=dt) # TODO: REDO THIS SO THAT IT JUST TAKES THE INDEX
+
+    s[["omega_est"]] <- omega$est
+    s[["omega_var"]] <- omega$var
+
+    # PART 5: ESTIMATE ALL OF THE OTHER THINGS THAT HAVE TO DO WITH PRIOR TESTING
+    # ---------------------------------------------------------------------------
+
+    ptlist <- .pt.properties.est(closest=closest, cphi=cphi)
+
+    # Add all of the pt estimates to the main list
+    for(el in names(ptlist)){
+      s[[el]] <- ptlist[[el]]
+    }
+
+    return(s)
+  }
+  return(summarize.data.pt)
+}
+

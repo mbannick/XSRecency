@@ -7,19 +7,157 @@ library(magrittr)
 #' @param n Number of observations per time point
 #' @param prevalence Constant prevalence
 #' @param e.func Function to simulate infection time from a 0-1 value
-sim.screening.closure <- function(prevalence, e.func){
+#'
+#' @examples
+#' e.func <- function(e) infections.lin(e, t=0, p=0.29, lambda=0.032, rho=0.07)
+#' params <- get.gamma.params(window=200/365.25, shadow=191/365.25)
+#' phi.func <- function(t) 1-pgamma(t, shape = params[1], rate = params[2])
+#' sim <- sim.screening.closure(prevalence=0.29, e.func=e.func, phi.func=phi.func)
+#' sim(100)
+sim.screening.closure <- function(prevalence, e.func, phi.func){
   sim.screening <- function(n){
 
     # number of positive subjects
-    pos <- rbinom(n=n, size=1, prob=prevalence)
+    pos <- rbinom(n=n, size=1, prob=prevalence) %>% sort
+    npos <- sum(pos)
 
-    return(pos)
+    # generate infection time
+    e <- runif(n=npos)
+    inf.time <- sapply(e, e.func)
+
+    # recency indicator
+    rec <- rbinom(n=npos, size=1, prob=phi.func(-inf.time))
+
+    return(data.frame(
+      di=pos,
+      ui=c(rep(NA, n-npos), -inf.time),
+      ri=c(rep(NA, n-npos), rec)
+    ))
   }
   return(sim.screening)
 }
 
-sim.recency.data <- function(screening_data){
+#' Generates prior testing data for positive subjects
+#' based on a prior testing distribution and prior testing probability
+#'
+#' @param ptest.dist A prior test result distribution function, which must have
+#'   be a function of `u` which is an
+#'   infection duration
+#'   though it can ignore the `u` argument inside the function.
+#'   An example is `rnorm(1, mean=u)`.
+#' @param ptest.prob Probability of prior test result being available.
+#'   Can instead be a function of `u`, the infection duration.
+#' @examples
+#' e.func <- function(e) infections.lin(e, t=0, p=0.29, lambda=0.032, rho=0.07)
+#' params <- get.gamma.params(window=200/365.25, shadow=191/365.25)
+#' phi.func <- function(t) 1-pgamma(t, shape = params[1], rate = params[2])
+#' sim <- sim.screening.closure(prevalence=0.29, e.func=e.func, phi.func=phi.func)
+#' df <- sim(100)
+#' sim.pt <- sim.pt.closure(ptest.dist=function(u) runif(1, 0, 4),
+#'                          ptest.prob=function(u) 0.5)
+#' sim.pt(df[df$di == 1,])
+sim.pt.closure <- function(ptest.dist, ptest.prob, ptest.dist2=NULL){
+  sim.pt <- function(df){
 
+    # Apply a potential second testing mechanism to the first
+    if(!is.null(ptest.dist2)){
+      # Generate from second testing mechanism
+      test_times2 <- mapply(function(t, n, u) t - ptest.dist2(n, u),
+                            t=times, n=n_p, u=infect_duration)
+      compare <- function(t, t1, t2, a1){
+        t <- ifelse((((t1 > t2) | (t2 > 0)) & a1 == 1), t1, t2)
+        return(t)
+      }
+      # Replace the test times and availability by new criteria of availability
+      test_times <- mapply(compare,
+                           t=times,
+                           t1=test_times, t2=test_times2,
+                           a1=available)
+      available <- lapply(test_times, function(t) as.integer(t <= 0))
+    }
+
+    # Timing of test
+    df$ti <- sapply(df$ui, ptest.dist)
+
+    # Availability of test
+    df$qi <- sapply(df$ui, function(u) rbinom(1, 1, ptest.prob(u)))
+
+    # Apply second testing mechanism
+    if(!is.null(ptest.dist2)){
+      df$ti2    <- sapply(df$ui, ptest.dist2)
+      df$ti     <- ifelse((((df$ti < df$ti2) | (df$ti2 < 0)) & df$qi == 1),
+                          df$ti, df$ti2)
+      df$qi     <- as.integer(df$ti > 0)
+    }
+
+    # Test result
+    df$deltai <- as.integer(df$ui >= df$ti)
+
+    df[df$qi == 0, "ti"]     <- NA
+    df[df$qi == 0, "deltai"] <- NA
+
+    return(df)
+  }
+  return(sim.pt)
+}
+
+#' Modifies the prior testing data for recall bias.
+#'
+#' @param t_noise Function to add noise to a single prior testing time.
+#'   Must be a function of t, the prior testing time.
+#' @param d_misrep Probability of given a positive prior test, individual
+#'   reports negative prior test.
+#' @param p_misrep Probability of not reporting a prior test result,
+#'   among those with positive prior test.
+#' @param t_range Range of times in which to keep prior testing times.
+#' @examples
+#' e.func <- function(e) infections.lin(e, t=0, p=0.29, lambda=0.032, rho=0.07)
+#' params <- get.gamma.params(window=200/365.25, shadow=191/365.25)
+#' phi.func <- function(t) 1-pgamma(t, shape = params[1], rate = params[2])
+#' sim <- sim.screening.closure(prevalence=0.29, e.func=e.func, phi.func=phi.func)
+#' df <- sim(100)
+#' sim.pt <- sim.pt.closure(ptest.dist=function(u) runif(1, 0, 4),
+#'                          ptest.prob=function(u) 0.5)
+#' pt.df <- sim.pt(df[df$di == 1,])
+#' t_noise <- function(t) max(0, t + rnorm(n=1, sd=0.5))
+#' modify.pt <- modify.pt.closure(t_noise=t_noise, d_misrep=1, p_misrep=0, t_range=c(1, 2))
+#' pt.df2 <- modify.pt(pt.df)
+modify.pt.closure <- function(t_noise=function(t) t, t_range=NULL,
+                              d_misrep=0, p_misrep=0){
+  modify.pt <- function(df){
+    if(d_misrep > 0 & p_misrep > 0){
+      stop("Cannot have both d_misrep and p_misrep at the same time.")
+    }
+    # Apply noise to the testing times if desired,
+    # but not changing ptest_delta
+    if(!is.null(t_noise)){
+      df$ti <- sapply(df$ti, function(t) sapply(t, t_noise))
+    }
+    # Recall bias for those with prior tests
+    if(p_misrep > 0){
+      p_bin <- rbinom(n=nrow(df), size=1, prob=1-p_misrep)
+      df$deltai <- df$deltai * p_bin
+    }
+    # Recall bias for those with positive prior tests
+    if(d_misrep > 0){
+      pos_idx <- which(df$deltai == 1)
+      if(sum(pos_idx) > 0){
+        d_bin <- rbinom(n=length(pos_idx), size=1, prob=1-d_misrep)
+        df[pos_idx, "qi"] <- df[pos_idx, "qi"] * d_bin
+      }
+    }
+    # Get rid of test results outside of certain range
+    if(!is.null(t_range)){
+      rem_idx <- which((df$ti < min(t_range)) | (df$ti > max(t_range)))
+      df[rem_idx, "qi"] <- 0
+    }
+
+    df[(df$qi == 0), "ti"] <- NA
+    df[(df$qi == 0), "deltai"] <- NA
+
+    return(df)
+  }
+  return(modify.pt)
 }
 
 #' Simulate recency indicators based on the data, true phi function,
@@ -100,8 +238,6 @@ simulate.recent <- function(sim_data, infection.function=NULL,
   times <- as.vector(sim_data$times)
   n_p <- as.vector(sim_data$n_p)
   n_n <- as.vector(sim_data$n_n)
-
-  browser()
 
   # infection time
   if(!is.null(infection.function)){

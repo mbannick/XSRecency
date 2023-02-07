@@ -193,74 +193,6 @@ get.cubic.ts <- function(ts){
   return(ts.cube)
 }
 
-#' Create a phi matrix of d x d based on draws from the phi.hat function
-#'
-#' @param d A vector
-#' @param n_approx Number of "draws" for phi.hat
-#' @param phi.hat A function that creates draws from a model object using d and any additional args ...
-#' @param ... Additional arguments to pass to phi.hat
-matrix.phi <- function(model, ts_index, dt){
-
-  # Get the set of t's that we want, in design matrix form
-  ts.cube <- get.cubic.ts(ts_index$ts)
-  # Get the linear predictor
-  lin_predictor <- ts.cube %*% matrix(model$beta)
-  # Exponentiate the linear predictor
-  phi <- expit(lin_predictor)
-  # Calculate cumulative phi and convert to a data frame
-  cphi <- cumsum(phi * dt)
-  cphi_d <- data.table(
-    index=ts_index$index,
-    phi=cphi
-  )
-
-  # We have by delta method Var(T \beta) = T %*% Var(\beta) %*% T^t
-  # Also by delta method, Var(expit(T \beta)) = J %*% T %*% Var(\beta) %*% T^t J
-  # where J is the Jacobian of the expit() transformation.
-
-  # For efficiency's sake, we can instead first calculate J %*% T
-  # since (J %*% T)^t = T^t %*% J^t = T^t %*% J
-  # and then calculate the Cholesky decomposition of Var(\beta) so that we
-  # can write Var(\beta) = U^t U where U is the upper triangular
-  # matrix from the decomposition (what chol function returns).
-
-  # Then we have, with R = J %*% T %*% U^t,
-  # the final variance-covariance matrix is R %*% R^t.
-
-  # 1. Var(\beta) and Cholesky decomposition
-  U <- chol(model$vbeta)
-
-  # 2. Jacobial of transformation
-  delta_g <- exp(lin_predictor) / (1 + exp(lin_predictor))**2
-  J <- diag(c(delta_g))
-
-  # 3. Calculate R matrix
-  R <- J %*% ts.cube %*% t(U)
-
-  # 4. Calculate final variance
-  phi_var <- R %*% t(R)
-
-  # Calculate the 2-d integral of the variance-covariance matrix
-  # at all grid points by using cumsum on the rows and columns.
-  csum <- t(apply(apply(phi_var * dt^2, 2, cumsum), 1, cumsum))
-
-  # Reshape the matrix into a data frame so that it's easier to work with
-  # and merge onto the id grid.
-  csum <- data.table(csum)
-  # Need to subtract one because the indexing starts at 0
-  csum <- csum[, indexX := .I-1]
-  csum_d <- melt.data.table(csum, id.vars="indexX")
-
-  ts_index[, row := .I]
-
-  csum_d <- csum_d[, variable := as.numeric(gsub("V", "", variable))]
-  csum_d <- merge(csum_d, ts_index[, .(row, index)], by.x="variable", by.y="row")
-  setnames(csum_d, c("index", "value"), c("indexY", "rho"))
-  csum_d <- csum_d[, .(indexX, indexY, rho)]
-
-  return(list(cphi=cphi_d, csum=csum_d))
-}
-
 #' Estimate omega_T from a model object
 #' Can instead estimate mu hat if you pass in a sufficiently
 #' long follow_T parameter (like 9)
@@ -327,9 +259,6 @@ pt.properties.est <- function(ptest_times,
   )
   closest[, id := .I]
   closest[, index := NA]
-
-  # TODO: FIGURE OUT HOW TO GET TS_INDEX OUTSIDE OF THIS FUNCTION
-  # AND THE MODEL OBJECT -- HOW WILL SOMEONE PASS THE MODEL?
 
   get.closest.index <- function(t){
     if(is.na(t)){
