@@ -12,9 +12,11 @@ library(magrittr)
 #' e.func <- function(e) infections.lin(e, t=0, p=0.29, lambda=0.032, rho=0.07)
 #' params <- get.gamma.params(window=200/365.25, shadow=191/365.25)
 #' phi.func <- function(t) 1-pgamma(t, shape = params[1], rate = params[2])
-#' sim <- sim.screening.closure(prevalence=0.29, e.func=e.func, phi.func=phi.func)
+#' sim <- sim.screening.generator(prevalence=0.29, e.func=e.func, phi.func=phi.func)
 #' sim(100)
-sim.screening.closure <- function(prevalence, e.func, phi.func){
+#'
+#' @export
+sim.screening.generator <- function(prevalence, e.func, phi.func){
   sim.screening <- function(n){
 
     # number of positive subjects
@@ -51,12 +53,14 @@ sim.screening.closure <- function(prevalence, e.func, phi.func){
 #' e.func <- function(e) infections.lin(e, t=0, p=0.29, lambda=0.032, rho=0.07)
 #' params <- get.gamma.params(window=200/365.25, shadow=191/365.25)
 #' phi.func <- function(t) 1-pgamma(t, shape = params[1], rate = params[2])
-#' sim <- sim.screening.closure(prevalence=0.29, e.func=e.func, phi.func=phi.func)
+#' sim <- sim.screening.generator(prevalence=0.29, e.func=e.func, phi.func=phi.func)
 #' df <- sim(100)
-#' sim.pt <- sim.pt.closure(ptest.dist=function(u) runif(1, 0, 4),
+#' sim.pt <- sim.pt.generator(ptest.dist=function(u) runif(1, 0, 4),
 #'                          ptest.prob=function(u) 0.5)
 #' sim.pt(df[df$di == 1,])
-sim.pt.closure <- function(ptest.dist, ptest.prob, ptest.dist2=NULL){
+#'
+#' @export
+sim.pt.generator <- function(ptest.dist, ptest.prob, ptest.dist2=NULL){
   sim.pt <- function(df){
 
     # Apply a potential second testing mechanism to the first
@@ -114,15 +118,17 @@ sim.pt.closure <- function(ptest.dist, ptest.prob, ptest.dist2=NULL){
 #' e.func <- function(e) infections.lin(e, t=0, p=0.29, lambda=0.032, rho=0.07)
 #' params <- get.gamma.params(window=200/365.25, shadow=191/365.25)
 #' phi.func <- function(t) 1-pgamma(t, shape = params[1], rate = params[2])
-#' sim <- sim.screening.closure(prevalence=0.29, e.func=e.func, phi.func=phi.func)
+#' sim <- sim.screening.generator(prevalence=0.29, e.func=e.func, phi.func=phi.func)
 #' df <- sim(100)
-#' sim.pt <- sim.pt.closure(ptest.dist=function(u) runif(1, 0, 4),
+#' sim.pt <- sim.pt.generator(ptest.dist=function(u) runif(1, 0, 4),
 #'                          ptest.prob=function(u) 0.5)
 #' pt.df <- sim.pt(df[df$di == 1,])
 #' t_noise <- function(t) max(0, t + rnorm(n=1, sd=0.5))
-#' modify.pt <- modify.pt.closure(t_noise=t_noise, d_misrep=1, p_misrep=0, t_range=c(1, 2))
+#' modify.pt <- modify.pt.generator(t_noise=t_noise, d_misrep=1, p_misrep=0, t_range=c(1, 2))
 #' pt.df2 <- modify.pt(pt.df)
-modify.pt.closure <- function(t_noise=function(t) t, t_range=NULL,
+#'
+#' @export
+modify.pt.generator <- function(t_noise=function(t) t, t_range=NULL,
                               d_misrep=0, p_misrep=0){
   modify.pt <- function(df){
     if(d_misrep > 0 & p_misrep > 0){
@@ -624,6 +630,7 @@ incidence.exp <- function(t, lambda_0, rho=1) lambda_0 * exp(-rho * t)
 #' @examples
 #' e <- runif(10)
 #' infections.con(e, t=0, p=0.2, lambda_0=0.05)
+#' @export
 infections.con <- function(e, t, p, lambda_0, rho=NA){
   # Note that you can work with e or 1 - e since e is Uniform(0, 1)
   infections <- t - p*e / ((1 - p) * lambda_0)
@@ -641,6 +648,7 @@ infections.con <- function(e, t, p, lambda_0, rho=NA){
 #' @examples
 #' e <- runif(10)
 #' infections.lin(e, t=0, p=0.2, lambda_0=0.05, rho=1e-3)
+#' @export
 infections.lin <- function(e, t, p, lambda_0, rho){
   incidence <- lambda_0
   numerator <- incidence**2 + 2 * rho * p * e / (1 - p)
@@ -680,6 +688,8 @@ infections.lincon <- function(e, t, p, lambda_0, rho, bigT){
 #' @examples
 #' e <- runif(10)
 #' infections.exp(e, t=0, p=0.2, lambda_0=0.05, rho=0.07)
+#'
+#' @export
 infections.exp <- function(e, t, p, lambda_0, rho){
   incidence <- lambda_0
   infections <- t - (1/rho) * log(rho*p*e/((1-p)*incidence) + 1)

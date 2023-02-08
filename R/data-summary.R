@@ -12,33 +12,36 @@ ELEMENTS <- c(
   "r_TA", "r_TAprime", "r_TAstar"
 )
 
-LISTKEY <- sapply(ELEMENTS, function(x) 0)
+LISTKEY <- list()
+for(elem in ELEMENTS){
+  LISTKEY[[elem]] <- 0
+}
 
 # Function that summarizes a dataset
 summarize.data <- function(df){
 
-  s <- copy(LISTKEY)
+  s <- LISTKEY
   s[["n"]] <- nrow(df)
   s[["n_p"]] <- sum(df$di)
-  s[["n_n"]] <- n - n_p
+  s[["n_n"]] <- s[["n"]] - s[["n_p"]]
   s[["n_r"]] <- sum(df$ri, na.rm=TRUE)
 
   return(s)
 }
 
-.test.phi <- function(phidat, formula, use_geese=TRUE, ...){
+.test.phi <- function(phidat, formula, family, use_geese=TRUE, ...){
 
   if(use_geese){
     modfunc <- geese
   } else {
     modfunc <- glm
   }
-  mod <- modfunc(formula=formula, ..., data=phidat)
+  mod <- modfunc(formula=as.formula(formula), family=family, ..., data=phidat)
   dat <- data.frame(
     ri=rnorm(10),
     ui=1:10
   )
-  newdat <- model.matrix(formula, data=dat)
+  newdat <- model.matrix(as.formula(formula), data=dat)
   tryCatch(
     expr={
       if(use_geese){
@@ -46,7 +49,7 @@ summarize.data <- function(df){
       } else {
         coefs <- coef(mod)
       }
-      preds <- coefs %*% newdat
+      preds <- newdat %*% coefs
     },
     error=function(e){
       msg <- paste0(
@@ -61,12 +64,13 @@ summarize.data <- function(df){
 .get.ts <- function(minT, maxT, dt){
   index <- seq(minT/dt, maxT/dt, by=1)
   ts <- index*dt
-  return(data.table(index=index, ts=ts))
+  dat <- data.frame(index=index, ts=ts)
+  return(dat)
 }
 
 # The algorithm to get recent classification
 # based on recency assay + prior testing
-.get.Mi <- function(ptdf){
+.get.Mi <- function(ptdf, bigT){
 
   Np <- nrow(ptdf)
 
@@ -97,7 +101,7 @@ summarize.data <- function(df){
   closest <- data.table(
     ts_orig=ptdf$ti,
     has_test=ptdf$qi,
-    Mi=ptdf$mi
+    Mi=ptdf$Mi
   )
   closest[, id := .I]
   closest[, index := NA]
@@ -106,22 +110,21 @@ summarize.data <- function(df){
     if(is.na(t)){
       idx <- NA
     } else {
-      idx <- ts_index[which.min(abs(t - ts_index$ts)), index]
+      idx <- ts_index[which.min(abs(t - ts_index$ts)), "index"]
     }
   }
   closest_index <- sapply(closest$ts_orig, get.closest.index)
   closest[, index := closest_index]
   closest <- merge(closest, ts_index, by="index", all.x=T)
 
-  closest[, Ai := as.numeric((ts <= bigT_index[, ts]) & (has_test))]
-  closest[, Bi := as.numeric((ts > bigT_index[, ts]) & (has_test))]
+  closest[, Ai := as.numeric((ts <= bigT_index[, "ts"]) & (has_test))]
+  closest[, Bi := as.numeric((ts > bigT_index[, "ts"]) & (has_test))]
 
   return(closest)
 }
 
-.pt.properties.est <- function(closest, cphi){
-
-  elem <- copy(LISTKEY)
+.pt.properties.est <- function(closest, bigTidx, cphi){
+  elem <- list()
 
   # Calculate fraction of those with recent/non-recent prior tests
   p_A <- mean(closest$Ai)
@@ -177,8 +180,7 @@ summarize.data <- function(df){
     # Calculate r_TiTstar conditional expectation
     idmap3 <- idmap
     idmap3[, indexX := index]
-
-    idmap3[, indexY := bigT_index[, index]]
+    idmap3[, indexY := bigTidx]
 
     r_Tistar <- merge(idmap3, cphi_covar, by=c("indexX", "indexY"), all.X=T)
     elem[["r_TAstar"]] <- mean(r_Tistar$rho)
@@ -208,6 +210,7 @@ summarize.data <- function(df){
 #'                Formula argument must take in only ui as the newdata.
 #'                For example, do not create a ui^2 variable. Use poly(ui, ...) function
 #'                to fit polynomial terms.
+#' @param family Family argument for glm or gee
 #' @param dt An integration step size. Should be no more than 1 day.
 #' @param ptdf Data frame of prior testing data. These records should
 #'             only be from people who are HIV positive. They need to have
@@ -221,11 +224,14 @@ summarize.data <- function(df){
 #'               for recency indicator and ui for infection duration.
 #'               Can have more columns, e.g., if an id is needed for geese.
 #' @param ... Additional arguments to either glm or geese(..., data=phidat).
-summarize.data.pt.closure <- function(bigT, dt=1/365.25,
-                                      use_geese=NULL, formula=NULL, ...){
+#' @export
+summarize.pt.generator <- function(bigT, dt=1/365.25,
+                                   use_geese=FALSE, formula, family,
+                                   plot_phi=TRUE,
+                                   ...){
 
-  summarize.data.pt <- function(ptdf=NULL, n=NULL, n_p=NULL, df=NULL,
-                                phidat=NULL){
+  summarize.pt <- function(ptdf=NULL, n=NULL, n_p=NULL, df=NULL,
+                           phidat=NULL){
 
     # PART 1: SUMMARIZE TRIAL DATA AND GET NEW RECENCY INDICATOR
     # ----------------------------------------------------------
@@ -236,7 +242,7 @@ summarize.data.pt.closure <- function(bigT, dt=1/365.25,
       if(is.null(n_p)) stop("must provide n_p with ptdr")
       if(!is.null(df)) stop("can only provide one of df or ptdf")
 
-      s <- copy(LISTKEY)
+      s <- LISTKEY
       s[["n"]]   <- n
       s[["n_p"]] <- n_p
       s[["n_n"]] <- n - n_p
@@ -247,15 +253,16 @@ summarize.data.pt.closure <- function(bigT, dt=1/365.25,
 
       # First get the summary based on trial data
       s <- summarize.data(df)
-      ptdf <- df[df$di == 1]
+      ptdf <- df[df$di == 1,]
 
     }
 
     # Generate recency indicator based on new algorithm
-    ptdf$Mi <- .get.Mi(ptdf)
+    ptdf$Mi <- .get.Mi(ptdf, bigT)
 
     # Calculate the new number of recents, and q effective
     # (proportion of positives w/ a prior test result)
+    s[["n_r"]] <- sum(ptdf$ri)
     s[["n_r_pt"]] <- sum(ptdf$Mi)
     n_d <- sum(ptdf$qi)
     s[["q_eff"]] <- n_d / s[["n_p"]]
@@ -263,10 +270,10 @@ summarize.data.pt.closure <- function(bigT, dt=1/365.25,
     # PART 2: MAP TESTING TIMES TO A TIME GRID BASED ON DT
     # ----------------------------------------------------
 
-    ts_index <- .get.ts(minT=0, maxT=max(ptdf$ti, bigT), dt=dt)
+    ts_index <- .get.ts(minT=0, maxT=max(ptdf$ti, bigT, na.rm=TRUE), dt=dt)
 
     # Convert bigT onto the grid
-    bigT_index <- ts_index[which.min(abs(bigT - ts_index$ts))]
+    bigT_index <- ts_index[which.min(abs(bigT - ts_index$ts)),]
 
     closest <- .map.to.tgrid(ts_index=ts_index,
                              ptdf=ptdf,
@@ -276,7 +283,7 @@ summarize.data.pt.closure <- function(bigT, dt=1/365.25,
     # -----------------------------------------------------------
 
     # Make sure model works based on the user arguments
-    .test.phi(phidat=phidat, use_geese=use_geese, formula=formula, ...)
+    .test.phi(phidat=phidat, use_geese=use_geese, formula=formula, family=family, ...)
 
     if(use_geese){
       modfunc <- geese
@@ -285,23 +292,37 @@ summarize.data.pt.closure <- function(bigT, dt=1/365.25,
     }
 
     # Fit the model
-    mod <- modfunc(formula=formula, ..., data=phidat)
+    mod <- modfunc(formula=as.formula(formula), family=family, ..., data=phidat)
 
     # Construct cumulative phi vector and cumulative covariance matrix
-    cphi <- .matrix.phi(model=mod, ts_index=ts_index)
+    cphi <- .matrix.phi(model=mod, family=family,
+                        ts=ts_index$ts, ts_index=ts_index$index)
+
+    if(plot_phi){
+      # PART 3B: Plot an estimated phi function and the prior testing data
+      ts_plot <- seq(0, max(phidat$ui), by=dt)
+      preds <- .predict.phi(ts=ts_plot,
+                            model=mod, family=family, varcov=FALSE)[["point"]]
+      plot(phidat$ri ~ phidat$ui, main="Estimated Phi Function",
+           xlab="Infection Duration", ylab="Test Recent Probability")
+      lines(preds ~ ts_plot, col="#4295f5", lwd=2)
+    }
 
     # PART 4: ESTIMATE OMEGA_T^*
     # ----------------------
-    ts_omega <- ts_index[ts <= bigT_index[, ts]]$ts
-    omega <- integrate.phi(model, ts_omega, dt=dt) # TODO: REDO THIS SO THAT IT JUST TAKES THE INDEX
+    bigTidx <- bigT_index$index
 
-    s[["omega_est"]] <- omega$est
-    s[["omega_var"]] <- omega$var
+    # Extract the cumulative phi at bigT (this is Omega est)
+    # and the cumulative Cov(phi, phi) at (bigT, bigT) (this is Omega var)
+    c1 <- cphi$cphi
+    c2 <- cphi$csum
+
+    s[["omega"]] <- c1[c1$index == bigTidx, phi]
+    s[["omega_var"]] <- c2[c2$indexX == bigTidx & c2$indexY == bigTidx, rho]
 
     # PART 5: ESTIMATE ALL OF THE OTHER THINGS THAT HAVE TO DO WITH PRIOR TESTING
     # ---------------------------------------------------------------------------
-
-    ptlist <- .pt.properties.est(closest=closest, cphi=cphi)
+    ptlist <- .pt.properties.est(closest=closest, bigTidx=bigTidx, cphi=cphi)
 
     # Add all of the pt estimates to the main list
     for(el in names(ptlist)){
@@ -310,6 +331,6 @@ summarize.data.pt.closure <- function(bigT, dt=1/365.25,
 
     return(s)
   }
-  return(summarize.data.pt)
+  return(summarize.pt)
 }
 

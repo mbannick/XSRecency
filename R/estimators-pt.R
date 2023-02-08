@@ -216,9 +216,31 @@ var.log.to.var <- function(estimate, variance) (estimate ** 2) * variance
 #'                 omega=0.36, omega_var=0, beta=0.02, beta_var=0, big_T=2, q=1)
 #' get.adjusted.pt(n_r=c(2, 3), n_n=c(50, 48), n_p=c(10, 12), n=c(60, 60),
 #'                 omega=0.36, omega_var=0, beta=0.02, beta_var=0, big_T=2)
-get.adjusted.pt <- function(n_r_pt, n_r, n_n, n_p, n, omega, omega_var,
-                            beta, beta_var, big_T, pt_data, q=1){
+get.adjusted.pt <- function(n_p, n, ptdf,
+                            beta, beta_var, big_T,
+                            phidat, use_geese, formula, family, ...){
 
+  # Summarize data inputs from the prior testing data
+  # and an estimate of the phi function
+  summdat <- summarize.pt.generator(bigT=big_T, use_geese=use_geese,
+                                    formula=formula,
+                                    family=family)
+  args <- summdat(ptdf=ptdf, n=n, n_p=n_p, phidat=phidat)
+
+  # Set up additional arguments
+  args[["beta"]] <- beta
+  args[["beta_var"]] <- beta_var
+  args[["big_T"]] <- big_T
+
+  # Run estimation function
+  funcresult <- R.utils::doCall(get.adjusted.pt.internal, args=args)
+
+  result <- list()
+  result[["est"]] <- funcresult$est
+  # Use the variance that is robust
+  result[["var"]] <- funcresult$var[[1]]
+
+  return(result)
 }
 
 get.adjusted.pt.internal <- function(n_r_pt, n_r, n_n, n_p, n, omega, omega_var,
