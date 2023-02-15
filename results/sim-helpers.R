@@ -6,6 +6,7 @@ source("R/external-study-data.R")
 source("R/estimators.R")
 source("R/estimators-pt.R")
 source("R/utils.R")
+source("R/phi-matrix.R")
 
 library(magrittr)
 
