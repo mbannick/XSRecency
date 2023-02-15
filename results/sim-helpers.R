@@ -1,5 +1,6 @@
 setwd("~/repos/XSRecency/")
 source("R/data-generator.R")
+source("R/data-summary.R")
 source("R/external-study-sim.R")
 source("R/external-study-data.R")
 source("R/estimators.R")
