@@ -294,10 +294,10 @@ summarize.pt.generator <- function(bigT, dt=1/365.25,
     # Fit the model
     mod <- modfunc(formula=as.formula(formula), family=family, ..., data=phidat)
 
+    start.time <- Sys.time()
     # Construct cumulative phi vector and cumulative covariance matrix
     cphi <- .matrix.phi(model=mod, family=family,
                         ts=ts_index$ts, ts_index=ts_index$index)
-
     if(plot_phi){
       # PART 3B: Plot an estimated phi function and the prior testing data
       ts_plot <- seq(0, max(phidat$ui), by=dt)
@@ -306,6 +306,9 @@ summarize.pt.generator <- function(bigT, dt=1/365.25,
       plot(phidat$ri ~ phidat$ui, main="Estimated Phi Function",
            xlab="Infection Duration", ylab="Test Recent Probability")
       lines(preds ~ ts_plot, col="#4295f5", lwd=2)
+    } else {
+      end.time <- Sys.time()
+      print(end.time - start.time)
     }
 
     # PART 4: ESTIMATE OMEGA_T^*

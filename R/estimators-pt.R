@@ -218,13 +218,13 @@ var.log.to.var <- function(estimate, variance) (estimate ** 2) * variance
 #'                 omega=0.36, omega_var=0, beta=0.02, beta_var=0, big_T=2)
 get.adjusted.pt <- function(n_p, n, ptdf,
                             beta, beta_var, big_T,
-                            phidat, use_geese, formula, family, ...){
+                            phidat, use_geese, formula, family, plot_phi=TRUE, ...){
 
   # Summarize data inputs from the prior testing data
   # and an estimate of the phi function
   summdat <- summarize.pt.generator(bigT=big_T, use_geese=use_geese,
                                     formula=formula,
-                                    family=family)
+                                    family=family, plot_phi=plot_phi)
   args <- summdat(ptdf=ptdf, n=n, n_p=n_p, phidat=phidat)
 
   # Set up additional arguments
@@ -239,6 +239,15 @@ get.adjusted.pt <- function(n_p, n, ptdf,
   result[["est"]] <- funcresult$est
   # Use the variance that is robust
   result[["var"]] <- funcresult$var[[1]]
+
+  result[["omega"]] <- args$omega
+  result[["omega_var"]] <- args$omega_var
+  result[["n_r"]] <- args$n_r
+  result[["n_n"]] <- args$n_n
+  result[["n_r_pt"]] <- args$n_r_pt
+  result[["n_p"]] <- args$n_p
+  result[["n"]] <- args$n
+  result[["q_eff"]] <- args$q_eff
 
   return(result)
 }

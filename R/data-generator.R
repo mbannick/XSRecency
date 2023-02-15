@@ -17,7 +17,7 @@ library(magrittr)
 #'
 #' @export
 sim.screening.generator <- function(prevalence, e.func, phi.func){
-  sim.screening <- function(n){
+  sim.screening <- function(n, return_n=TRUE){
 
     # number of positive subjects
     pos <- rbinom(n=n, size=1, prob=prevalence) %>% sort
@@ -30,11 +30,16 @@ sim.screening.generator <- function(prevalence, e.func, phi.func){
     # recency indicator
     rec <- rbinom(n=npos, size=1, prob=phi.func(-inf.time))
 
-    return(data.frame(
+    df <- data.frame(
       di=pos,
       ui=c(rep(NA, n-npos), -inf.time),
       ri=c(rep(NA, n-npos), rec)
-    ))
+    )
+    if(!return_n){
+      df <- df[df$di == 1,]
+    }
+
+    return(df)
   }
   return(sim.screening)
 }
@@ -62,23 +67,6 @@ sim.screening.generator <- function(prevalence, e.func, phi.func){
 #' @export
 sim.pt.generator <- function(ptest.dist, ptest.prob, ptest.dist2=NULL){
   sim.pt <- function(df){
-
-    # Apply a potential second testing mechanism to the first
-    if(!is.null(ptest.dist2)){
-      # Generate from second testing mechanism
-      test_times2 <- mapply(function(t, n, u) t - ptest.dist2(n, u),
-                            t=times, n=n_p, u=infect_duration)
-      compare <- function(t, t1, t2, a1){
-        t <- ifelse((((t1 > t2) | (t2 > 0)) & a1 == 1), t1, t2)
-        return(t)
-      }
-      # Replace the test times and availability by new criteria of availability
-      test_times <- mapply(compare,
-                           t=times,
-                           t1=test_times, t2=test_times2,
-                           a1=available)
-      available <- lapply(test_times, function(t) as.integer(t <= 0))
-    }
 
     # Timing of test
     df$ti <- sapply(df$ui, ptest.dist)
