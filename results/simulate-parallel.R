@@ -17,7 +17,7 @@ source("./R/phi-functions.R")
 a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                     defaults=list(
                       seed=100,
-                      n_sims=10,
+                      n_sims=2,
                       n=5000,
                       p=0.29,
                       inc=0.032,
@@ -169,21 +169,21 @@ if(!a$pt){
 } else {
   # THESE ARE THE PRIOR TEST SETTINGS
 
-  ptest.dist <- function(n, u) runif(n, a$t_min, a$t_max)
+  ptest.dist <- function(u) runif(1, a$t_min, a$t_max)
   ptest.prob <- function(u) a$q
 
   if(a$mech2){
     GAMMA_PARMS <- c(1.57243557, 1.45286770, -0.02105187)
-    ptest.dist2 <- function(n, u) u - rgengamma(n=n,
-                                                mu=GAMMA_PARMS[1],
-                                                sigma=GAMMA_PARMS[2],
-                                                Q=GAMMA_PARMS[3])
+    ptest.dist2 <- function(u) u - rgengamma(n=1,
+                                             mu=GAMMA_PARMS[1],
+                                             sigma=GAMMA_PARMS[2],
+                                             Q=GAMMA_PARMS[3])
   } else {
     ptest.dist2 <- NULL
   }
 
   if(!is.null(a$gamma)){
-    t_noise <- function(t) min(0, t + rnorm(n=1, sd=a$gamma))
+    t_noise <- function(t) max(0, t + rnorm(n=1, sd=a$gamma))
   } else {
     t_noise <- NULL
   }
