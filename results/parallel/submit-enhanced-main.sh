@@ -21,13 +21,16 @@ PT="-pt"
 
 BASELINE="${ARGS} ${RHO} ${TYPE} ${ASSAY} ${TAIL} ${PT}"
 
-for Q in 0.2 0.4 0.6 0.8 1.0
+for SEED in 100 2354 3482 8247 5893
 do
-  for TRANGE in "0 4" "0 2" "1 3"
+  for Q in 0.2 0.4 0.6 0.8 1.0
   do
-    set -- $TRANGE
-    PTARGS="-t_min $1 -t_max $2 -q $Q"
-    # echo "qsub ${CONSTANTS} ${BASELINE} ${PTARGS}"
-    qsub ${CONSTANTS} ${BASELINE} ${PTARGS}
+    for TRANGE in "0 4" "0 2" "2 4"
+    do
+      set -- $TRANGE
+      PTARGS="-t_min $1 -t_max $2 -q $Q"
+      # echo "qsub ${CONSTANTS} ${BASELINE} ${PTARGS}"
+      qsub ${CONSTANTS} ${BASELINE} ${PTARGS} -seed ${SEED}
+    done
   done
 done

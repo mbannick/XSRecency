@@ -23,13 +23,16 @@ PT="-pt"
 
 BASELINE="${ARGS} ${ASSAY} ${TAIL} ${PT}"
 
-for Q in 0.5 1.0
+for SEED in 100 2354 3482 8247 5893
 do
+  for Q in 0.5
+  do
     for TMAX in 4 $TAU
     do
-        qsub ${CONSTANTS} ${BASELINE} -q $Q -itype constant -t_min $TMIN -t_max $TMAX
-        qsub ${CONSTANTS} ${BASELINE} -q $Q -itype constant -exclude_pt_bigT -t_min $TMIN -t_max $TMAX
-        qsub ${CONSTANTS} ${BASELINE} -q $Q -itype piecewise -rho ${RHO} -t_min $TMIN -t_max $TMAX
-        qsub ${CONSTANTS} ${BASELINE} -q $Q -itype piecewise -rho ${RHO} -exclude_pt_bigT -t_min $TMIN -t_max $TMAX
+      qsub ${CONSTANTS} ${BASELINE} -q $Q -itype constant -t_min $TMIN -t_max $TMAX -seed ${SEED}
+      qsub ${CONSTANTS} ${BASELINE} -q $Q -itype constant -exclude_pt_bigT -t_min $TMIN -t_max $TMAX -seed ${SEED}
+      qsub ${CONSTANTS} ${BASELINE} -q $Q -itype piecewise -rho ${RHO} -t_min $TMIN -t_max $TMAX -seed ${SEED}
+      qsub ${CONSTANTS} ${BASELINE} -q $Q -itype piecewise -rho ${RHO} -exclude_pt_bigT -t_min $TMIN -t_max $TMAX -seed ${SEED}
     done
+  done
 done

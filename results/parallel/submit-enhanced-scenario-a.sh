@@ -26,9 +26,12 @@ MECH2="-mech2"
 
 BASELINE="${ARGS} ${RHO} ${TYPE} ${ASSAY} ${TAIL} ${PT}"
 
-for Q in 0.25 0.5 0.75
+for SEED in 100 2354 3482 8247 5893
 do
-  PTARGS="-t_min $TMIN -t_max $TMAX -q $Q"
-  qsub ${CONSTANTS} ${BASELINE} ${PTARGS}
-  qsub ${CONSTANTS} ${BASELINE} ${PTARGS} ${MECH2}
+  for Q in 0.25 0.5 0.75
+  do
+    PTARGS="-t_min $TMIN -t_max $TMAX -q $Q"
+    qsub ${CONSTANTS} ${BASELINE} ${PTARGS} -seed ${SEED}
+    qsub ${CONSTANTS} ${BASELINE} ${PTARGS} ${MECH2} -seed ${SEED}
+  done
 done
