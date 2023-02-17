@@ -9,6 +9,7 @@ library(pbapply)
 # Get the input and output directories
 args <- commandArgs(trailingOnly=TRUE)
 version <- args[1]
+version <- "15-02-2023-14-27-56"
 in.dir <- paste0("~/Documents/FileZilla/xs-recent/enhanced/", version)
 
 # Read in files
@@ -37,11 +38,17 @@ for(var in c("rho", "phi_frr", "phi_tfrr", "phi_norm_mu",
 id.vars.nosim <- id.vars[!id.vars %in% c("sim", "seed")]
 id.vars.nosim.est <- c(id.vars.nosim, "estimator")
 
-df[, adj_true_var_rob := adj_true_var]
-df[, adj_true_var_asm := adj_true_var]
+df[, adj_true_var_rob := adj_est_var]
+df[, adj_true_var_asm := adj_est_var]
 
 df[, adj_est_var_rob := adj_est_var]
 df[, adj_est_var_asm := adj_est_var]
+
+df[, adj_true_est := adj_est_est]
+df[, eadj_true_est := eadj_est_est]
+
+df[, eadj_true_var_rob := eadj_est_var_rob]
+df[, eadj_true_var_asm := eadj_est_var_asm]
 
 est.variables <- c("adj_true_est", "adj_est_est", "eadj_true_est", "eadj_est_est")
 var.rob.variables <- c("adj_true_var_rob", "adj_est_var_rob", "eadj_true_var_rob", "eadj_est_var_rob")
