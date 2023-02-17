@@ -218,7 +218,7 @@ var.log.to.var <- function(estimate, variance) (estimate ** 2) * variance
 #'                 omega=0.36, omega_var=0, beta=0.02, beta_var=0, big_T=2)
 get.adjusted.pt <- function(n_p, n, ptdf,
                             beta, beta_var, big_T,
-                            phidat, use_geese, formula, family, plot_phi=TRUE, ...){
+                            phidat, use_geese, formula, family, plot_phi=TRUE, return_all=TRUE, ...){
 
   # Summarize data inputs from the prior testing data
   # and an estimate of the phi function
@@ -235,19 +235,25 @@ get.adjusted.pt <- function(n_p, n, ptdf,
   # Run estimation function
   funcresult <- R.utils::doCall(get.adjusted.pt.internal, args=args)
 
-  result <- list()
-  result[["est"]] <- funcresult$est
-  # Use the variance that is robust
-  result[["var"]] <- funcresult$var[[1]]
+  if(return_all==TRUE){
+    result <- args
+    result[["est"]] <- funcresult$est
+    result[["var"]] <- funcresult$var[[1]]
+  } else {
+    result <- list()
+    result[["est"]] <- funcresult$est
+    # Use the variance that is robust
+    result[["var"]] <- funcresult$var[[1]]
 
-  result[["omega"]] <- args$omega
-  result[["omega_var"]] <- args$omega_var
-  result[["n_r"]] <- args$n_r
-  result[["n_n"]] <- args$n_n
-  result[["n_r_pt"]] <- args$n_r_pt
-  result[["n_p"]] <- args$n_p
-  result[["n"]] <- args$n
-  result[["q_eff"]] <- args$q_eff
+    result[["omega"]] <- args$omega
+    result[["omega_var"]] <- args$omega_var
+    result[["n_r"]] <- args$n_r
+    result[["n_n"]] <- args$n_n
+    result[["n_r_pt"]] <- args$n_r_pt
+    result[["n_p"]] <- args$n_p
+    result[["n"]] <- args$n
+    result[["q_eff"]] <- args$q_eff
+  }
 
   return(result)
 }
