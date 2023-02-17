@@ -266,7 +266,6 @@ simulate.pt <- function(n_sims, n, infection.function, phi.func,
     q_eff=unlist(eadj["q_eff",]),
     n=unlist(eadj["n",])
   )
-  browser()
   for(elem in rownames(eadj)){
     results[[elem]] <- unlist(eadj[elem,])
   }

@@ -18,6 +18,7 @@ source("~/repos/XSRecency/R/data-generator.R")
 
 # READ IN VERSIONED RESULTS ---------------------------------
 version <- "~/Documents/FileZilla/xs-recent/enhanced/15-12-2022-17-11-12/"
+version <- "~/Documents/FileZilla/xs-recent/enhanced/15-02-2023-14-27-56/"
 
 df <- fread(paste0(version, "detail.csv"))
 summ <- fread(paste0(version, "summary.csv"))
@@ -69,7 +70,7 @@ cols <- c("#000000", brewer.pal(n=3,"Set2"))
 patts <- c("magick", "stripe", "crosshatch", "circle")
 # patts <- c("magick", "magick", "magick", "magick")
 
-pdf("~/repos/Recency-Algorithm-with-Prior-HIV-Testing/correct-spec-bias-3.pdf",
+pdf("~/repos/Recency-Algorithm-with-Prior-HIV-Testing/correct-spec-bias-NEWCODE.pdf",
     height=7, width=11)
 fig <- ggplot(plot_df) +
   geom_hline(yintercept=TRUTH, color="black", linetype="dashed") +
