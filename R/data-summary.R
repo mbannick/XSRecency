@@ -93,16 +93,25 @@ summarize.data <- function(df){
   Mi <- Ri * (1 - Bi * Di) + (1 - Ri) * Ai * (1 - Di)
   Mi[!Qi] <- Ri[!Qi]
 
-  return(Mi)
+  return(data.frame(
+    Mi=Mi,
+    Ai=Ai,
+    Bi=Bi,
+    Ci=Ci
+  ))
 }
 
 .map.to.tgrid <- function(ts_index, ptdf, bigT_index){
 
-  closest <- data.table(
-    ts_orig=ptdf$ti,
-    has_test=ptdf$qi,
-    Mi=ptdf$Mi
-  )
+  closest <- ptdf[, c("ti", "qi", "Mi", "Ai", "Bi", "Ci")]
+  closest <- data.table(closest)
+  setnames(closest, c("ti", "qi"), c("ts_orig", "has_test"))
+
+  # closest <- data.table(
+  #   ts_orig=ptdf$ti,
+  #   has_test=ptdf$qi,
+  #   Mi=ptdf$Mi
+  # )
   closest[, id := .I]
   closest[, index := NA]
 
@@ -117,8 +126,8 @@ summarize.data <- function(df){
   closest[, index := closest_index]
   closest <- merge(closest, ts_index, by="index", all.x=T)
 
-  closest[, Ai := as.numeric((ts <= bigT_index[, "ts"]) & (has_test))]
-  closest[, Bi := as.numeric((ts > bigT_index[, "ts"]) & (has_test))]
+  # closest[, Ai := as.numeric((ts <= bigT_index[, "ts"]) & (has_test))]
+  # closest[, Bi := as.numeric((ts > bigT_index[, "ts"]) & (has_test))]
 
   return(closest)
 }
@@ -132,6 +141,9 @@ summarize.data <- function(df){
 
   elem[["p_A"]] <- p_A
   elem[["p_B"]] <- p_B
+
+  # This is \sum 1 - I(T_i > T^*)
+  elem[["num_beta"]] <- sum(!closest$Bi)
 
   if(p_A > 0){
 
@@ -198,6 +210,9 @@ summarize.data <- function(df){
     elem[["mu_TB"]] <- mean(tb)
     elem[["var_TB"]] <- var(tb)
 
+    # This is I(T_i > T^*) * T_i
+    elem[["den_beta"]] <- sum(tb)
+
   }
   return(elem)
 }
@@ -257,8 +272,9 @@ summarize.pt.generator <- function(bigT, dt=1/365.25,
 
     }
 
-    # Generate recency indicator based on new algorithm
-    ptdf$Mi <- .get.Mi(ptdf, bigT)
+    # Generate recency indicators based on new algorithm
+    newcols <- .get.Mi(ptdf, bigT)
+    ptdf <- cbind(ptdf, newcols)
 
     # Calculate the new number of recents, and q effective
     # (proportion of positives w/ a prior test result)
