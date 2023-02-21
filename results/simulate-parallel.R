@@ -42,7 +42,7 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                       last_point=FALSE,
                       pt=TRUE,
                       t_min=0,
-                      t_max=4,
+                      t_max=2,
                       q=0.5,
                       gamma=0.0, # variance for the Gaussian noise to add to prior test time
                       eta=0.0, # the probability of incorrectly reporting negative test

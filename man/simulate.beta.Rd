@@ -7,7 +7,7 @@ tail probabilities from the phi parameters
 by sampling from a binomial with a sample size
 given in the study.}
 \usage{
-\method{simulate}{beta}(phi.func, minT, maxT, recent = NULL)
+simulate.beta(phi.func, minT, maxT, recent = NULL)
 }
 \description{
 This simulates the false recency rate using

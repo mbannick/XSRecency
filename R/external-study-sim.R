@@ -210,6 +210,8 @@ integrate.phi <- function(model, ts, dt=0.01){
   # integrate the linear predictor over the times
   estimate <- sum(phi * dt)
 
+  browser()
+
   # get the variance of omega_t
   # get the gradient of the linear predictor and then multiply
   # by the time diff, so it's the sum of the gradients

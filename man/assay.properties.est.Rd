@@ -5,7 +5,16 @@
 \title{Use an assay df with recent (yes/no) and duration columns
 to calculate the mean window period and MDRI of the assay}
 \usage{
-assay.properties.est(study, bigT, tau, last_point = TRUE)
+assay.properties.est(
+  study,
+  bigT,
+  tau,
+  last_point = TRUE,
+  dt = 1/365.25,
+  ptest_times = NULL,
+  ptest_delta = NULL,
+  ptest_avail = NULL
+)
 }
 \arguments{
 \item{study}{Data frame with recent and durations variables}

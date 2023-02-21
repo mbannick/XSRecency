@@ -13,7 +13,11 @@ assay.properties.nsim(
   ext_FRR = FALSE,
   ext_df = NULL,
   max_FRR = NULL,
-  last_point = FALSE
+  last_point = FALSE,
+  ptest_times = NULL,
+  ptest_delta = NULL,
+  ptest_avail = NULL,
+  ri = NULL
 )
 }
 \arguments{

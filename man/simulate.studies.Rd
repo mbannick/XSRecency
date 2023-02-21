@@ -5,7 +5,7 @@
 \title{Function to simulate many studies
 that mimic the data from Duong et al. 2015}
 \usage{
-\method{simulate}{studies}(nsims, phi.func = NULL, ext_df = NULL)
+simulate.studies(nsims, phi.func = NULL, ext_df = NULL)
 }
 \arguments{
 \item{nsims}{Number of study simulations}
