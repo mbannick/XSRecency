@@ -8,6 +8,8 @@ library(tidyr)
 # Get the input and output directories
 args <- commandArgs(trailingOnly=TRUE)
 version <- args[1]
+version <- "15-02-2023-14-27-56"
+version <- "15-12-2022-17-11-12"
 in.dir <- paste0("~/Documents/FileZilla/xs-recent/enhanced/", version)
 
 # Read in files
@@ -32,6 +34,10 @@ for(var in c("rho", "phi_frr", "phi_tfrr", "phi_norm_mu",
     id.vars <- c(id.vars, var)
   }
 }
+
+df[, adj_true_est := adj_est_est]
+df[, eadj_true_est := eadj_est_est]
+
 
 id.vars.est <- c("adj_true_est", "adj_est_est", "eadj_true_est", "eadj_est_est")
 
