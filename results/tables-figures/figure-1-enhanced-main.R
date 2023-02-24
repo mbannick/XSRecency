@@ -17,8 +17,8 @@ source("~/repos/XSRecency/R/phi-functions.R")
 source("~/repos/XSRecency/R/data-generator.R")
 
 # READ IN VERSIONED RESULTS ---------------------------------
-version <- "~/Documents/FileZilla/xs-recent/enhanced/15-12-2022-17-11-12/"
-version <- "~/Documents/FileZilla/xs-recent/enhanced/15-02-2023-14-27-56/"
+# version <- "~/Documents/FileZilla/xs-recent/enhanced/15-12-2022-17-11-12/"
+version <- "~/Documents/FileZilla/xs-recent/enhanced/21-02-2023-13-46-31/" # version with new code
 
 df <- fread(paste0(version, "detail.csv"))
 summ <- fread(paste0(version, "summary.csv"))

@@ -125,7 +125,6 @@ simulate.pt <- function(n_sims, n, infection.function, phi.func,
   } else {
     t_range.m <- NULL
   }
-
   modify.pt <- modify.pt.generator(
     t_noise=t_noise,
     t_range=t_range.m,
