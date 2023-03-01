@@ -19,8 +19,11 @@ PRS <- function(pB, beta) INC * (1-PREV) / PREV * (OMEGA - beta * (BIGT - pB * M
   beta * (1-pB)
 PR <- function(beta) INC * (1-PREV) / PREV * (OMEGA - beta * BIGT) + beta
 
+PRS(0.5, 0.02) - (PR(0.02) - 0.02 * 0.5 * (1 - INC*(1-PREV)/PREV*MUTB))
+
 vars <- function(pB, beta){
   betavar <- beta * (1-beta) / 1500
+  betavar <- 0
 
   NR <- NP * PR(beta)
   NRPT <- NP * PRS(pB, beta)
@@ -87,10 +90,12 @@ vars <- function(pB, beta){
   # return(c(v1, v$logvars))
 }
 
+
+
 library(ggplot2)
 ALLOWED_BETAS <- OMEGA / BIGT # otherwise negative denominator in estimator
 pbs <- seq(0, 1, by=0.01)
-betas <- seq(0, 0.02, by=0.001)
+betas <- seq(0, 0.014, by=0.001)
 grid <- expand.grid(pB=pbs, beta=betas)
 vals <- mapply(vars, pB=grid$pB, beta=grid$beta)
 grid$rvar <- vals
@@ -99,3 +104,6 @@ ggplot(data=grid, aes(x=pB, y=rvar, color=beta, group=beta)) +
   geom_point() +
   geom_line() +
   geom_abline(intercept=1.0, slope=0)
+
+PR(beta=0.014)
+PRS(pB=0.5, beta=0.014)
