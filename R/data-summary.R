@@ -217,6 +217,131 @@ summarize.data <- function(df){
   return(elem)
 }
 
+#' Estimate a phi function, and output omega
+#'
+#' @param phidat Data frame used to estimate the phi function, needs to have
+#'               columns ri (recency indicator), ui (duration), and id (if use_geese == TRUE)
+#' @param maxT Maximum time to estimate phi until
+#' @param min_dt Make the minimum time dt (necessary if doing a log transformation of ui)
+#' @param bigT T^\* for estimating \Omega_{T^\*}
+#' @param use_geese Indicator to fit a gee model using geese(), or a glm model with glm()
+#' @param formula Formula for fitting the model to phidat.
+#'                Formula argument must take in only ui as the newdata.
+#'                For example, do not create a ui^2 variable. Use poly(ui, ...) function
+#'                to fit polynomial terms.
+#' @param family Family argument for glm or gee
+#' @param dt An integration step size. Should be no more than 1 day.
+#' @param plot_phi Whether or not to plot the estimated phi function
+#' @param return_all Whether to return additional objects used in internal functions (will use more memory)
+#' @param ... Additional arguments to glm or geese for fitting model
+#' @export
+#'
+#' @returns List of results:
+#' * `omega`: Estimate of \Omega_{T^\*}
+#' * `omega_var`: Variance of \hat{\Omega_{T^\*}}
+#' * `bigTidx`: Index of T^\* based on `ts_index`
+#' * `ts_index`: Index mapping each time point to an integer
+#' * `get.integral.est`: Function to give an estimate of \Omega_{T} for some T as arg to the function
+#'
+#' @examples
+#' # Define phi function
+#' params <- get.gamma.params(window=248/365.25, shadow=306/365.25)
+#' phi.func <- function(t) 1-pgamma(t, shape = params[1], rate = params[2])
+#'
+#' # Simulate external study data
+#' study <- simulate.studies(1, phi.func)[[1]]
+#' setnames(study, c("id", "ui", "ri"))
+#'
+#' # Estimate omega based on 3rd degree polynomial
+#' estimate.phi(phidat=study, maxT=5, bigT=1,
+#'              formula="ri ~ poly(ui, raw=T, degree=4)", family=binomial(link="logit"),
+#'              use_geese=TRUE, plot_phi=TRUE)
+#'
+#' # Estimate omega based on 3rd degree polynomial, log function
+#' # NOTE: If you do this, need to not have any ui = 0
+#' study.log <- study
+#' study.log[study.log$ui == 0, "ui"] <- 0.01
+#' estimate.phi(phidat=study.log, maxT=10, bigT=1, min_dt=TRUE,
+#'              formula="ri ~ poly(log(ui), raw=T, degree=4)", family=binomial(link="logit"),
+#'              use_geese=TRUE, plot_phi=TRUE)
+#'
+#' # Return additional function that can be used to
+#' # quickly get other omega estimates
+#' result <- estimate.phi(phidat=study, maxT=5, bigT=1,
+#'                        formula="ri ~ poly(ui, raw=T, degree=3)", family=binomial(link="logit"),
+#'                        use_geese=TRUE, plot_phi=FALSE, return_all=TRUE)
+#'
+#' # What is \int_0^T \phi(t) dt for ts=T?
+#' result$get.integral.est(ts=2.1)
+estimate.phi <- function(phidat, maxT, bigT, dt=1/365.25, min_dt=FALSE,
+                         formula, family, use_geese,
+                         return_all=FALSE, plot_phi=FALSE, ...){
+
+  # Get map from time to integer
+  minT <- ifelse(min_dt, dt, 0)
+  ts_index <- .get.ts(minT=minT, maxT=maxT, dt=dt)
+
+  # Make sure model works based on the user arguments
+  # .test.phi(phidat=phidat, use_geese=use_geese, formula=formula, family=family, ...)
+
+  if(use_geese){
+    modfunc <- geese
+  } else {
+    modfunc <- glm
+  }
+
+  # Fit the model
+  mod <- modfunc(formula=as.formula(formula), family=family, ..., data=phidat)
+
+  start.time <- Sys.time()
+
+  # Construct cumulative phi vector and cumulative covariance matrix
+  cphi <- .matrix.phi(model=mod, family=family,
+                      ts=ts_index$ts, ts_index=ts_index$index)
+  if(plot_phi){
+    # PART 3B: Plot an estimated phi function and the prior testing data
+    ts_plot <- seq(0, max(phidat$ui), by=dt)
+    preds <- .predict.phi(ts=ts_plot,
+                          model=mod, family=family, varcov=FALSE)[["point"]]
+    plot(phidat$ri ~ phidat$ui, main="Estimated Phi Function",
+         xlab="Infection Duration", ylab="Test Recent Probability")
+    lines(preds ~ ts_plot, col="#4295f5", lwd=2)
+  } else {
+    end.time <- Sys.time()
+    print(end.time - start.time)
+  }
+
+  c1 <- cphi$cphi
+  c2 <- cphi$csum
+
+  get.integral.est <- function(ts){
+    # Convert bigT onto the grid
+    idx <- ts_index[which.min(abs(ts - ts_index$ts)),]$index
+
+    # Extract the cumulative phi at bigT (this is Omega est)
+    # and the cumulative Cov(phi, phi) at (bigT, bigT) (this is Omega var)
+    omega <- c1[c1$index == idx, phi]
+    omega_var <- c2[c2$indexX == idx & c2$indexY == idx, rho]
+    return(list(omega=omega, omega_var=omega_var, idx=idx))
+  }
+
+  est <- get.integral.est(bigT)
+
+  results <- list(
+    omega=est$omega,
+    omega_var=est$omega_var
+  )
+
+  if(return_all){
+    results[["bigTidx"]] <- est$idx
+    results[["ts_index"]] <- ts_index
+    results[["get.integral.est"]] <- get.integral.est
+    results[["cphi"]] <- cphi
+  }
+
+  return(results)
+}
+
 #' Function that summarizes a dataset + prior test results
 #'
 #' @param bigT The T^* parameter for defining recent infection.
@@ -283,65 +408,29 @@ summarize.pt.generator <- function(bigT, dt=1/365.25,
     n_d <- sum(ptdf$qi)
     s[["q_eff"]] <- n_d / s[["n_p"]]
 
-    # PART 2: MAP TESTING TIMES TO A TIME GRID BASED ON DT
-    # ----------------------------------------------------
-
-    ts_index <- .get.ts(minT=0, maxT=max(ptdf$ti, bigT, na.rm=TRUE), dt=dt)
-
-    # Convert bigT onto the grid
-    bigT_index <- ts_index[which.min(abs(bigT - ts_index$ts)),]
-
-    closest <- .map.to.tgrid(ts_index=ts_index,
-                             ptdf=ptdf,
-                             bigT_index=bigT_index)
-
-    # PART 3: GET AN ESTIMATED PHI FUNCTION AND COVARIANCE MATRIX
+    # PART 2: GET AN ESTIMATED PHI FUNCTION AND COVARIANCE MATRIX
+    # ALONG WITH ESTIMATED OMEGA AND OMEGA VAR
     # -----------------------------------------------------------
 
-    # Make sure model works based on the user arguments
-    .test.phi(phidat=phidat, use_geese=use_geese, formula=formula, family=family, ...)
+    maxT <- max(ptdf$ti, bigT, na.rm=TRUE)
+    phi <- estimate.phi(
+      phidat=phidat,
+      maxT=maxT, bigT=bigT, dt=dt,
+      formula=formula, family=family, use_geese=use_geese,
+      plot_phi=FALSE, return_all=TRUE, ...
+    )
+    s[["omega"]] <- phi$omega
+    s[["omega_var"]] <- phi$omega_var
 
-    if(use_geese){
-      modfunc <- geese
-    } else {
-      modfunc <- glm
-    }
+    # PART 3: MAP TESTING TIMES TO A TIME GRID BASED ON DT
+    # ----------------------------------------------------
+    closest <- .map.to.tgrid(ts_index=phi$ts_index,
+                             ptdf=ptdf,
+                             bigT_index=phi$idx)
 
-    # Fit the model
-    mod <- modfunc(formula=as.formula(formula), family=family, ..., data=phidat)
-
-    start.time <- Sys.time()
-    # Construct cumulative phi vector and cumulative covariance matrix
-    cphi <- .matrix.phi(model=mod, family=family,
-                        ts=ts_index$ts, ts_index=ts_index$index)
-    if(plot_phi){
-      # PART 3B: Plot an estimated phi function and the prior testing data
-      ts_plot <- seq(0, max(phidat$ui), by=dt)
-      preds <- .predict.phi(ts=ts_plot,
-                            model=mod, family=family, varcov=FALSE)[["point"]]
-      plot(phidat$ri ~ phidat$ui, main="Estimated Phi Function",
-           xlab="Infection Duration", ylab="Test Recent Probability")
-      lines(preds ~ ts_plot, col="#4295f5", lwd=2)
-    } else {
-      end.time <- Sys.time()
-      print(end.time - start.time)
-    }
-
-    # PART 4: ESTIMATE OMEGA_T^*
-    # ----------------------
-    bigTidx <- bigT_index$index
-
-    # Extract the cumulative phi at bigT (this is Omega est)
-    # and the cumulative Cov(phi, phi) at (bigT, bigT) (this is Omega var)
-    c1 <- cphi$cphi
-    c2 <- cphi$csum
-
-    s[["omega"]] <- c1[c1$index == bigTidx, phi]
-    s[["omega_var"]] <- c2[c2$indexX == bigTidx & c2$indexY == bigTidx, rho]
-
-    # PART 5: ESTIMATE ALL OF THE OTHER THINGS THAT HAVE TO DO WITH PRIOR TESTING
+    # PART 4: ESTIMATE ALL OF THE OTHER THINGS THAT HAVE TO DO WITH PRIOR TESTING
     # ---------------------------------------------------------------------------
-    ptlist <- .pt.properties.est(closest=closest, bigTidx=bigTidx, cphi=cphi)
+    ptlist <- .pt.properties.est(closest=closest, bigTidx=phi$bigTidx, cphi=phi$cphi)
 
     # Add all of the pt estimates to the main list
     for(el in names(ptlist)){
