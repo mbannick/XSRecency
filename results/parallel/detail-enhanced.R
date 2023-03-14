@@ -8,8 +8,6 @@ library(tidyr)
 # Get the input and output directories
 args <- commandArgs(trailingOnly=TRUE)
 version <- args[1]
-version <- "15-02-2023-14-27-56"
-version <- "15-12-2022-17-11-12"
 in.dir <- paste0("~/Documents/FileZilla/xs-recent/enhanced/", version)
 
 # Read in files
