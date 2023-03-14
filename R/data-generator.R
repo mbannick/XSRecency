@@ -119,6 +119,7 @@ sim.pt.generator <- function(ptest.dist, ptest.prob, ptest.dist2=NULL){
 modify.pt.generator <- function(t_noise=function(t) t, t_range=NULL,
                               d_misrep=0, p_misrep=0){
   modify.pt <- function(df){
+
     if(d_misrep > 0 & p_misrep > 0){
       stop("Cannot have both d_misrep and p_misrep at the same time.")
     }

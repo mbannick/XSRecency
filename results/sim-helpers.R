@@ -81,7 +81,7 @@ simulate.pt <- function(n_sims, n, infection.function, phi.func,
                      baseline_incidence, prevalence, rho, bigT, tau,
                      ext_FRR, ext_df=NULL, max_FRR=NULL, last_point=FALSE,
                      ptest.dist=NULL, ptest.prob=1.0,
-                     t_range=NULL, t_noise=NULL,
+                     t_min=NULL, t_max=NULL, t_noise=NULL,
                      d_misrep=0.0, q_misrep=0.0, p_misrep=0.0,
                      ptest.dist2=NULL,
                      exclude_pt_bigT=FALSE){
@@ -122,8 +122,8 @@ simulate.pt <- function(n_sims, n, infection.function, phi.func,
     } else {
       t_range.m <- c(min(t_range), min(max(t_range), bigT))
     }
-  } else {
-    t_range.m <- NULL
+  } else if(!is.null(t_min)){
+    t_range.m <- c(t_min, t_max)
   }
   modify.pt <- modify.pt.generator(
     t_noise=t_noise,

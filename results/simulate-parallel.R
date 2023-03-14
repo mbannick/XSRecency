@@ -42,11 +42,11 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                       last_point=FALSE,
                       pt=TRUE,
                       t_min=0,
-                      t_max=2,
+                      t_max=4,
                       t_min_exclude=NULL,
                       q=0.5,
                       gamma=0.0, # variance for the Gaussian noise to add to prior test time
-                      eta=0.1, # the probability of incorrectly reporting negative test
+                      eta=0.0, # the probability of incorrectly reporting negative test
                       nu=0.0, # the probability of failing to report prior test result
                       xi=0.0, # the probability of failing to report prior positive test results
                       mech2=TRUE,
@@ -193,7 +193,7 @@ if(!a$pt){
   if(!is.null(a$t_min_exclude)){
     t_min <- a$t_min_exclude
   } else {
-    t_min <- a$t_min
+    t_min <- 0
   }
   start <- Sys.time()
   sim <- simulate.pt(n_sims=a$n_sims, n=a$n,
@@ -207,7 +207,8 @@ if(!a$pt){
                      # THESE ARE THE NEW ARGUMENTS --
                      ptest.dist=ptest.dist,
                      ptest.prob=ptest.prob,
-                     t_range=c(t_min, a$t_max),
+                     t_max=100,
+                     t_min=t_min,
                      t_noise=t_noise,
                      d_misrep=a$eta,
                      q_misrep=a$nu,
