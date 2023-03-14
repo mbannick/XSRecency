@@ -23,15 +23,17 @@ TAIL="-phi_tfrr 2"
 PT="-pt"
 
 MECH2="-mech2"
+TMINEXC="-t_min_exclude 0.25"
 
 BASELINE="${ARGS} ${RHO} ${TYPE} ${ASSAY} ${TAIL} ${PT}"
 
-for SEED in 100 2354 3482 8247 5893
+for SEED in 100 2354 3482 8247 5893 48372 59547838 287484 13372 797683
 do
-  for Q in 0.25 0.5 0.75
+  for Q in 0.5
   do
     PTARGS="-t_min $TMIN -t_max $TMAX -q $Q"
     qsub ${CONSTANTS} ${BASELINE} ${PTARGS} -seed ${SEED}
+    qsub ${CONSTANTS} ${BASELINE} ${PTARGS} ${MECH2} -seed ${SEED}
     qsub ${CONSTANTS} ${BASELINE} ${PTARGS} ${MECH2} -seed ${SEED}
   done
 done

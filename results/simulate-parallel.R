@@ -43,12 +43,13 @@ a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
                       pt=TRUE,
                       t_min=0,
                       t_max=2,
+                      t_min_exclude=NULL,
                       q=0.5,
                       gamma=0.0, # variance for the Gaussian noise to add to prior test time
                       eta=0.1, # the probability of incorrectly reporting negative test
                       nu=0.0, # the probability of failing to report prior test result
                       xi=0.0, # the probability of failing to report prior positive test results
-                      mech2=FALSE,
+                      mech2=TRUE,
                       exclude_pt_bigT=FALSE
                     ))
 
@@ -72,6 +73,7 @@ if(!is.null(a$phi_pnorm_div)) a$phi_pnorm_div <- as.numeric(a$phi_pnorm_div)
 if(!is.null(a$max_FRR)) a$max_FRR <- as.numeric(a$max_FRR)
 if(!is.null(a$t_min)) a$t_min <- as.numeric(a$t_min)
 if(!is.null(a$t_max)) a$t_max <- as.numeric(a$t_max)
+if(!is.null(a$t_min_exclude)) a$t_min_exclude <- as.numeric(a$t_min_exclude)
 if(!is.null(a$q)) a$q <- as.numeric(a$q)
 if(!is.null(a$gamma)) a$gamma <- as.numeric(a$gamma)
 if(!is.null(a$eta)) a$eta <- as.numeric(a$eta)
@@ -187,6 +189,12 @@ if(!a$pt){
   } else {
     t_noise <- NULL
   }
+
+  if(!is.null(a$t_min_exclude)){
+    t_min <- a$t_min_exclude
+  } else {
+    t_min <- a$t_min
+  }
   start <- Sys.time()
   sim <- simulate.pt(n_sims=a$n_sims, n=a$n,
                      infection.function=infection.function,
@@ -199,7 +207,7 @@ if(!a$pt){
                      # THESE ARE THE NEW ARGUMENTS --
                      ptest.dist=ptest.dist,
                      ptest.prob=ptest.prob,
-                     t_range=c(a$t_min, a$t_max),
+                     t_range=c(t_min, a$t_max),
                      t_noise=t_noise,
                      d_misrep=a$eta,
                      q_misrep=a$nu,
