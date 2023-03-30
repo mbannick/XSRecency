@@ -4,9 +4,9 @@
 #' @export
 adjusted.estimate.pt <- function(n_r_pt, n_n, n_p,
                                  omega, beta, big_T,
-                                 num_beta, den_omega, den_beta){
+                                 num_beta, den_omega, den_beta, q=1){
 
-  numerator <- n_r_pt - beta * num_beta
+  numerator <- n_r_pt/q - beta * num_beta
   denominator <- n_n * (omega - beta * big_T + (den_omega + beta * den_beta)/n_p)
 
   val <- numerator / denominator

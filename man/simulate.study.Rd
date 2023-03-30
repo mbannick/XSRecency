@@ -5,7 +5,7 @@
 \title{Function to simulate one study
 that mimics the data from Duong et al. 2015}
 \usage{
-simulate.study(days, num.samples, coefs, knot = 5, phi.func = NULL)
+\method{simulate}{study}(days, num.samples, coefs, knot = 5, phi.func = NULL)
 }
 \arguments{
 \item{days}{Duration on date of first sample}

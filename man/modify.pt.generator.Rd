@@ -8,7 +8,8 @@ modify.pt.generator(
   t_noise = function(t) t,
   t_range = NULL,
   d_misrep = 0,
-  p_misrep = 0
+  p_misrep = 0,
+  t_total_exclude = NULL
 )
 }
 \arguments{

@@ -17,16 +17,17 @@ source("~/repos/XSRecency/R/data-generator.R")
 
 # READ IN VERSIONED RESULTS ---------------------------------
 
-version <- "~/Documents/FileZilla/xs-recent/enhanced/21-12-2022-12-41-07/"
+# version <- "~/Documents/FileZilla/xs-recent/enhanced/21-12-2022-12-41-07/"
+version <- "~/Documents/FileZilla/xs-recent/enhanced/13-03-2023-21-32-22"
 summ <- fread(paste0(version , "/summary.csv"))
 detail <- fread(paste0(version, "/detail.csv"))
 
 # DETAIL RESULTS FOR Q EFF ---------------------------------------------
 
-detail <- detail[, .(q, mech2, q_eff)]
-detail <- detail[, lapply(.SD, mean), .SDcols=c("q_eff"), by=c("q", "mech2")]
+detail <- detail[, .(q, mech2, t_min_exclude, q_eff)]
+detail <- detail[, lapply(.SD, mean), .SDcols=c("q_eff"), by=c("q", "mech2", "t_min_exclude")]
 
-summ <- merge(summ, detail, by=c("q", "mech2"))
+summ <- merge(summ, detail, by=c("q", "mech2", "t_min_exclude"))
 
 # TABLE RESULTS ---------------------------------------------
 
@@ -34,7 +35,8 @@ summ[, tname := ifelse(itype == "constant", "Constant", ifelse(itype == "linear"
 summ[, pname := "Constant"]
 summ[, sname := "1B"]
 summ[mech2 == FALSE, mechtype := "Base"]
-summ[mech2 == TRUE, mechtype := "Base + RI"]
+summ[(mech2 == TRUE), mechtype := "Base + RI"]
+summ[(mech2 == TRUE) & (t_min_exclude == 0.25), mechtype := "Base + RI + Exclude 3 Mos"]
 
 summ[, trange := paste0("(", t_min, ", ", t_max, ")")]
 
@@ -62,7 +64,7 @@ DF <- rbind(unlist(ADJ), EST)
 colnames(DF) <- c("q", "mechtype", "q_eff", "Bias x 100", "SE x 100", "MSE x 100", "Coverage")
 
 addtorow <- list()
-addtorow$pos <- seq(1, nrow(DF), by=2) %>% as.list
+addtorow$pos <- seq(1, nrow(DF), by=3) %>% as.list
 addtorow$command <- rep("\\hline \n", length(addtorow$pos))
 
 tab <- xtable(DF, align=rep("c", 8), digits=2)

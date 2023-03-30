@@ -7,7 +7,7 @@ tail probabilities from the phi parameters
 by sampling from a binomial with a sample size
 given in the study.}
 \usage{
-simulate.nbeta(nsims, phi.func, minT, maxT, studies = NULL)
+\method{simulate}{nbeta}(nsims, phi.func, minT, maxT, studies = NULL)
 }
 \description{
 This simulates many false recency rates using

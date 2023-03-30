@@ -5,59 +5,20 @@ print(args)
 
 library(data.table)
 library(magrittr)
-library(R.utils)
 library(stringr)
 library(flexsurv)
 
-setwd("~/repos/XSRecency/")
-source("./results/sim-helpers.R")
-source("./R/phi-functions.R")
+# Load XSRecency
+library(XSRecency)
+library(simtools)
 
-# Get command-line arguments
-a <- commandArgs(trailingOnly=TRUE, asValues=TRUE,
-                    defaults=list(
-                      seed=100,
-                      n_sims=2,
-                      n=5000,
-                      p=0.29,
-                      inc=0.032,
-                      window=101,
-                      shadow=194,
-                      itype="constant",
-                      rho=0,
-                      tau=12,
-                      bigT=2,
-                      phi_frr=NULL,
-                      phi_tfrr=2,
-                      phi_norm_mu=NULL,
-                      phi_norm_sd=NULL,
-                      phi_norm_div=NULL,
-                      phi_pnorm_mu=NULL,
-                      phi_pnorm_sd=NULL,
-                      phi_pnorm_div=NULL,
-                      out_dir=".",
-                      ext_FRR=FALSE,
-                      duong_scale=NULL,
-                      max_FRR=NULL,
-                      last_point=FALSE,
-                      pt=TRUE,
-                      t_min=0,
-                      t_max=4,
-                      t_min_exclude=NULL,
-                      q=0.5,
-                      gamma=0.0, # variance for the Gaussian noise to add to prior test time
-                      eta=0.0, # the probability of incorrectly reporting negative test
-                      nu=0.0, # the probability of failing to report prior test result
-                      xi=0.0, # the probability of failing to report prior positive test results
-                      mech2=TRUE,
-                      exclude_pt_bigT=FALSE
-                    ))
 
-# Capture date in the out directory
-# date <- format(Sys.time(), "%d-%m-%y-%H")
-# out_dir <- paste0(a$out_dir, "/", date, "/")
-out_dir <- paste0(a$out_dir, "/")
-# dir.create(out_dir, showWarnings=FALSE, recursive=TRUE)
+if(is.parallel()){
+  a <- commandArgs(trailingOnly=TRUE)
+  OUTDIR <- a[1]
+} else {
+  OUTDIR <- "."
+}
 
 a$out_dir <- NULL
 
@@ -74,6 +35,7 @@ if(!is.null(a$max_FRR)) a$max_FRR <- as.numeric(a$max_FRR)
 if(!is.null(a$t_min)) a$t_min <- as.numeric(a$t_min)
 if(!is.null(a$t_max)) a$t_max <- as.numeric(a$t_max)
 if(!is.null(a$t_min_exclude)) a$t_min_exclude <- as.numeric(a$t_min_exclude)
+if(!is.null(a$t_total_exclude)) a$t_total_exdlude <- as.numeric(a$t_total_exclude)
 if(!is.null(a$q)) a$q <- as.numeric(a$q)
 if(!is.null(a$gamma)) a$gamma <- as.numeric(a$gamma)
 if(!is.null(a$eta)) a$eta <- as.numeric(a$eta)
@@ -214,7 +176,8 @@ if(!a$pt){
                      q_misrep=a$nu,
                      p_misrep=a$xi,
                      ptest.dist2=ptest.dist2,
-                     exclude_pt_bigT=a$exclude_pt_bigT)
+                     exclude_pt_bigT=a$exclude_pt_bigT,
+                     t_total_exclude=a$t_total_exclude)
   end <- Sys.time()
   print(end - start)
 }

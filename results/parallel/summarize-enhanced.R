@@ -28,7 +28,7 @@ for(var in c("rho", "phi_frr", "phi_tfrr", "phi_norm_mu",
              "frr_mix_start", "frr_mix_end",
              "ext_FRR", "duong_scale", "max_FRR", "last_point",
              "pt", "t_min", "t_max", "q", "gamma", "eta", "nu",
-             "xi", "mech2", "exclude_pt_bigT")){
+             "xi", "mech2", "exclude_pt_bigT", "t_min_exclude")){
   if(var %in% colnames(df)){
     id.vars <- c(id.vars, var)
   }

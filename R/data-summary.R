@@ -394,8 +394,10 @@ summarize.pt.generator <- function(bigT, dt=1/365.25,
       # First get the summary based on trial data
       s <- summarize.data(df)
       ptdf <- df[df$di == 1,]
-
     }
+
+    s[["q"]] <- mean(!is.na(ptdf$ri))
+    ptdf <- ptdf[!is.na(ptdf$ri),]
 
     # Generate recency indicators based on new algorithm
     newcols <- .get.Mi(ptdf, bigT)
