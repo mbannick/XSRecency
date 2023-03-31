@@ -4,7 +4,7 @@
 \alias{summarize.pt.generator}
 \title{Function that summarizes a dataset + prior test results}
 \usage{
-summarize.pt.generator(
+\method{summarize}{pt.generator}(
   bigT,
   dt = 1/365.25,
   use_geese = FALSE,
