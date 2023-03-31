@@ -1,7 +1,8 @@
 
 get.phi <- function(window, shadow, tau,
                     phi_tfrr=NULL, phi_frr=NULL,
-                    phi_norm_mu=NULL, phi_norm_sd=NULL, phi_norm_div=NULL){
+                    phi_norm_mu=NULL, phi_norm_sd=NULL, phi_norm_div=NULL,
+                    phi_pnorm_mu=NULL, phi_pnorm_sd=NULL, phi_pnorm_div=NULL){
 
   if(!is.null(phi_frr) & !is.null(phi_tfrr)){
     stop("Can't provide both frr and time for frr.")
@@ -15,10 +16,10 @@ get.phi <- function(window, shadow, tau,
   pp <- get.gamma.params(window=window/365.25, shadow=shadow/365.25)
 
   # Set up each type of phi function, will be overwritten
-  phi.none <- function(t) 1-pgamma(t, shape=pp[1], rate=params[2])
-  phi.const <- function(t) 1-pgamma(t, shape=params[1], rate=params[2])
-  phi.norm <- function(t) 1-pgamma(t, shape=params[1], rate=params[2])
-  phit.pnorm <- function(t) 1-pgamma(t, shape=params[1], rate=params[2])
+  phi.none <- function(t) 1-pgamma(t, shape=pp[1], rate=pp[2])
+  phi.const <- function(t) 1-pgamma(t, shape=pp[1], rate=pp[2])
+  phi.norm <- function(t) 1-pgamma(t, shape=pp[1], rate=pp[2])
+  phit.pnorm <- function(t) 1-pgamma(t, shape=pp[1], rate=pp[2])
 
   phi.func <- phi.none
 
@@ -44,4 +45,6 @@ get.phi <- function(window, shadow, tau,
     phi.pnorm <- function(t) phi.const(t) + pnorm(t-phi_pnorm_mu, mean=0, sd=phi_pnorm_sd) / phi_pnorm_div
     phi.func <- phi.pnorm
   }
+
+  return(phi.func)
 }

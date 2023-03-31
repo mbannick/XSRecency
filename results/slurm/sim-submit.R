@@ -1,7 +1,7 @@
 library(simtools)
 library(R.utils)
 
-source("./paramtypes.R")
+source("./paramlists.R")
 
 # Read in command line arguments -----------------
 args <- commandArgs(
@@ -27,7 +27,7 @@ OVERALL[["n_sims"]] <- n_sims
 OVERALL[["sim_blocksize"]] <- blocksize
 OVERALL[["seed"]] <- as.integer(args$seed)
 
-startsims <- get.startsims(nsims, blocksize)
+startsims <- get.startsims(n_sims, blocksize)
 
 if(args$scenario == "a"){
   PARAMS <- get.paramlist.a(startsims)

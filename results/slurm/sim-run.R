@@ -4,72 +4,69 @@ library(data.table)
 library(magrittr)
 library(stringr)
 library(flexsurv)
+library(R.utils)
 
 # Load XSRecency
 library(XSRecency)
 library(simtools)
 
+source("./paramlists.R")
 source("./sim-helpers.R")
+source("./phi-func.R")
+source("./arg-construct.R")
 
 if(is.parallel()){
   a <- commandArgs(trailingOnly=TRUE)
   OUTDIR <- a[1]
+  TASKID <- as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
+  PARAMS <- read.csv(sprintf("%s/params.csv", OUTDIR))
 } else {
   OUTDIR <- "."
+  TASKID <- 1
+  PARAMS <- data.table(do.call(data.table, DEFAULTS))
 }
 
-# TODO: Introduce TASK ID and param getter.
+# Set up parameter grabber and set streaming seed for
+# reproducibility
+NTASKS <- nrow(PARAMS)
+gp <- get.param.closure(TASKID, PARAMS)
+set.stream.seed(gp("seed"), NTASKS, TASKID)
 
-# Get the gamma parameters and baseline phi function
-phi.func <- get.phi()
+ARGS <- gp()
 
-if(a$itype == "constant"){
-  inc.function <- incidence.con
-  infection.function <- infections.con
-} else if(a$itype == "linear"){
-  inc.function <- incidence.lin
-  infection.function <- infections.lin
-} else if(a$itype == "exponential"){
-  inc.function <- incidence.exp
-  infection.function <- infections.exp
-} else if(a$itype == "piecewise"){
-  if(!a$pt){
-    stop("Piecewise constant-linear incidence function only to be used
-         with prior testing simulations.")
-  }
-  infection.function <- function(...) infections.lincon(bigT=a$bigT, ...)
-} else {
-  stop("Unknown incidence function.")
-}
+# Get the baseline phi function
+ARGS[["phi.func"]] <- doCall(get.phi, args=gp())
 
-if(!is.null(a$duong_scale)){
+# Get the epi functions
+epi.funcs <- doCall(get.epi.funcs, args=gp())
+ARGS[["infection.function"]] <- epi.funcs[["infection.function"]]
+ARGS[["inc.function"]] <- epi.funcs[["inc.function"]]
+
+# Get external data
+if(!is.null(gp("duong_scale"))){
   df <- copy(XSRecency:::duong)
-  df <- df[, days := days * as.numeric(a$duong_scale)]
+  df <- df[, days := days * as.numeric(gp("duong_scale"))]
   df <- df[, last.time := shift(days), by="id.key"]
   df <- df[, gap := days - last.time]
 } else {
   df <- NULL
 }
+ARGS[["ext_df"]] <- df
 
-set.seed(a$seed)
+ARGS[["prevalence"]] <- gp("p")
+ARGS[["baseline_incidence"]] <- gp("inc")
 
-if(!a$pt){
-  sim <- simulate(n_sims=a$n_sims, n=a$n,
-                  inc.function=inc.function,
-                  infection.function=infection.function,
-                  baseline_incidence=a$inc, prevalence=a$p, rho=a$rho,
-                  phi.func=phi.func,
-                  bigT=a$bigT, tau=a$tau, ext_FRR=a$ext_FRR,
-                  ext_df=df,
-                  max_FRR=a$max_FRR,
-                  last_point=a$last_point)
+if(!gp("pt")){
+
+  sim <- doCall(simulate, args=ARGS)
+
 } else {
-  # THESE ARE THE PRIOR TEST SETTINGS
 
-  ptest.dist <- function(u) runif(1, a$t_min, a$t_max)
-  ptest.prob <- function(u) a$q
+  # Specific prior testing settings
+  ARGS[["ptest.dist"]] <- function(u) runif(1, gp("t_min"), gp("t_max"))
+  ARGS[["ptest.prob"]] <- function(u) gp("q")
 
-  if(a$mech2){
+  if(gp("mech2")){
     GAMMA_PARMS <- c(1.57243557, 1.45286770, -0.02105187)
     ptest.dist2 <- function(u) u - rgengamma(n=1,
                                              mu=GAMMA_PARMS[1],
@@ -78,53 +75,31 @@ if(!a$pt){
   } else {
     ptest.dist2 <- NULL
   }
+  ARGS[["ptest.dist2"]] <- ptest.dist2
 
-  if(!is.null(a$gamma)){
-    t_noise <- function(t) max(0, t + rnorm(n=1, sd=a$gamma))
+  if(!is.null(gp("gamma"))){
+    t_noise <- function(t) max(0, t + rnorm(n=1, sd=gp("gamma")))
   } else {
     t_noise <- NULL
   }
 
-  if(!is.null(a$t_min_exclude)){
-    t_min <- a$t_min_exclude
-  } else {
-    t_min <- 0
-  }
+  ARGS[["t_min"]] <- 0
+  ARGS[["t_max"]] <- 100
+
+  ARGS[["d_misrep"]] <- gp("eta")
+  ARGS[["q_misrep"]] <- gp("nu")
+  ARGS[["p_misrep"]] <- gp("xi")
+
   start <- Sys.time()
-  sim <- simulate.pt(n_sims=a$n_sims, n=a$n,
-                     infection.function=infection.function,
-                     baseline_incidence=a$inc, prevalence=a$p, rho=a$rho,
-                     phi.func=phi.func,
-                     bigT=a$bigT, tau=a$tau, ext_FRR=a$ext_FRR,
-                     ext_df=df,
-                     max_FRR=a$max_FRR,
-                     last_point=a$last_point,
-                     # THESE ARE THE NEW ARGUMENTS --
-                     ptest.dist=ptest.dist,
-                     ptest.prob=ptest.prob,
-                     t_max=100,
-                     t_min=t_min,
-                     t_noise=t_noise,
-                     d_misrep=a$eta,
-                     q_misrep=a$nu,
-                     p_misrep=a$xi,
-                     ptest.dist2=ptest.dist2,
-                     exclude_pt_bigT=a$exclude_pt_bigT,
-                     t_total_exclude=a$t_total_exclude)
+  sim <- doCall(simulate.pt, args=ARGS)
   end <- Sys.time()
   print(end - start)
 }
 
 df <- do.call(cbind, sim) %>% data.table
 df[, sim := .I]
+df[, simstart := gp("start_sim")]
+df[, TASKID := TASKID]
 
-as <- do.call(c, a)
-for(i in 1:length(as)){
-  if((names(as[i])) %in% colnames(df)) next
-  df[, names(as[i]) := as[i]]
-}
-print(df)
-
-filename <- do.call(paste, a)
-filename <- gsub(" ", "_", filename)
-write.csv(df, file=paste0(out_dir, "results-", filename, ".csv"))
+filename <- paste0("results-", TASKID)
+write.csv(df, file=paste0(OUTDIR, "/", filename, ".csv"))

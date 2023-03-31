@@ -1,13 +1,4 @@
-setwd("~/repos/XSRecency/")
-source("R/data-generator.R")
-source("R/data-summary.R")
-source("R/external-study-sim.R")
-source("R/external-study-data.R")
-source("R/estimators.R")
-source("R/estimators-pt.R")
-source("R/utils.R")
-source("R/phi-matrix.R")
-
+library(XSRecency)
 library(magrittr)
 
 simulate <- function(n_sims, n, inc.function, infection.function, phi.func,
@@ -89,7 +80,7 @@ simulate.pt <- function(n_sims, n, infection.function, phi.func,
 
   # Generate assay simulations
   cat("Generating assay simulations\n")
-  assay.nsim <- assay.nsim.pt(
+  assay.nsim <- XSRecency:::assay.nsim.pt(
     n_sims=n_sims, phi.func=phi.func, tau=tau, bigT=bigT,
     ext_FRR=ext_FRR, ext_df=ext_df,
     max_FRR=max_FRR
@@ -169,89 +160,10 @@ simulate.pt <- function(n_sims, n, infection.function, phi.func,
     big_T=bigT
   )
 
-  # # Generate trial data
-  # data <- generate.data(
-  #   n=n, n_sims=n_sims,
-  #   infection.function=infection.function,
-  #   phi.func=phi.func,
-  #   baseline_incidence=baseline_incidence,
-  #   prevalence=prevalence,
-  #   rho=rho,
-  #   bigT=bigT,
-  #   ptest.dist=ptest.dist,
-  #   ptest.prob=ptest.prob,
-  #   t_range=t_range,
-  #   t_noise=t_noise,
-  #   d_misrep=d_misrep,
-  #   q_misrep=q_misrep,
-  #   p_misrep=p_misrep,
-  #   ptest.dist2=ptest.dist2,
-  #   exclude_pt_bigT=exclude_pt_bigT
-  # )
-
-  # Compute assay parameters based on external data simulation and
-  # assay simulation from before
-  # assay <- assay.properties.pt(
-  #   studies=assay.nsim$studies,
-  #   beta_sim=assay.nsim$beta_sim,
-  #   bigT=bigT,
-  #   tau=tau,
-  #   last_point=last_point,
-  #   ptest_times=data$ptest_times,
-  #   ptest_delta=data$ptest_delta,
-  #   ptest_avail=data$ptest_avail,
-  #   ri=data$ri
-  # )
-  #
-  # wvec <- get.w.vec(data, assay, bigT)
-
-  # DEBUGGING FOR COV_14
-
-  # Calculate true assay parameters
-  # true_frr <- true.frr(phi.func=phi.func, bigT=bigT, tau=tau)
-  # true_mdri <- true.window.mdri(phi.func=phi.func, maxT=bigT)
-
-  # inputs <- data
-  # inputs[["big_T"]] <- bigT
-
-  # Carry over all of the assay properties
-  # including those that have been estimated for prior test results
-  # for(a in names(assay)){
-  #   inputs[[a]] <- assay[[a]]
-  # }
-
-  # inputs_true <- inputs
-  # inputs_est <- inputs
-
-  # inputs_true[["omega"]] <- true_mdri
-  # inputs_true[["omega_var"]] <- 0
-  # inputs_true[["beta"]] <- true_frr
-  # inputs_true[["beta_var"]] <- 0
-
-  # inputs_est[["omega"]] <- assay$omega_est
-  # inputs_est[["omega_var"]] <- assay$omega_var
-  # inputs_est[["beta"]] <- assay$beta_est
-  # inputs_est[["beta_var"]] <- assay$beta_var
-
-  # Compute estimates for adjusted
-  # adj.true <- R.utils::doCall(.fcn=get.adjusted, args=inputs_true, .ignoreUnusedArgs=TRUE)
-  # adj.est <- R.utils::doCall(.fcn=get.adjusted, args=inputs_est, .ignoreUnusedArgs=TRUE)
-
-  # Compute estimates for adjusted prior testing
-  # eadj.true <- R.utils::doCall(.fcn=get.adjusted.pt, args=inputs_true, .ignoreUnusedArgs=TRUE)
-  # eadj.est <- R.utils::doCall(.fcn=get.adjusted.pt, args=inputs_est, .ignoreUnusedArgs=TRUE)
-
-  # The first component of get.adjusted.pt$var is the more robust variance (rob)
-  # The second is assumption-based (asm)
   results <- list(
     truth=rep(baseline_incidence, n_sims),
-    # adj_true_est=adj.true$est,
-    # adj_true_var=adj.true$var,
     adj_est_est=unlist(adj["est",]),
     adj_est_var=unlist(adj["var",]),
-    # eadj_true_est=eadj.true$est,
-    # eadj_true_var_rob=eadj.true$var[[1]],
-    # eadj_true_var_asm=eadj.true$var[[2]],
     eadj_est_est=unlist(eadj["est",]),
     eadj_est_var_rob=unlist(eadj["var",]),
     eadj_est_var_asm=unlist(eadj["var",]),
@@ -269,21 +181,6 @@ simulate.pt <- function(n_sims, n, infection.function, phi.func,
   for(elem in rownames(eadj)){
     results[[elem]] <- unlist(eadj[elem,])
   }
-  # for(w in names(wvec)){
-  #   results[[w]] <- wvec[[w]]
-  # }
-  # for(e in names(eadj.est$components_est)){
-  #   e_rob <- paste0(e, "_rob")
-  #   e_asm <- paste0(e, "_asm")
-  #   results[[e_rob]] <- (eadj.est$components_est)[[e]][[1]]
-  #   results[[e_asm]] <- (eadj.est$components_est)[[e]][[2]]
-  # }
-  # for(e in colnames(assay)){
-  #   if(e %in% c("mu_est", "mu_var",
-  #               "omega_est", "omega_var",
-  #               "beta_est", "beta_var")) next
-  #   results[[e]] <- assay[[e]]
-  # }
 
   return(results)
 }
