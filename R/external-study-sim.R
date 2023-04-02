@@ -72,6 +72,7 @@ simulate.nbeta <- function(nsims, phi.func, minT, maxT, studies=NULL){
 #' @param df Data frame with sample number column (samp),
 #'   days column, and num.samples column.
 #' @param knot Knot location for piecewise-linear function
+#' @importFrom geepack geese
 #' @return List of start durations, numbers of samples, and model coefficients
 fit.model <- function(df, knot=5){
   df <- data.table(df)
