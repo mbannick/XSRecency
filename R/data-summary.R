@@ -119,10 +119,11 @@ summarize.data <- function(df){
     if(is.na(t)){
       idx <- NA
     } else {
-      idx <- ts_index[which.min(abs(t - ts_index$ts)), "index"]
+      val <- which.min(abs(t - ts_index$ts))
+      idx <- ts_index[val, "index"]
     }
   }
-  closest_index <- sapply(closest$ts_orig, get.closest.index)
+  closest_index <- unlist(sapply(closest$ts_orig, get.closest.index))
   closest[, index := closest_index]
   closest <- merge(closest, ts_index, by="index", all.x=T)
 
@@ -313,10 +314,12 @@ estimate.phi <- function(phidat, maxT, bigT, dt=1/365.25, min_dt=FALSE,
 
   c1 <- cphi$cphi
   c2 <- cphi$csum
+  ts_index <- cphi$ts_index
 
   get.integral.est <- function(ts){
     # Convert bigT onto the grid
-    idx <- ts_index[which.min(abs(ts - ts_index$ts)),]$index
+    val <- which.min(abs(ts - ts_index$ts))
+    idx <- ts_index[val,]$index
 
     # Extract the cumulative phi at bigT (this is Omega est)
     # and the cumulative Cov(phi, phi) at (bigT, bigT) (this is Omega var)
