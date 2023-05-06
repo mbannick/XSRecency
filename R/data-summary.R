@@ -365,12 +365,12 @@ estimate.phi <- function(phidat, maxT, bigT, dt=1/365.25, min_dt=FALSE,
 #'               Can have more columns, e.g., if an id is needed for geese.
 #' @param ... Additional arguments to either glm or geese(..., data=phidat).
 #' @export
-summarize.pt.generator <- function(bigT, dt=1/365.25,
+summarizept.generator <- function(bigT, dt=1/365.25,
                                    use_geese=FALSE, formula, family,
                                    plot_phi=TRUE,
                                    ...){
 
-  summarize.pt <- function(ptdf=NULL, n=NULL, n_p=NULL, df=NULL,
+  summarizept <- function(ptdf=NULL, n=NULL, n_p=NULL, df=NULL,
                            phidat=NULL){
 
     # PART 1: SUMMARIZE TRIAL DATA AND GET NEW RECENCY INDICATOR
@@ -441,6 +441,6 @@ summarize.pt.generator <- function(bigT, dt=1/365.25,
 
     return(s)
   }
-  return(summarize.pt)
+  return(summarizept)
 }
 

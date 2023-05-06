@@ -222,9 +222,9 @@ get.adjusted.pt <- function(n_p, n, ptdf,
 
   # Summarize data inputs from the prior testing data
   # and an estimate of the phi function
-  summdat <- summarize.pt.generator(bigT=big_T, use_geese=use_geese,
+  summdat <- summarizept.generator(bigT=big_T, use_geese=use_geese,
                                     formula=formula,
-                                    family=family, plot_phi=plot_phi)
+                                    family=family, plot_phi=plot_phi, ...)
   args <- summdat(ptdf=ptdf, n=n, n_p=n_p, phidat=phidat)
 
   # Set up additional arguments
