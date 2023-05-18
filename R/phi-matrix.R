@@ -70,6 +70,21 @@
   phi <- res[["point"]]
   phi_var <- res[["var"]]
 
+  # For when log UI is used
+  if(!0 %in% ts_index){
+    ts_index <- c(0, ts_index)
+    ts <- c(0, ts)
+    phi <- rbind(phi[1,], phi)
+    phi_var <- rbind(phi_var[1,], phi_var)
+    phi_var <- cbind(phi_var[,1], phi_var)
+
+    # For phi functions, enforce that they have probability 1 at time 0
+    # which also means covariance 0 with all other time points
+    phi[1] <- 1
+    phi_var[1, ] <- 0
+    phi_var[, 1] <- 0
+  }
+
   dt <- diff(ts)[1]
 
   if(sum((phi > 1) | (phi < 0)) > 0) stop("cannot have predicted probabilities
@@ -104,5 +119,5 @@
   setnames(csum_d, c("index", "value"), c("indexY", "rho"))
   csum_d <- csum_d[, .(indexX, indexY, rho)]
 
-  return(list(cphi=cphi_d, csum=csum_d))
+  return(list(cphi=cphi_d, csum=csum_d, ts_index=ts_index))
 }

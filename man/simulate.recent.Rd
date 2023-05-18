@@ -5,7 +5,7 @@
 \title{Simulate recency indicators based on the data, true phi function,
 and the infection incidence function.}
 \usage{
-simulate.recent(
+\method{simulate}{recent}(
   sim_data,
   infection.function = NULL,
   phi.func,
@@ -26,7 +26,7 @@ simulate.recent(
   exclude_pt_bigT = FALSE
 )
 
-simulate.recent(
+\method{simulate}{recent}(
   sim_data,
   infection.function = NULL,
   phi.func,

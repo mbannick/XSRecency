@@ -102,6 +102,8 @@ sim.pt.generator <- function(ptest.dist, ptest.prob, ptest.dist2=NULL){
 #' @param p_misrep Probability of not reporting a prior test result,
 #'   among those with positive prior test.
 #' @param t_range Range of times in which to keep prior testing times.
+#'
+#' @export
 #' @examples
 #' e.func <- function(e) infections.lin(e, t=0, p=0.29, lambda=0.032, rho=0.07)
 #' params <- get.gamma.params(window=200/365.25, shadow=191/365.25)
@@ -112,13 +114,12 @@ sim.pt.generator <- function(ptest.dist, ptest.prob, ptest.dist2=NULL){
 #'                          ptest.prob=function(u) 0.5)
 #' pt.df <- sim.pt(df[df$di == 1,])
 #' t_noise <- function(t) max(0, t + rnorm(n=1, sd=0.5))
-#' modify.pt <- modify.pt.generator(t_noise=t_noise, d_misrep=1, p_misrep=0, t_range=c(1, 2))
-#' pt.df2 <- modify.pt(pt.df)
+#' modifypt <- modifypt.generator(t_noise=t_noise, d_misrep=1, p_misrep=0, t_range=c(1, 2))
+#' pt.df2 <- modifypt(pt.df)
 #'
-#' @export
-modify.pt.generator <- function(t_noise=function(t) t, t_range=NULL,
+modifypt.generator <- function(t_noise=function(t) t, t_range=NULL,
                               d_misrep=0, p_misrep=0){
-  modify.pt <- function(df){
+  modifypt <- function(df){
 
     if(d_misrep > 0 & p_misrep > 0){
       stop("Cannot have both d_misrep and p_misrep at the same time.")
@@ -152,7 +153,7 @@ modify.pt.generator <- function(t_noise=function(t) t, t_range=NULL,
 
     return(df)
   }
-  return(modify.pt)
+  return(modifypt)
 }
 
 #' Simulate recency indicators based on the data, true phi function,

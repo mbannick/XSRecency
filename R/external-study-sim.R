@@ -72,6 +72,7 @@ simulate.nbeta <- function(nsims, phi.func, minT, maxT, studies=NULL){
 #' @param df Data frame with sample number column (samp),
 #'   days column, and num.samples column.
 #' @param knot Knot location for piecewise-linear function
+#' @importFrom geepack geese
 #' @return List of start durations, numbers of samples, and model coefficients
 fit.model <- function(df, knot=5){
   df <- data.table(df)
@@ -149,7 +150,7 @@ simulate.study <- function(days, num.samples, coefs, knot=5,
 #' @param nsims Number of study simulations
 #' @param phi.func Optional recency test-positive function
 #' @return List of data frames with an id, time, and recency indicator
-simulate.studies <- function(nsims, phi.func=NULL, ext_df=NULL){
+simulate_studies <- function(nsims, phi.func=NULL, ext_df=NULL){
   if(!is.null(ext_df)){
     df <- ext_df
   } else {
@@ -421,78 +422,11 @@ assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
   return(result)
 }
 
-#' Function that simulates the mean window period, mean duration of recent
-#' infection, and false recent rate (FRR) based on external study data.
-#'
-#' The external study data for mean window and MDRI is available here from
-#' Duong et al. 2015:
-#' https://doi.org/10.1371/journal.pone.0114947.s001
-#'
-#' @export
-#' @param n_sims Number of simulations
-#' @param phi.func A test-recent positive function of t
-#' @param bigT The time cutoff value designating true recent versus false recent
-#' @param tau The maximum duration of infection where a subject
-#'   could have a false-positive for recent infection
-#' @param ext_FRR Whether or not to get FRR from the Duong et al. 2015
-#'   study or to calculate it from a simpler, separate study, passed in \code{ext_df}
-#' @param ext_df A dataset with column "duration" and column for binary "recent" indicator
-#' @param max_FRR The maximum duration allowed
-#' @param last_point Integrate the mean window period to the last observed
-#'   duration in the dataset, rather than tau
-#' @return A list of estimated mean window period \eqn{\mu} and its variance,
-#'   estimated MDRI \eqn{\Omega_{T^*}} and its variance, and
-#'   estimated FRR \eqn{\beta_{T^*}} and its variance.
-#' @examples
-#' set.seed(0)
-#' assay.properties.nsim(n_sims=1, phi.func=function(t) 1 - pgamma(t, 1, 1.5),
-#'                      bigT=2, tau=12)
-assay.properties.nsim <- function(n_sims, phi.func, bigT, tau,
-                                  ext_FRR=FALSE, ext_df=NULL,
-                                  max_FRR=NULL, last_point=FALSE,
-                                  ptest_times=NULL, ptest_delta=NULL,
-                                  ptest_avail=NULL, ri=NULL){
-
-  studies <- simulate.studies(n_sims, phi.func, ext_df=ext_df)
-  result <- sapply(studies, function(x) assay.properties.est(
-    study=x,
-    bigT=bigT,
-    tau=tau,
-    last_point=last_point,
-    ptest_times=ptest_times,
-    ptest_delta=ptest_delta,
-    ptest_avail=ptest_avail,
-    ri=ri
-    ))
-
-  if(ext_FRR){
-    frr_studies <- studies
-  } else {
-    frr_studies <- NULL
-  }
-  if(!is.null(max_FRR)){
-    b.maxT <- max_FRR
-  } else {
-    b.maxT <- tau
-  }
-  beta_sim <- simulate.nbeta(nsims=n_sims, phi.func=phi.func,
-                             minT=bigT, maxT=b.maxT, studies=frr_studies)
-  result[c("beta_est", "beta_var"), ] <- beta_sim
-
-  result <- t(result)
-  result <- data.table(result)
-  columns <- colnames(result)
-  cols <- lapply(columns, function(x) unlist(result[[x]]))
-  df <- do.call(cbind, cols) %>% data.table
-  names(df) <- columns
-  return(df)
-}
-
 assay.nsim.pt <- function(n_sims, phi.func, tau, bigT,
                           ext_FRR=FALSE, ext_df=NULL,
                           max_FRR=NULL){
 
-  studies <- simulate.studies(n_sims, phi.func, ext_df=ext_df)
+  studies <- simulate_studies(n_sims, phi.func, ext_df=ext_df)
 
   if(ext_FRR){
     frr_studies <- studies
@@ -510,24 +444,3 @@ assay.nsim.pt <- function(n_sims, phi.func, tau, bigT,
   return(list(studies=studies, beta_sim=beta_sim))
 }
 
-assay.properties.pt <- function(studies, beta_sim, bigT, tau, last_point,
-                                  ptest_times=NULL, ptest_delta=NULL,
-                                  ptest_avail=NULL, ri=NULL){
-
-  mfunc <- function(s, t, d, a, r) assay.properties.est(
-    study=s, bigT=bigT, tau=tau, last_point=last_point,
-    ptest_times=t, ptest_delta=d, ptest_avail=a, ri=r
-  )
-  result <- mapply(FUN=mfunc, s=studies,
-                   t=ptest_times, d=ptest_delta, a=ptest_avail, r=ri)
-
-  result[c("beta_est", "beta_var"), ] <- beta_sim
-
-  result <- t(result)
-  result <- data.table(result)
-  columns <- colnames(result)
-  cols <- lapply(columns, function(x) unlist(result[[x]]))
-  df <- do.call(cbind, cols) %>% data.table
-  names(df) <- columns
-  return(df)
-}

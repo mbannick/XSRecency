@@ -13,7 +13,8 @@ adjusted.estimate.pt(
   big_T,
   num_beta,
   den_omega,
-  den_beta
+  den_beta,
+  q = 1
 )
 }
 \arguments{
@@ -28,6 +29,8 @@ adjusted.estimate.pt(
 \item{beta}{False recency rate (FRR)}
 
 \item{big_T}{The \eqn{T^*} in the equation above}
+
+\item{q}{The fraction of positives that were given recency tests, defaults to 1}
 }
 \description{
 Adjusted estimator  accounting for prior test results.

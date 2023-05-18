@@ -119,10 +119,11 @@ summarize.data <- function(df){
     if(is.na(t)){
       idx <- NA
     } else {
-      idx <- ts_index[which.min(abs(t - ts_index$ts)), "index"]
+      val <- which.min(abs(t - ts_index$ts))
+      idx <- ts_index[val, "index"]
     }
   }
-  closest_index <- sapply(closest$ts_orig, get.closest.index)
+  closest_index <- unlist(sapply(closest$ts_orig, get.closest.index))
   closest[, index := closest_index]
   closest <- merge(closest, ts_index, by="index", all.x=T)
 
@@ -235,6 +236,7 @@ summarize.data <- function(df){
 #' @param return_all Whether to return additional objects used in internal functions (will use more memory)
 #' @param ... Additional arguments to glm or geese for fitting model
 #' @export
+#' @import formula.tools
 #'
 #' @returns List of results:
 #' * `omega`: Estimate of \Omega_{T^\*}
@@ -249,7 +251,7 @@ summarize.data <- function(df){
 #' phi.func <- function(t) 1-pgamma(t, shape = params[1], rate = params[2])
 #'
 #' # Simulate external study data
-#' study <- simulate.studies(1, phi.func)[[1]]
+#' study <- simulate_studies(1, phi.func)[[1]]
 #' setnames(study, c("id", "ui", "ri"))
 #'
 #' # Estimate omega based on 3rd degree polynomial
@@ -298,25 +300,15 @@ estimate.phi <- function(phidat, maxT, bigT, dt=1/365.25, min_dt=FALSE,
   # Construct cumulative phi vector and cumulative covariance matrix
   cphi <- .matrix.phi(model=mod, family=family,
                       ts=ts_index$ts, ts_index=ts_index$index)
-  if(plot_phi){
-    # PART 3B: Plot an estimated phi function and the prior testing data
-    ts_plot <- seq(0, max(phidat$ui), by=dt)
-    preds <- .predict.phi(ts=ts_plot,
-                          model=mod, family=family, varcov=FALSE)[["point"]]
-    plot(phidat$ri ~ phidat$ui, main="Estimated Phi Function",
-         xlab="Infection Duration", ylab="Test Recent Probability")
-    lines(preds ~ ts_plot, col="#4295f5", lwd=2)
-  } else {
-    end.time <- Sys.time()
-    print(end.time - start.time)
-  }
 
   c1 <- cphi$cphi
   c2 <- cphi$csum
+  ts_index <- cphi$ts_index
 
   get.integral.est <- function(ts){
     # Convert bigT onto the grid
-    idx <- ts_index[which.min(abs(ts - ts_index$ts)),]$index
+    val <- which.min(abs(ts - ts_index$ts))
+    idx <- ts_index[val,]$index
 
     # Extract the cumulative phi at bigT (this is Omega est)
     # and the cumulative Cov(phi, phi) at (bigT, bigT) (this is Omega var)
@@ -331,6 +323,22 @@ estimate.phi <- function(phidat, maxT, bigT, dt=1/365.25, min_dt=FALSE,
     omega=est$omega,
     omega_var=est$omega_var
   )
+
+  if(plot_phi){
+    # PART 3B: Plot an estimated phi function and the prior testing data
+    ts_plot <- seq(0, max(phidat$ui), by=dt)
+    preds <- .predict.phi(ts=ts_plot,
+                          model=mod, family=family, varcov=FALSE)[["point"]]
+    plot(phidat$ri ~ phidat$ui,
+         main=paste("Estimated Phi Function\n", as.character(formula),
+                    "\n Omega:", round(est$omega*365.25), "days"),
+         xlab="Infection Duration", ylab="Test Recent Probability")
+    lines(preds ~ ts_plot, col="#4295f5", lwd=2)
+    abline(v=bigT, lty="dashed")
+  } else {
+    end.time <- Sys.time()
+    print(end.time - start.time)
+  }
 
   if(return_all){
     results[["bigTidx"]] <- est$idx
@@ -365,12 +373,12 @@ estimate.phi <- function(phidat, maxT, bigT, dt=1/365.25, min_dt=FALSE,
 #'               Can have more columns, e.g., if an id is needed for geese.
 #' @param ... Additional arguments to either glm or geese(..., data=phidat).
 #' @export
-summarize.pt.generator <- function(bigT, dt=1/365.25,
+summarizept.generator <- function(bigT, dt=1/365.25,
                                    use_geese=FALSE, formula, family,
                                    plot_phi=TRUE,
                                    ...){
 
-  summarize.pt <- function(ptdf=NULL, n=NULL, n_p=NULL, df=NULL,
+  summarizept <- function(ptdf=NULL, n=NULL, n_p=NULL, df=NULL,
                            phidat=NULL){
 
     # PART 1: SUMMARIZE TRIAL DATA AND GET NEW RECENCY INDICATOR
@@ -394,8 +402,10 @@ summarize.pt.generator <- function(bigT, dt=1/365.25,
       # First get the summary based on trial data
       s <- summarize.data(df)
       ptdf <- df[df$di == 1,]
-
     }
+
+    s[["q"]] <- mean(!is.na(ptdf$ri))
+    ptdf <- ptdf[!is.na(ptdf$ri),]
 
     # Generate recency indicators based on new algorithm
     newcols <- .get.Mi(ptdf, bigT)
@@ -439,6 +449,6 @@ summarize.pt.generator <- function(bigT, dt=1/365.25,
 
     return(s)
   }
-  return(summarize.pt)
+  return(summarizept)
 }
 

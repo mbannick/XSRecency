@@ -4,9 +4,9 @@
 #' @export
 adjusted.estimate.pt <- function(n_r_pt, n_n, n_p,
                                  omega, beta, big_T,
-                                 num_beta, den_omega, den_beta){
+                                 num_beta, den_omega, den_beta, q=1){
 
-  numerator <- n_r_pt - beta * num_beta
+  numerator <- n_r_pt/q - beta * num_beta
   denominator <- n_n * (omega - beta * big_T + (den_omega + beta * den_beta)/n_p)
 
   val <- numerator / denominator
@@ -222,9 +222,9 @@ get.adjusted.pt <- function(n_p, n, ptdf,
 
   # Summarize data inputs from the prior testing data
   # and an estimate of the phi function
-  summdat <- summarize.pt.generator(bigT=big_T, use_geese=use_geese,
+  summdat <- summarizept.generator(bigT=big_T, use_geese=use_geese,
                                     formula=formula,
-                                    family=family, plot_phi=plot_phi)
+                                    family=family, plot_phi=plot_phi, ...)
   args <- summdat(ptdf=ptdf, n=n, n_p=n_p, phidat=phidat)
 
   # Set up additional arguments
