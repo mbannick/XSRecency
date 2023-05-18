@@ -236,6 +236,7 @@ summarize.data <- function(df){
 #' @param return_all Whether to return additional objects used in internal functions (will use more memory)
 #' @param ... Additional arguments to glm or geese for fitting model
 #' @export
+#' @import formula.tools
 #'
 #' @returns List of results:
 #' * `omega`: Estimate of \Omega_{T^\*}
@@ -299,18 +300,6 @@ estimate.phi <- function(phidat, maxT, bigT, dt=1/365.25, min_dt=FALSE,
   # Construct cumulative phi vector and cumulative covariance matrix
   cphi <- .matrix.phi(model=mod, family=family,
                       ts=ts_index$ts, ts_index=ts_index$index)
-  if(plot_phi){
-    # PART 3B: Plot an estimated phi function and the prior testing data
-    ts_plot <- seq(0, max(phidat$ui), by=dt)
-    preds <- .predict.phi(ts=ts_plot,
-                          model=mod, family=family, varcov=FALSE)[["point"]]
-    plot(phidat$ri ~ phidat$ui, main="Estimated Phi Function",
-         xlab="Infection Duration", ylab="Test Recent Probability")
-    lines(preds ~ ts_plot, col="#4295f5", lwd=2)
-  } else {
-    end.time <- Sys.time()
-    print(end.time - start.time)
-  }
 
   c1 <- cphi$cphi
   c2 <- cphi$csum
@@ -334,6 +323,22 @@ estimate.phi <- function(phidat, maxT, bigT, dt=1/365.25, min_dt=FALSE,
     omega=est$omega,
     omega_var=est$omega_var
   )
+
+  if(plot_phi){
+    # PART 3B: Plot an estimated phi function and the prior testing data
+    ts_plot <- seq(0, max(phidat$ui), by=dt)
+    preds <- .predict.phi(ts=ts_plot,
+                          model=mod, family=family, varcov=FALSE)[["point"]]
+    plot(phidat$ri ~ phidat$ui,
+         main=paste("Estimated Phi Function\n", as.character(formula),
+                    "\n Omega:", round(est$omega*365.25), "days"),
+         xlab="Infection Duration", ylab="Test Recent Probability")
+    lines(preds ~ ts_plot, col="#4295f5", lwd=2)
+    abline(v=bigT, lty="dashed")
+  } else {
+    end.time <- Sys.time()
+    print(end.time - start.time)
+  }
 
   if(return_all){
     results[["bigTidx"]] <- est$idx

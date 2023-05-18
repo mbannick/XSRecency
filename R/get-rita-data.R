@@ -51,7 +51,7 @@ get.cephia.use <- function(){
 #' f <- function(l, v){
 #'   v <- ifelse(l > 1.5, 0, v)
 #'   return(
-#'     ifelse((l <= 1.5) & (v > 100), 1, 0)
+#'     ifelse((l <= 1.5) & (v > 1000), 1, 0)
 #'   )
 #' }
 #' test <- get.assay.df(assays=c("LAg-Sedia", "viral_load"), algorithm=f)
@@ -92,13 +92,11 @@ get.assay.df <- function(assays, algorithm, subtype=NULL, ever_art=NULL){
     } else {
       assay.1 <- cephia %>%
         filter(assay == assay_name)
-      assay.1.latest <- assay.1 %>%
+      assay.1 <- assay.1 %>%
         group_by(participant_identifier, visit_identifier) %>%
-        summarize(test_date=max(test_date)) %>%
+        summarize(assay_result_value=median(assay_result_value)) %>%
         ungroup()
 
-      assay.1 <- merge(assay.1, assay.1.latest,
-                       by=c("participant_identifier", "visit_identifier", "test_date"))
       assay.1 <- assay.1 %>%
         select(participant_identifier, visit_identifier, assay_result_value)
 
