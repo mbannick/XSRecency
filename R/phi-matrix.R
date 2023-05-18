@@ -77,6 +77,12 @@
     phi <- rbind(phi[1,], phi)
     phi_var <- rbind(phi_var[1,], phi_var)
     phi_var <- cbind(phi_var[,1], phi_var)
+
+    # For phi functions, enforce that they have probability 1 at time 0
+    # which also means covariance 0 with all other time points
+    phi[1] <- 1
+    phi_var[1, ] <- 0
+    phi_var[, 1] <- 0
   }
 
   dt <- diff(ts)[1]

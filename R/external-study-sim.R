@@ -150,7 +150,7 @@ simulate.study <- function(days, num.samples, coefs, knot=5,
 #' @param nsims Number of study simulations
 #' @param phi.func Optional recency test-positive function
 #' @return List of data frames with an id, time, and recency indicator
-simulate.studies <- function(nsims, phi.func=NULL, ext_df=NULL){
+simulate_studies <- function(nsims, phi.func=NULL, ext_df=NULL){
   if(!is.null(ext_df)){
     df <- ext_df
   } else {
@@ -426,7 +426,7 @@ assay.nsim.pt <- function(n_sims, phi.func, tau, bigT,
                           ext_FRR=FALSE, ext_df=NULL,
                           max_FRR=NULL){
 
-  studies <- simulate.studies(n_sims, phi.func, ext_df=ext_df)
+  studies <- simulate_studies(n_sims, phi.func, ext_df=ext_df)
 
   if(ext_FRR){
     frr_studies <- studies

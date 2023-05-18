@@ -62,7 +62,7 @@ params <- get.gamma.params(window=248/365.25, shadow=306/365.25)
 phi.func <- function(t) 1-pgamma(t, shape = params[1], rate = params[2])
 
 # Simulate external study data
-study <- simulate.studies(1, phi.func)[[1]]
+study <- simulate_studies(1, phi.func)[[1]]
 setnames(study, c("id", "ui", "ri"))
 
 # Estimate omega based on 3rd degree polynomial
