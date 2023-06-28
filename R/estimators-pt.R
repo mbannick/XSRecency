@@ -1,7 +1,4 @@
 #' Adjusted estimator  accounting for prior test results.
-#'
-#' @inheritParams get.adjusted.pt
-#' @export
 adjusted.estimate.pt <- function(n_r_pt, n_n, n_p,
                                  omega, beta, big_T,
                                  num_beta, den_omega, den_beta, q=1){
@@ -14,9 +11,7 @@ adjusted.estimate.pt <- function(n_r_pt, n_n, n_p,
 }
 
 #' Adjusted variance computation, is the same for adjusted
-#' and snapshot estimator, just pass in beta_sim=list(est=0, var=0).
-#'
-#' @export
+#' and snapshot estimator, just pass in beta_sim=list(est=0, var=0)
 variance <- function(n_n, n_r, n_p, n, omega, omega_var, beta, beta_var, big_T, q=1){
 
   # Slight modification for n_{p,test} to give the number of positives tested
@@ -36,6 +31,7 @@ variance <- function(n_n, n_r, n_p, n, omega, omega_var, beta, beta_var, big_T, 
   return(variance)
 }
 
+#' Enhanced variance computation
 variance.pt <- function(
     n_n, n_r_pt, n_r, n_p, n,
     omega, omega_var,
@@ -184,41 +180,62 @@ variance.pt <- function(
 }
 
 #' Convert log variance to variance
-#'
-#' @export
 var.log.to.var <- function(estimate, variance) (estimate ** 2) * variance
 
-#' Enhanced estimator and variance (Bannick and Gao 2023+)
-#'
-#'   \deqn{
-#'     \hat{\lambda} = \frac{N_{rec}/q - N_{pos} \hat{\beta}_{T^*}}{N_{neg} (\hat{\Omega}_{T^*} - \hat{\beta}_{T^*} T^*)}
-#'   }
-#'   where \eqn{\hat{\Omega}_{T^*}} is an estimate of the mean duration of recent infection (MDRI),
-#'   \eqn{\hat{\beta}_{T^*}} is an estimate of the false recency rate, and \eqn{T^*} is the time cutoff for being
-#'   a recent infected or not.
-#'
-#'   \code{q} is an adjustment for the number of positives that are given recency tests.
+#' Get enhanced estimate and variance (Bannick and Gao 2023+)
 #'
 #' @export
-#' @param n_r_pt Number of recent positives
-#' @param n_n Number of negatives
+#' @param n Number of observations
 #' @param n_p Number of positives
-#' @param n Total number of observations (\eqn{n_n + n_p = n})
-#' @param omega Mean duration of recent infection (MDRI) (in years, not days)
-#' @param omega_var Variance of the estimator for MDRI (or 0 if MDRI known)
+#' @param ptdf Prior testing data frame. Only include those who are positive.
+#' @param phidat Data to fit a modfunc model to. Must have column names ri
+#'               for recency indicator and ui for infection duration.
+#'               Can have more columns, e.g., if an id is needed for geese.
 #' @param beta False recency rate (FRR)
 #' @param beta_var Variance of the estimator for FRR (or 0 if FRR known)
 #' @param big_T The \eqn{T^*} in the equation above
-#' @param q The fraction of positives that were given recency tests, defaults to 1
+#' @param use_geese Indicator to fit a gee model using geese(), or a glm model with glm()
+#' @param formula Formula for fitting the model to phidat.
+#'                Formula argument must take in only ui as the newdata.
+#'                For example, do not create a ui^2 variable. Use poly(ui, ...) function
+#'                to fit polynomial terms.
+#' @param family Family argument for glm or gee
+#' @param plot_phi Whether to plot the estimated phi function
 #' @return Returns a list of the estimate and the variance.
 #' @examples
-#' get.adjusted.pt(n_r_pt=3, n_r=2, n_n=50, n_p=10, n=60,
-#'                 omega=0.36, omega_var=0, beta=0.02, beta_var=0, big_T=2, q=1)
-#' get.adjusted.pt(n_r=c(2, 3), n_n=c(50, 48), n_p=c(10, 12), n=c(60, 60),
-#'                 omega=0.36, omega_var=0, beta=0.02, beta_var=0, big_T=2)
+#'
+#' set.seed(101)
+#'
+#' # Get HIV, recency, and prior testing data
+#' e.func <- function(e) infections.con(e, t=0, p=0.29, lambda=0.032)
+#' phi.func <- function(t) 1-pgamma(t, shape=1, rate=2)
+#' sim <- sim.screening.generator(prevalence=0.29, e.func=e.func, phi.func=phi.func)
+#' df <- sim(1000)
+#' sim.pt <- sim.pt.generator(ptest.dist=function(u) runif(1, 0, 4),
+#'                            ptest.prob=function(u) 0.1)
+#' ptdf <- sim.pt(df[df$di == 1,])
+#'
+#' # Get dataset for estimating \Omega
+#' phidat <- get.assay.df(assays=c("LAg-Sedia"),
+#'                        algorithm=function(l) ifelse(l <= 1.5, 1, 0))
+#'
+#' get.adjusted.pt(
+#'   n_p=nrow(ptdf),
+#'   n=nrow(df),
+#'   ptdf=ptdf,
+#'   beta=0,
+#'   beta_var=0,
+#'   big_T=1,
+#'   phidat=phidat,
+#'   use_geese=TRUE,
+#'   formula="ri ~ poly(ui, degree=3, raw=T)",
+#'   family=binomial(link="logit")
+#' )
 get.adjusted.pt <- function(n_p, n, ptdf,
                             beta, beta_var, big_T,
-                            phidat, use_geese, formula, family, plot_phi=TRUE, return_all=TRUE, ...){
+                            phidat, use_geese, formula, family, plot_phi=TRUE,
+                            return_all=FALSE,
+                            ...){
 
   # Summarize data inputs from the prior testing data
   # and an estimate of the phi function
@@ -258,6 +275,7 @@ get.adjusted.pt <- function(n_p, n, ptdf,
   return(result)
 }
 
+#' Wrapped function for getting enhanced estimator
 get.adjusted.pt.internal <- function(n_r_pt, n_r, n_n, n_p, n, omega, omega_var,
                                      beta, beta_var, big_T, q=1,
                                      num_beta, den_omega, den_beta,

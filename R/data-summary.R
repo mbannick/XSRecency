@@ -372,7 +372,6 @@ estimate.phi <- function(phidat, maxT, bigT, dt=1/365.25, min_dt=FALSE,
 #'               for recency indicator and ui for infection duration.
 #'               Can have more columns, e.g., if an id is needed for geese.
 #' @param ... Additional arguments to either glm or geese(..., data=phidat).
-#' @export
 summarizept.generator <- function(bigT, dt=1/365.25,
                                    use_geese=FALSE, formula, family,
                                    plot_phi=TRUE,

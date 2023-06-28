@@ -18,7 +18,6 @@ expit <- function(x) exp(x) / (1 + exp(x))
 #' by sampling from a binomial with a sample size
 #' given in the study.
 #'
-#' @export
 simulate.beta <- function(phi.func, minT, maxT, recent=NULL){
   N <- N_LONG_INFECT
 
@@ -44,7 +43,6 @@ simulate.beta <- function(phi.func, minT, maxT, recent=NULL){
 #' by sampling from a binomial with a sample size
 #' given in the study.
 #'
-#' @export
 simulate.nbeta <- function(nsims, phi.func, minT, maxT, studies=NULL){
   if(is.null(studies)){
     result <- replicate(nsims, simulate.beta(phi.func=phi.func,
@@ -165,8 +163,6 @@ simulate_studies <- function(nsims, phi.func=NULL, ext_df=NULL){
 
 #' Fits a cubic model to indicators and durations
 #' and returns the model object.
-#'
-#' @export
 fit.cubic <- function(recent, durations, id){
   durations2 <- durations**2
   durations3 <- durations**3
@@ -197,8 +193,6 @@ get.cubic.ts <- function(ts){
 #' Estimate omega_T from a model object
 #' Can instead estimate mu hat if you pass in a sufficiently
 #' long follow_T parameter (like 9)
-#'
-#' @export
 integrate.phi <- function(model, ts, dt=0.01){
   ts <- get.cubic.ts(ts)
 
@@ -353,94 +347,5 @@ pt.properties.est <- function(ptest_times,
 
   # Return list of elements that were estimated
   return(elem)
-}
-
-#' Use an assay df with recent (yes/no) and duration columns
-#' to calculate the mean window period and MDRI of the assay
-#'
-#' @export
-#' @param study Data frame with recent and durations variables
-#' @param bigT The T^* time
-#' @param tau The maximum time
-#' @returns List of properties and their variances
-assay.properties.est <- function(study, bigT, tau, last_point=TRUE, dt=1/365.25,
-                                 ptest_times=NULL,
-                                 ptest_delta=NULL,
-                                 ptest_avail=NULL){
-  start.time <- Sys.time()
-  model <- fit.cubic(recent=study$recent,
-                     durations=study$durations,
-                     id=study$id)
-
-  # get mu and omega
-  if(last_point) tau <- max(study$durations)
-
-  ts_index <- get.ts(minT=0, maxT=tau, dt=dt)
-
-  # Convert bigT onto the grid
-  bigT_index <- ts_index[which.min(abs(bigT - ts_index$ts))]
-
-  ts_mu <- ts_index$ts
-  ts_omega <- ts_index[ts <= bigT_index[, ts]]$ts
-
-  mu_sim <- integrate.phi(model, ts_mu, dt=dt)
-  omega_sim <- integrate.phi(model, ts_omega, dt=dt)
-
-  # If we have prior test results, we need to calculate the
-  # following quantities that allow us to calculate the variance
-  # of the enhanced adjusted estimator that incorporates prior test results.
-  if(!all(is.null(ptest_times))){
-
-    elem <- pt.properties.est(
-      ptest_times=ptest_times,
-      ptest_delta=ptest_delta,
-      ptest_avail=ptest_avail,
-      dt=dt
-    )
-
-  } else {
-
-    elem <- copy(ELEM)
-
-  }
-
-  result <- list(
-    mu_est=mu_sim$est,
-    mu_var=mu_sim$var,
-    omega_est=omega_sim$est,
-    omega_var=omega_sim$var,
-    beta_est=NA,
-    beta_var=NA
-  )
-
-  for(el in names(elem)){
-    result[[el]] <- elem[[el]]
-  }
-
-  end.time <- Sys.time()
-  print(end.time - start.time)
-  return(result)
-}
-
-assay.nsim.pt <- function(n_sims, phi.func, tau, bigT,
-                          ext_FRR=FALSE, ext_df=NULL,
-                          max_FRR=NULL){
-
-  studies <- simulate_studies(n_sims, phi.func, ext_df=ext_df)
-
-  if(ext_FRR){
-    frr_studies <- studies
-  } else {
-    frr_studies <- NULL
-  }
-  if(!is.null(max_FRR)){
-    b.maxT <- max_FRR
-  } else {
-    b.maxT <- tau
-  }
-  beta_sim <- simulate.nbeta(nsims=n_sims, phi.func=phi.func,
-                             minT=bigT, maxT=b.maxT, studies=frr_studies)
-
-  return(list(studies=studies, beta_sim=beta_sim))
 }
 

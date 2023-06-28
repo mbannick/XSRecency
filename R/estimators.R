@@ -1,14 +1,10 @@
 #' Snapshot estimator
-#'
-#' @export
 snapshot.estimate <- function(n_r, n_n, mu, q=1){
   val <- (n_r/q) / (mu * n_n)
   return(val)
 }
 
 #' Adjusted estimator from Kassanjee et al. 2012
-#'
-#' @export
 adjusted.estimate <- function(n_r, n_n, n_p, omega, beta, big_T, q=1){
   o_b <- omega - beta * big_T
   est <- n_r/q - beta * n_p
@@ -18,8 +14,6 @@ adjusted.estimate <- function(n_r, n_n, n_p, omega, beta, big_T, q=1){
 
 #' Adjusted variance computation, is the same for adjusted
 #' and snapshot estimator, just pass in beta_sim=list(est=0, var=0).
-#'
-#' @export
 variance <- function(n_n, n_r, n_p, n, omega, omega_var, beta, beta_var, big_T, q=1){
 
   # Slight modification for n_{p,test} to give the number of positives tested
@@ -40,8 +34,6 @@ variance <- function(n_n, n_r, n_p, n, omega, omega_var, beta, beta_var, big_T, 
 }
 
 #' Convert log variance to variance
-#'
-#' @export
 var.log.to.var <- function(estimate, variance) (estimate ** 2) * variance
 
 #' Snapshot estimator and variance (Kaplan and Brookmeyer 1999)

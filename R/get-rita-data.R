@@ -1,17 +1,4 @@
 
-
-#' @import tidyr
-#' @import dplyr
-rita.subtype <- function(){
-  cephia <- XSRecency:::cephia
-  cephia <- cephia %>% dplyr::filter(
-    cephia_panel == "CEPHIA 1 Evaluation Panel",
-    assay_result_field == "final_result",
-    hiv_subtype %in% c("A1", "B", "C", "D"),
-    !is.na(days_since_eddi))
-  with(cephia, table(assay, hiv_subtype))
-}
-
 get.cephia.use <- function(){
   return(XSRecency:::cephia %>%
            dplyr::filter(
@@ -21,6 +8,23 @@ get.cephia.use <- function(){
              !is.na(days_since_eddi)))
 }
 
+#' See which recency assays are available by HIV subtype
+#'
+#' @import tidyr
+#' @import dplyr
+#'
+#' @export
+#' @examples
+#' rita.subtype()
+rita.subtype <- function(){
+  cephia <- get.cephia.use()
+  cephia <- cephia %>% dplyr::filter(
+    cephia_panel == "CEPHIA 1 Evaluation Panel",
+    assay_result_field == "final_result",
+    hiv_subtype %in% c("A1", "B", "C", "D"),
+    !is.na(days_since_eddi))
+  with(cephia, table(assay, hiv_subtype))
+}
 
 #' Get external data frame using CEPHIA data for a given recency
 #' algorithm specified by the user.
@@ -40,6 +44,7 @@ get.cephia.use <- function(){
 #' @import tidyr
 #' @import dplyr
 #' @import purrr
+#' @import data.table
 #'
 #' @examples
 #' f <- function(b, l, v){

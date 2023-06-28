@@ -4,7 +4,6 @@ DELTA <- 1e-3
 
 #' Gets the Gamma alpha and beta parameters
 #' for a given mean window period and shadow
-#' @export
 get.gamma.params <- function(window, shadow){
   alpha <- window / (2 * shadow - window)
   beta <- 1 / (2 * shadow - window)
@@ -12,7 +11,6 @@ get.gamma.params <- function(window, shadow){
 }
 
 #' Non-constant FRR true rate based on the phi function and the tail probability of 0.015
-#' @export
 true.frr <- function(phi.function, bigT, tau){
   # ts <- seq(bigT, tau, DELTA)
   # return(mean(phi.function(ts)))
@@ -23,7 +21,6 @@ true.frr <- function(phi.function, bigT, tau){
 #' When using the shadow period, need to numerically calculate the MDRI
 #' the MDRI argument here is really mean window period, just calling it
 #' MDRI for convenience
-#' @export
 true.window.mdri <- function(phi.function, maxT){
   # ts <- seq(0, maxT, DELTA)
   # return(sum(phi.function(ts) * DELTA))
@@ -31,7 +28,6 @@ true.window.mdri <- function(phi.function, maxT){
   return(val)
 }
 
-#' @export
 true.shadow.snap <- function(phi.function, tau){
   ts <- seq(0, tau, DELTA)
   window <- true.window.mdri(phi.function, maxT=tau)
@@ -39,7 +35,6 @@ true.shadow.snap <- function(phi.function, tau){
   return(sum(phi.function(ts) * ts / window * DELTA))
 }
 
-#' @export
 true.shadow.adj <- function(phi.function, bigT, tau, rho){
   ts <- seq(0, bigT, DELTA)
   omega <- true.window.mdri(phi.function)
@@ -48,7 +43,6 @@ true.shadow.adj <- function(phi.function, bigT, tau, rho){
 }
 
 #' Expected bias for the snapshot estimator
-#' @export
 snap.bias <- function(phi.func, inc.func, inc.0, tau, rho){
   window <- true.window.mdri(phi.func, maxT=tau)
   us <- seq(0, tau, DELTA)
@@ -60,7 +54,6 @@ snap.bias <- function(phi.func, inc.func, inc.0, tau, rho){
 }
 
 # Expected bias for the snapshot estimator
-#' @export
 adj.bias <- function(phi.func, inc.func, inc.0, bigT, tau, rho){
   mdri <- true.window.mdri(phi.func, maxT=bigT)
   frr <- true.frr(phi.func, bigT=bigT, tau=tau)
