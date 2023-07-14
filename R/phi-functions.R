@@ -2,15 +2,40 @@
 
 DELTA <- 1e-3
 
-#' Gets the Gamma alpha and beta parameters
-#' for a given mean window period and shadow
+# Gets Gamma alpha and beta parameters
+# for a given mean window period and shadow
+# to approximate a phi function.
+#
+# @param window Window period
+# @param shadow Shadow period
 get.gamma.params <- function(window, shadow){
   alpha <- window / (2 * shadow - window)
   beta <- 1 / (2 * shadow - window)
   return(c(alpha, beta))
 }
 
-#' Non-constant FRR true rate based on the phi function and the tail probability of 0.015
+#' Approximate test-recent function with given window and shadow period
+#'
+#' Generate a test-recent function that has a desired window and shadow period
+#' using a gamma distribution parameters.
+#'
+#' @param window Window period (in days)
+#' @param shadow Shadow period (in days)
+#'
+#' @export
+#' @returns A test-recent function of t
+#'
+#' @examples
+#'
+#' phi <- getTestRecentFunc(window=200, shadow=191)
+getTestRecentFunc <- function(window, shadow){
+  params <- get.gamma.params(window=window/365.25, shadow=shadow/365.25)
+  phi.func <- function(t) 1-pgamma(t, shape = params[1], rate = params[2])
+
+  return(phi.func)
+}
+
+# Non-constant FRR true rate based on the phi function and the tail probability of 0.015
 true.frr <- function(phi.function, bigT, tau){
   # ts <- seq(bigT, tau, DELTA)
   # return(mean(phi.function(ts)))
@@ -18,10 +43,13 @@ true.frr <- function(phi.function, bigT, tau){
   return(val)
 }
 
-#' When using the shadow period, need to numerically calculate the MDRI
-#' the MDRI argument here is really mean window period, just calling it
-#' MDRI for convenience
-true.window.mdri <- function(phi.function, maxT){
+#' Integrate a phi function to calculate the MDRI or window period
+#'
+#' @param phi.function A function of t (years) which has range 0 to at least \code{maxT}
+#' @param maxT The t to integrate to
+#'
+#' @export
+integratePhi <- function(phi.function, maxT){
   # ts <- seq(0, maxT, DELTA)
   # return(sum(phi.function(ts) * DELTA))
   val <- integrate(phi.function, 0, maxT)$value
@@ -42,7 +70,7 @@ true.shadow.adj <- function(phi.function, bigT, tau, rho){
   return(sum(ts * (phi.function(ts) - beta)/(omega - beta) * DELTA))
 }
 
-#' Expected bias for the snapshot estimator
+# Expected bias for the snapshot estimator
 snap.bias <- function(phi.func, inc.func, inc.0, tau, rho){
   window <- true.window.mdri(phi.func, maxT=tau)
   us <- seq(0, tau, DELTA)

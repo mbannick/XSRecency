@@ -1,28 +1,43 @@
 template:
   params:
     bootswatch: yeti
+
+articles:
+- title: Vignettes
+  navbar: ~
+  contents:
+  - snapshot-adjusted
+  - enhanced
+
 reference:
 - title: "Estimating cross-sectional incidence"
   desc: >
-    Point and variance estimators for cross-sectional incidence, including the Snapshot estimator and the Adjusted estimator.
+    Point and variance estimators for cross-sectional incidence.
 - contents:
-  - get.snapshot
-  - get.adjusted
+  - estSnapshot
+  - estAdjusted
+  - estEnhanced
+- title: "Obtaining recent infection testing algorithm"
+  desc: >
+    Functions for obtaining recent infection data from a recent infection assay algorithm
+- contents:
+  - cephia
+  - downloadCephia
+  - getRitaOptions
+  - createRitaCephia
 - title: "Estimating recency assay parameters"
   desc: >
-    Functions to estimate the recency assay parameters like mean window period, mean duration of recent infection, and false recency rate.
+    Functions for estimating test recent function characteristics
 - contents:
-  - assay.properties.est
-  - assay.properties.nsim
+  - estRitaProperties
+  - integratePhi
 - title: "Simulating datasets"
   desc: >
-    Functions for simulating a trial dataset with past infection times and recency indicators.
+    Functions for simulating datasets
 - contents:
-  - generate.data
-  - sim.infection.times
-  - incidence.con
-  - incidence.lin
-  - incidence.exp
-  - infections.con
-  - infections.lin
-  - infections.exp
+  - getTestRecentFunc
+  - simCrossSect
+  - simPriorTests
+  - simExternal
+
+

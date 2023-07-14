@@ -29,7 +29,131 @@ summarize.data <- function(df){
   return(s)
 }
 
-.test.phi <- function(phidat, formula, family, use_geese=TRUE, ...){
+predict.phi <- function(ts, model, family, varcov=TRUE){
+
+  # Get coefficients of model
+  # and the link function
+  if(class(model) == "geese"){
+    coefs <- matrix(model$beta)
+    varcor <- model$vbeta
+  } else {
+    coefs <- matrix(coef(model))
+    varcor <- vcov(model)
+  }
+
+  # Get a data frame of t's so that
+  # we can get the model matrix
+  # ri won't actually be used, just a placeholder so the formula works
+  temp.dat <- data.frame(
+    ri=1,
+    ui=ts
+  )
+  ts.pred <- model.matrix(model$formula, data=temp.dat)
+
+  # Get the linear predictor
+  lin_predictor <- ts.pred %*% coefs
+
+  # Transform the linear predictor
+  phi <- family$linkinv(lin_predictor)
+
+  if(varcov){
+
+    # We have by delta method Var(T \beta) = T %*% Var(\beta) %*% T^t
+    # Also by delta method, Var(linkinv(T \beta)) = J %*% T %*% Var(\beta) %*% T^t J
+    # where J is the gradient of the linkinv() transformation.
+
+    # For efficiency's sake, we can instead first calculate J %*% T
+    # since (J %*% T)^t = T^t %*% J^t = T^t %*% J
+    # and then calculate the Cholesky decomposition of Var(\beta) so that we
+    # can write Var(\beta) = U^t U where U is the upper triangular
+    # matrix from the decomposition (what chol function returns).
+
+    # Then we have, with R = J %*% T %*% U^t,
+    # the final variance-covariance matrix is R %*% R^t.
+
+    # 1. Var(\beta) and Cholesky decomposition
+    U <- chol(varcor)
+
+    # 2. Derivative of transformation
+    delta_g <- family$mu.eta(lin_predictor)
+    J <- diag(c(delta_g))
+
+    # 3. Calculate R matrix
+    R <- J %*% ts.pred %*% t(U)
+
+    # 4. Calculate final variance
+    phi_var <- R %*% t(R)
+  } else {
+    phi_var <- NULL
+  }
+
+  return(list(point=phi, var=phi_var))
+}
+
+# Create a phi matrix of d x d based on draws from the phi.hat function
+#
+# @param model A model object (either glm or gee)
+# @param ts_index Ts that should be used to form the matrix
+# @import data.table
+matrix.phi <- function(model, family, ts, ts_index){
+
+  res <- predict.phi(ts=ts, model=model, family=family)
+  phi <- res[["point"]]
+  phi_var <- res[["var"]]
+
+  # For when log UI is used
+  if(!0 %in% ts_index){
+    ts_index <- c(0, ts_index)
+    ts <- c(0, ts)
+    phi <- rbind(phi[1,], phi)
+    phi_var <- rbind(phi_var[1,], phi_var)
+    phi_var <- cbind(phi_var[,1], phi_var)
+
+    # For phi functions, enforce that they have probability 1 at time 0
+    # which also means covariance 0 with all other time points
+    phi[1] <- 1
+    phi_var[1, ] <- 0
+    phi_var[, 1] <- 0
+  }
+
+  dt <- diff(ts)[1]
+
+  if(sum((phi > 1) | (phi < 0)) > 0) stop("cannot have predicted probabilities
+                                          outside of 0-1 for the phi func")
+
+  # Calculate cumulative phi and convert to a data frame
+  cphi <- cumsum(phi * dt)
+  cphi_d <- data.table(
+    index=ts_index,
+    phi=cphi
+  )
+
+  # Calculate the 2-d integral of the variance-covariance matrix
+  # at all grid points by using cumsum on the rows and columns.
+  csum <- t(apply(apply(phi_var * dt^2, 2, cumsum), 1, cumsum))
+
+  # Reshape the matrix into a data frame so that it's easier to work with
+  # and merge onto the id grid.
+  csum <- data.table(csum)
+  # Need to subtract one because the indexing starts at 0
+  csum <- csum[, indexX := .I-1]
+  csum_d <- melt.data.table(csum, id.vars="indexX")
+
+  ts_index <- data.table(
+    ts=ts,
+    index=ts_index
+  )
+  ts_index[, row := .I]
+
+  csum_d <- csum_d[, variable := as.numeric(gsub("V", "", variable))]
+  csum_d <- merge(csum_d, ts_index[, .(row, index)], by.x="variable", by.y="row")
+  setnames(csum_d, c("index", "value"), c("indexY", "rho"))
+  csum_d <- csum_d[, .(indexX, indexY, rho)]
+
+  return(list(cphi=cphi_d, csum=csum_d, ts_index=ts_index))
+}
+
+test.phi <- function(phidat, formula, family, use_geese=TRUE, ...){
 
   if(use_geese){
     modfunc <- geese
@@ -61,7 +185,7 @@ summarize.data <- function(df){
   )
 }
 
-.get.ts <- function(minT, maxT, dt){
+get.ts <- function(minT, maxT, dt){
   index <- seq(minT/dt, maxT/dt, by=1)
   ts <- index*dt
   dat <- data.frame(index=index, ts=ts)
@@ -70,7 +194,7 @@ summarize.data <- function(df){
 
 # The algorithm to get recent classification
 # based on recency assay + prior testing
-.get.Mi <- function(ptdf, bigT){
+get.MI <- function(ptdf, bigT){
 
   Np <- nrow(ptdf)
 
@@ -101,7 +225,7 @@ summarize.data <- function(df){
   ))
 }
 
-.map.to.tgrid <- function(ts_index, ptdf, bigT_index){
+map.to.tgrid <- function(ts_index, ptdf, bigT_index){
 
   closest <- ptdf[, c("ti", "qi", "Mi", "Ai", "Bi", "Ci")]
   closest <- data.table(closest)
@@ -133,7 +257,7 @@ summarize.data <- function(df){
   return(closest)
 }
 
-.pt.properties.est <- function(closest, bigTidx, cphi){
+pt.properties.est <- function(closest, bigTidx, cphi){
   elem <- list()
 
   # Calculate fraction of those with recent/non-recent prior tests
@@ -224,7 +348,7 @@ summarize.data <- function(df){
 #'               columns ri (recency indicator), ui (duration), and id (if use_geese == TRUE)
 #' @param maxT Maximum time to estimate phi until
 #' @param min_dt Make the minimum time dt (necessary if doing a log transformation of ui)
-#' @param bigT T^\* for estimating \Omega_{T^\*}
+#' @param bigT T for estimating MDRI (what defines recent infection)
 #' @param use_geese Indicator to fit a gee model using geese(), or a glm model with glm()
 #' @param formula Formula for fitting the model to phidat.
 #'                Formula argument must take in only ui as the newdata.
@@ -237,54 +361,62 @@ summarize.data <- function(df){
 #' @param ... Additional arguments to glm or geese for fitting model
 #' @export
 #' @import formula.tools
+#' @importFrom geepack geese
+#' @importFrom data.table data.table melt.data.table
 #'
-#' @returns List of results:
-#' * `omega`: Estimate of \Omega_{T^\*}
-#' * `omega_var`: Variance of \hat{\Omega_{T^\*}}
-#' * `bigTidx`: Index of T^\* based on `ts_index`
-#' * `ts_index`: Index mapping each time point to an integer
-#' * `get.integral.est`: Function to give an estimate of \Omega_{T} for some T as arg to the function
+#' @returns
+#' List of results:
+#'
+#' \itemize{
+#'   \item `omega`: Estimate of Omega
+#'   \item `omega_var`: Variance of estimate of Omega
+#'   \item `bigTidx`: Index of bigT based on `ts_index`
+#'   \item `ts_index`: Index mapping each time point to an integer
+#'   \item `get.integral.est`: Function to give an estimate of Omega T for some T as arg to the function
+#' }
 #'
 #' @examples
 #' # Define phi function
-#' params <- get.gamma.params(window=248/365.25, shadow=306/365.25)
-#' phi.func <- function(t) 1-pgamma(t, shape = params[1], rate = params[2])
+#' phi.func <- getTestRecentFunc(window=200, shadow=191)
 #'
 #' # Simulate external study data
-#' study <- simulate_studies(1, phi.func)[[1]]
-#' setnames(study, c("id", "ui", "ri"))
+#' study <- simExternal(1, phi.func)
+#' colnames(study) <- c("id", "ui", "ri")
 #'
 #' # Estimate omega based on 3rd degree polynomial
-#' estimate.phi(phidat=study, maxT=5, bigT=1,
-#'              formula="ri ~ poly(ui, raw=T, degree=4)", family=binomial(link="logit"),
-#'              use_geese=TRUE, plot_phi=TRUE)
+#' props <- estRitaProperties(
+#'   phidat=study, maxT=5, bigT=1,
+#'   formula="ri ~ poly(ui, raw=T, degree=4)", family=binomial(link="logit"),
+#'   use_geese=TRUE, plot_phi=TRUE, return_all=TRUE)
 #'
 #' # Estimate omega based on 3rd degree polynomial, log function
 #' # NOTE: If you do this, need to not have any ui = 0
 #' study.log <- study
 #' study.log[study.log$ui == 0, "ui"] <- 0.01
-#' estimate.phi(phidat=study.log, maxT=10, bigT=1, min_dt=TRUE,
-#'              formula="ri ~ poly(log(ui), raw=T, degree=4)", family=binomial(link="logit"),
-#'              use_geese=TRUE, plot_phi=TRUE)
+#' props <- estRitaProperties(
+#'   phidat=study.log, maxT=10, bigT=1, min_dt=TRUE,
+#'   formula="ri ~ poly(log(ui), raw=T, degree=4)", family=binomial(link="logit"),
+#'   use_geese=TRUE, plot_phi=TRUE)
 #'
 #' # Return additional function that can be used to
 #' # quickly get other omega estimates
-#' result <- estimate.phi(phidat=study, maxT=5, bigT=1,
-#'                        formula="ri ~ poly(ui, raw=T, degree=3)", family=binomial(link="logit"),
-#'                        use_geese=TRUE, plot_phi=FALSE, return_all=TRUE)
+#' props <- estRitaProperties(
+#'   phidat=study, maxT=5, bigT=1,
+#'   formula="ri ~ poly(ui, raw=T, degree=3)", family=binomial(link="logit"),
+#'   use_geese=TRUE, plot_phi=FALSE, return_all=TRUE)
 #'
 #' # What is \int_0^T \phi(t) dt for ts=T?
-#' result$get.integral.est(ts=2.1)
-estimate.phi <- function(phidat, maxT, bigT, dt=1/365.25, min_dt=FALSE,
+#' props$get.integral.est(ts=2.1)
+estRitaProperties <- function(phidat, maxT, bigT, dt=1/365.25, min_dt=FALSE,
                          formula, family, use_geese,
                          return_all=FALSE, plot_phi=FALSE, ...){
 
   # Get map from time to integer
   minT <- ifelse(min_dt, dt, 0)
-  ts_index <- .get.ts(minT=minT, maxT=maxT, dt=dt)
+  ts_index <- get.ts(minT=minT, maxT=maxT, dt=dt)
 
   # Make sure model works based on the user arguments
-  # .test.phi(phidat=phidat, use_geese=use_geese, formula=formula, family=family, ...)
+  # test.phi(phidat=phidat, use_geese=use_geese, formula=formula, family=family, ...)
 
   if(use_geese){
     modfunc <- geese
@@ -298,7 +430,7 @@ estimate.phi <- function(phidat, maxT, bigT, dt=1/365.25, min_dt=FALSE,
   start.time <- Sys.time()
 
   # Construct cumulative phi vector and cumulative covariance matrix
-  cphi <- .matrix.phi(model=mod, family=family,
+  cphi <- matrix.phi(model=mod, family=family,
                       ts=ts_index$ts, ts_index=ts_index$index)
 
   c1 <- cphi$cphi
@@ -327,7 +459,7 @@ estimate.phi <- function(phidat, maxT, bigT, dt=1/365.25, min_dt=FALSE,
   if(plot_phi){
     # PART 3B: Plot an estimated phi function and the prior testing data
     ts_plot <- seq(0, max(phidat$ui), by=dt)
-    preds <- .predict.phi(ts=ts_plot,
+    preds <- predict.phi(ts=ts_plot,
                           model=mod, family=family, varcov=FALSE)[["point"]]
     plot(phidat$ri ~ phidat$ui,
          main=paste("Estimated Phi Function\n", as.character(formula),
@@ -339,39 +471,39 @@ estimate.phi <- function(phidat, maxT, bigT, dt=1/365.25, min_dt=FALSE,
     end.time <- Sys.time()
     print(end.time - start.time)
   }
-
   if(return_all){
     results[["bigTidx"]] <- est$idx
     results[["ts_index"]] <- ts_index
     results[["get.integral.est"]] <- get.integral.est
     results[["cphi"]] <- cphi
+    results[["phi"]] <- function(t) predict.phi(ts=t, model=mod, family=family, varcov=FALSE)[["point"]][,1]
   }
 
   return(results)
 }
 
-#' Function that summarizes a dataset + prior test results
-#'
-#' @param bigT The T^* parameter for defining recent infection.
-#' @param use_geese Indicator to fit a gee model using geese(), or a glm model with glm()
-#' @param formula Formula for fitting the model to phidat.
-#'                Formula argument must take in only ui as the newdata.
-#'                For example, do not create a ui^2 variable. Use poly(ui, ...) function
-#'                to fit polynomial terms.
-#' @param family Family argument for glm or gee
-#' @param dt An integration step size. Should be no more than 1 day.
-#' @param ptdf Data frame of prior testing data. These records should
-#'             only be from people who are HIV positive. They need to have
-#'             recency testing data as well as prior testing data.
-#' @param n Required total sample size n if `ptdf` is used instead of `df`
-#' @param n_p Required number of positives if `ptdf` is used instead of `df`
-#' @param df Instead of passing ptdf, can pass a data frame with one row
-#'           for each person, regardless of HIV status, and NA for all
-#'           of the prior testing data for HIV negative people
-#' @param phidat Data to fit a modfunc model to. Must have column names ri
-#'               for recency indicator and ui for infection duration.
-#'               Can have more columns, e.g., if an id is needed for geese.
-#' @param ... Additional arguments to either glm or geese(..., data=phidat).
+# Function that summarizes a dataset + prior test results
+#
+# @param bigT The T^* parameter for defining recent infection.
+# @param use_geese Indicator to fit a gee model using geese(), or a glm model with glm()
+# @param formula Formula for fitting the model to phidat.
+#                Formula argument must take in only ui as the newdata.
+#                For example, do not create a ui^2 variable. Use poly(ui, ...) function
+#                to fit polynomial terms.
+# @param family Family argument for glm or gee
+# @param dt An integration step size. Should be no more than 1 day.
+# @param ptdf Data frame of prior testing data. These records should
+#             only be from people who are HIV positive. They need to have
+#             recency testing data as well as prior testing data.
+# @param n Required total sample size n if `ptdf` is used instead of `df`
+# @param n_p Required number of positives if `ptdf` is used instead of `df`
+# @param df Instead of passing ptdf, can pass a data frame with one row
+#           for each person, regardless of HIV status, and NA for all
+#           of the prior testing data for HIV negative people
+# @param phidat Data to fit a modfunc model to. Must have column names ri
+#               for recency indicator and ui for infection duration.
+#               Can have more columns, e.g., if an id is needed for geese.
+# @param ... Additional arguments to either glm or geese(..., data=phidat).
 summarizept.generator <- function(bigT, dt=1/365.25,
                                    use_geese=FALSE, formula, family,
                                    plot_phi=TRUE,
@@ -407,7 +539,7 @@ summarizept.generator <- function(bigT, dt=1/365.25,
     ptdf <- ptdf[!is.na(ptdf$ri),]
 
     # Generate recency indicators based on new algorithm
-    newcols <- .get.Mi(ptdf, bigT)
+    newcols <- get.MI(ptdf, bigT)
     ptdf <- cbind(ptdf, newcols)
 
     # Calculate the new number of recents, and q effective
@@ -422,7 +554,7 @@ summarizept.generator <- function(bigT, dt=1/365.25,
     # -----------------------------------------------------------
 
     maxT <- max(ptdf$ti, bigT, na.rm=TRUE)
-    phi <- estimate.phi(
+    phi <- estRitaProperties(
       phidat=phidat,
       maxT=maxT, bigT=bigT, dt=dt,
       formula=formula, family=family, use_geese=use_geese,
@@ -433,13 +565,13 @@ summarizept.generator <- function(bigT, dt=1/365.25,
 
     # PART 3: MAP TESTING TIMES TO A TIME GRID BASED ON DT
     # ----------------------------------------------------
-    closest <- .map.to.tgrid(ts_index=phi$ts_index,
+    closest <- map.to.tgrid(ts_index=phi$ts_index,
                              ptdf=ptdf,
                              bigT_index=phi$idx)
 
     # PART 4: ESTIMATE ALL OF THE OTHER THINGS THAT HAVE TO DO WITH PRIOR TESTING
     # ---------------------------------------------------------------------------
-    ptlist <- .pt.properties.est(closest=closest, bigTidx=phi$bigTidx, cphi=phi$cphi)
+    ptlist <- pt.properties.est(closest=closest, bigTidx=phi$bigTidx, cphi=phi$cphi)
 
     # Add all of the pt estimates to the main list
     for(el in names(ptlist)){

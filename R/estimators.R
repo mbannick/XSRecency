@@ -1,10 +1,10 @@
-#' Snapshot estimator
+# Snapshot estimator
 snapshot.estimate <- function(n_r, n_n, mu, q=1){
   val <- (n_r/q) / (mu * n_n)
   return(val)
 }
 
-#' Adjusted estimator from Kassanjee et al. 2012
+# Adjusted estimator from Kassanjee et al. 2012
 adjusted.estimate <- function(n_r, n_n, n_p, omega, beta, big_T, q=1){
   o_b <- omega - beta * big_T
   est <- n_r/q - beta * n_p
@@ -12,8 +12,8 @@ adjusted.estimate <- function(n_r, n_n, n_p, omega, beta, big_T, q=1){
   return(val)
 }
 
-#' Adjusted variance computation, is the same for adjusted
-#' and snapshot estimator, just pass in beta_sim=list(est=0, var=0).
+# Adjusted variance computation, is the same for adjusted
+# and snapshot estimator, just pass in beta_sim=list(est=0, var=0).
 variance <- function(n_n, n_r, n_p, n, omega, omega_var, beta, beta_var, big_T, q=1){
 
   # Slight modification for n_{p,test} to give the number of positives tested
@@ -33,7 +33,7 @@ variance <- function(n_n, n_r, n_p, n, omega, omega_var, beta, beta_var, big_T, 
   return(variance)
 }
 
-#' Convert log variance to variance
+# Convert log variance to variance
 var.log.to.var <- function(estimate, variance) (estimate ** 2) * variance
 
 #' Snapshot estimator and variance (Kaplan and Brookmeyer 1999)
@@ -56,11 +56,11 @@ var.log.to.var <- function(estimate, variance) (estimate ** 2) * variance
 #'   If \eqn{\mu} is known, input 0.
 #' @return Returns a list of the estimate and the variance for \eqn{\lambda}.
 #' @examples
-#' get.snapshot(n_r=2, n_n=50, n_p=10, n=60,
+#' estSnapshot(n_r=2, n_n=50, n_p=10, n=60,
 #'              mu=0.36, mu_var=0)
-#' get.snapshot(n_r=c(2, 3), n_n=c(50, 48), n_p=c(10, 12), n=c(60, 60),
+#' estSnapshot(n_r=c(2, 3), n_n=c(50, 48), n_p=c(10, 12), n=c(60, 60),
 #'              mu=0.36, mu_var=0)
-get.snapshot <- function(n_r, n_n, n_p, n, mu, mu_var, q=1){
+estSnapshot <- function(n_r, n_n, n_p, n, mu, mu_var, q=1){
   est <- snapshot.estimate(n_r=n_r, n_n=n_n, mu=mu, q=q)
   logvar <- variance(n_n=n_n, n_r=n_r, n_p=n_p, n=n,
                      omega=mu, omega_var=mu_var,
@@ -93,12 +93,12 @@ get.snapshot <- function(n_r, n_n, n_p, n, mu, mu_var, q=1){
 #' @param q The fraction of positives that were given recency tests, defaults to 1
 #' @return Returns a list of the estimate and the variance.
 #' @examples
-#' get.adjusted(n_r=2, n_n=50, n_p=10, n=60,
-#'              omega=0.36, omega_var=0, beta=0.02, beta_var=0, big_T=2, q=1)
-#' get.adjusted(n_r=c(2, 3), n_n=c(50, 48), n_p=c(10, 12), n=c(60, 60),
-#'              omega=0.36, omega_var=0, beta=0.02, beta_var=0, big_T=2)
-get.adjusted <- function(n_r, n_n, n_p, n, omega, omega_var,
-                         beta, beta_var, big_T, q=1){
+#' estAdjusted(n_r=2, n_n=50, n_p=10, n=60,
+#'                   omega=0.36, omega_var=0, beta=0.02, beta_var=0, big_T=2, q=1)
+#' estAdjusted(n_r=c(2, 3), n_n=c(50, 48), n_p=c(10, 12), n=c(60, 60),
+#'                   omega=0.36, omega_var=0, beta=0.02, beta_var=0, big_T=2)
+estAdjusted <- function(n_r, n_n, n_p, n, omega, omega_var,
+                              beta, beta_var, big_T, q=1){
   est <- adjusted.estimate(n_r=n_r, n_n=n_n, n_p=n_p,
                            omega=omega, beta=beta, big_T=big_T, q=q)
   logvar <- variance(n_n=n_n, n_r=n_r, n_p=n_p, n=n,

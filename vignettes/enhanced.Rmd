@@ -1,0 +1,116 @@
+---
+title: "Enhanced Estimator"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Enhanced Estimator}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(XSRecency)
+```
+
+In this vignette, we show how to use the enhanced estimator that incorporates prior HIV test results into the cross-sectional incidence estimate. In the process, we will show how to use the \code{\link{cephia}} data to estimate properties of recent infection testing algorithms.
+
+### Estimate a phi function based on a recent infection testing algorithm from \code{\link{cephia}} data
+
+#### Define algorithm of recent infection, and obtain data
+
+Can either use the pre-loaded \code{\link{cephia}} data in this package,
+or use your own that you have downloaded through the function \code{\link{downloadCephia}} with the optional argument `filepath`.
+
+```{r}
+# Define a recent infection as LAg <= 1.5 and viral load > 1000
+f <- function(l, v){
+ v <- ifelse(l > 1.5, 0, v)
+ return(
+   ifelse((l <= 1.5) & (v > 1000), 1, 0)
+ )
+}
+
+# Get dataset
+phidat <- createRitaCephia(assays=c("LAg-Sedia", "viral_load"), algorithm=f)
+
+# Convert infection duration to years
+phidat$ui <- phidat$ui / 365.25
+head(phidat)
+```
+
+#### Estimate test-recent function
+
+We can now use the CEPHIA data from above to estimate a phi function. We are doing this purely for the purposes of simulation. Usually, this is done internally in the \code{\link{estEnhanced}} function.
+
+```{r}
+# use this argument if you want to get an estimated phi function, rather than just MDRI summary
+rita.props <- estRitaProperties(
+  phidat=phidat,
+  maxT=10,
+  bigT=2,
+  use_geese=TRUE, # need this when have multiple observations per individual
+  formula="ri ~ poly(log(ui), degree=2, raw=T)",
+  family=binomial(link="logit"),
+  min_dt=TRUE, # need this when doing log(ui)
+  return_all=T,
+  plot_phi=T
+)
+```
+
+### Simulate cross-sectional incidence data and prior HIV testing data
+
+#### Cross-sectional incidence data
+
+```{r}
+# Use our estimated phi function to simulate recent infection indicators
+sim <- simCrossSect(phi.func=rita.props$phi,
+                    incidence_type="constant", prevalence=0.29, baseline_incidence=0.032)
+set.seed(10)
+df <- sim(5000)
+```
+
+#### Prior HIV testing data
+
+Simulate prior HIV tests as 10% of HIV positive individuals having uniformly distributed tests over the last 4 years
+
+```{r}
+sim.pt <- simPriorTests(ptest.dist=function(u) runif(1, 0, 4),
+                        ptest.prob=function(u) 0.1)
+
+# Create prior testing data frame, only for those who are positive
+ptdf <- sim.pt(df[df$di == 1,])
+head(ptdf)
+```
+
+### Apply Enhanced Estimator
+
+Apply the enhanced estimator using the CEPHIA data before that we used to simulate our current dataset,
+and the same model for the test-recent function. See \code{\link{estEnhanced}} for details on additional values returned.
+
+```{r}
+estimate <- estEnhanced(
+  n_p=nrow(ptdf),
+  n=nrow(df),
+  ptdf=ptdf,
+  beta=0,
+  beta_var=0,
+  big_T=2,
+  phidat=phidat,
+  use_geese=TRUE,
+  formula="ri ~ poly(log(ui), degree=2, raw=T)",
+  family=binomial(link="logit"),
+  min_dt=TRUE
+)
+
+estimate$est
+estimate$var
+```
+## References
+
+- Bannick, M. S., Donnell, D., Hayes, R., Laeyendecker, O., Gao F. (2023+). Enhanced Cross-Sectional HIV Incidence Estimators that Incorporate Prior HIV Test Results.

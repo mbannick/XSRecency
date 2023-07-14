@@ -1,4 +1,4 @@
-#' Adjusted estimator  accounting for prior test results.
+# Adjusted estimator  accounting for prior test results.
 adjusted.estimate.pt <- function(n_r_pt, n_n, n_p,
                                  omega, beta, big_T,
                                  num_beta, den_omega, den_beta, q=1){
@@ -10,8 +10,8 @@ adjusted.estimate.pt <- function(n_r_pt, n_n, n_p,
   return(val)
 }
 
-#' Adjusted variance computation, is the same for adjusted
-#' and snapshot estimator, just pass in beta_sim=list(est=0, var=0)
+# Adjusted variance computation, is the same for adjusted
+# and snapshot estimator, just pass in beta_sim=list(est=0, var=0)
 variance <- function(n_n, n_r, n_p, n, omega, omega_var, beta, beta_var, big_T, q=1){
 
   # Slight modification for n_{p,test} to give the number of positives tested
@@ -31,7 +31,7 @@ variance <- function(n_n, n_r, n_p, n, omega, omega_var, beta, beta_var, big_T, 
   return(variance)
 }
 
-#' Enhanced variance computation
+# Enhanced variance computation
 variance.pt <- function(
     n_n, n_r_pt, n_r, n_p, n,
     omega, omega_var,
@@ -179,10 +179,13 @@ variance.pt <- function(
   ))
 }
 
-#' Convert log variance to variance
+# Convert log variance to variance
 var.log.to.var <- function(estimate, variance) (estimate ** 2) * variance
 
-#' Get enhanced estimate and variance (Bannick and Gao 2023+)
+#' Get enhanced estimate and variance (Bannick and Gao 2023+).
+#' This is an estimator similar to the adjusted estimator, but including optional prior HIV test results.
+#'
+#' @details For example of usage, see the enhanced estimator \code{vignette("enhanced", package = "XSRecency")}
 #'
 #' @export
 #' @param n Number of observations
@@ -201,41 +204,20 @@ var.log.to.var <- function(estimate, variance) (estimate ** 2) * variance
 #'                to fit polynomial terms.
 #' @param family Family argument for glm or gee
 #' @param plot_phi Whether to plot the estimated phi function
-#' @return Returns a list of the estimate and the variance.
-#' @examples
-#'
-#' set.seed(101)
-#'
-#' # Get HIV, recency, and prior testing data
-#' e.func <- function(e) infections.con(e, t=0, p=0.29, lambda=0.032)
-#' phi.func <- function(t) 1-pgamma(t, shape=1, rate=2)
-#' sim <- sim.screening.generator(prevalence=0.29, e.func=e.func, phi.func=phi.func)
-#' df <- sim(1000)
-#' sim.pt <- sim.pt.generator(ptest.dist=function(u) runif(1, 0, 4),
-#'                            ptest.prob=function(u) 0.1)
-#' ptdf <- sim.pt(df[df$di == 1,])
-#'
-#' # Get dataset for estimating \Omega
-#' phidat <- get.assay.df(assays=c("LAg-Sedia"),
-#'                        algorithm=function(l) ifelse(l <= 1.5, 1, 0))
-#'
-#' get.adjusted.pt(
-#'   n_p=nrow(ptdf),
-#'   n=nrow(df),
-#'   ptdf=ptdf,
-#'   beta=0,
-#'   beta_var=0,
-#'   big_T=1,
-#'   phidat=phidat,
-#'   use_geese=TRUE,
-#'   formula="ri ~ poly(ui, degree=3, raw=T)",
-#'   family=binomial(link="logit")
-#' )
-get.adjusted.pt <- function(n_p, n, ptdf,
-                            beta, beta_var, big_T,
-                            phidat, use_geese, formula, family, plot_phi=TRUE,
-                            return_all=FALSE,
-                            ...){
+#' @param return_all Return information to be used internally (not for general usage)
+#' @return Returns a list of the estimate and the variance, or more:
+#' \item{est}{incidence estimate}
+#' \item{var}{estimate of variance}
+#' \item{omega}{estimate of MDRI using \code{phidat} and model specs}
+#' \item{omega_var}{estimate of variance of MDRI using \code{phidat} and model specs}
+#' \item{n_r}{number of recent infections identified based on recency assay alone, from \code{ptdf}}
+#' \item{n_r_pt}{number of recent infections after applying enhanced algorithm using prior tests}
+#' \item{q_eff}{number of individuals with prior test results available}
+estEnhanced <- function(n_p, n, ptdf,
+                        beta, beta_var, big_T,
+                        phidat, use_geese, formula, family, plot_phi=TRUE,
+                        return_all=FALSE,
+                        ...){
 
   # Summarize data inputs from the prior testing data
   # and an estimate of the phi function
@@ -275,7 +257,7 @@ get.adjusted.pt <- function(n_p, n, ptdf,
   return(result)
 }
 
-#' Wrapped function for getting enhanced estimator
+# Wrapped function for getting enhanced estimator
 get.adjusted.pt.internal <- function(n_r_pt, n_r, n_n, n_p, n, omega, omega_var,
                                      beta, beta_var, big_T, q=1,
                                      num_beta, den_omega, den_beta,

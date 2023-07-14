@@ -1,6 +1,50 @@
 
-get.cephia.use <- function(){
-  return(XSRecency:::cephia %>%
+#' Download latest CEPHIA dataset
+#'
+#' Downloads the latest CEPHIA dataset from concept DOI
+#' 10.5281/zenodo.4900633, and returns a local filepath where it can be found.
+#' This function can be used to download the latest version, and use it in the
+#' [getRitaOptions()] and [createRitaCephia()] functions.
+#'
+#' @param path A folder to store the CEPHIA dataset
+#' @param timeout The amount of time to allow R to download file
+#' @export
+#' @import zen4R
+#' @return A full filepath to the downloaded CEPHIA dataset
+downloadCephia <- function(path, timeout=6000){
+
+  # Set timeout, otherwise the dataset does not download
+  options(timeout=timeout)
+
+  cat("Getting latest CEPHIA dataset using
+      the concept DOI 10.5281/zenodo.4900633...")
+
+  zenodo <- ZenodoManager$new()
+  rec <- zenodo$getRecordByConceptDOI("10.5281/zenodo.4900633")
+  lastDOI <- rec$getLastDOI()
+  rec <- zenodo$getRecordByDOI(lastDOI)
+
+  files <- sapply(rec$files, function(x) x$filename)
+  files <- files[grep("^cephia_public_use_dataset", files)]
+  csvfile <- files[grep(".csv$", files)]
+
+  if(length(csvfile) > 1) stop("Too many files found.")
+  if(length(csvfile) < 1) stop("No csv files found with correct name.")
+
+  rec$downloadFiles(files=csvfile, path=path)
+
+  return(paste0(path, "/", csvfile))
+}
+
+get.cephia.use <- function(filepath=NULL){
+
+  if(is.null(filepath)){
+    cephia <- XSRecency:::cephia
+  } else {
+    cephia <- read.csv(filepath)
+  }
+
+  return(cephia %>%
            dplyr::filter(
              cephia_panel == "CEPHIA 1 Evaluation Panel",
              assay_result_field == "final_result",
@@ -13,11 +57,14 @@ get.cephia.use <- function(){
 #' @import tidyr
 #' @import dplyr
 #'
+#' @param filepath Optional full filepath to downloaded CEPHIA dataset (possibly obtained via the `downloadCephia` function).
+#'                 If NULL, then uses CEPHIA version in this package.
+#'
 #' @export
 #' @examples
-#' rita.subtype()
-rita.subtype <- function(){
-  cephia <- get.cephia.use()
+#' getRitaOptions()
+getRitaOptions <- function(filepath=NULL){
+  cephia <- get.cephia.use(filepath=filepath)
   cephia <- cephia %>% dplyr::filter(
     cephia_panel == "CEPHIA 1 Evaluation Panel",
     assay_result_field == "final_result",
@@ -26,8 +73,10 @@ rita.subtype <- function(){
   with(cephia, table(assay, hiv_subtype))
 }
 
-#' Get external data frame using CEPHIA data for a given recency
-#' algorithm specified by the user.
+#' Create a dataset based on an algorithm and CEPHIA recency testing data.
+#'
+#' Get data frame using CEPHIA data for a given recency
+#' algorithm specified by the user. Optional subtype and ART exclusions.
 #'
 #' @param assays A vector of assays to include
 #' @param algorithm A function that defines the recency indicator
@@ -40,28 +89,35 @@ rita.subtype <- function(){
 #'                By default includes everyone.
 #' @param ever_art Subset data to only those who have used ARTs or
 #'                 have not. By default includes everyone.
+#' @param filepath Optional full filepath to downloaded CEPHIA dataset (possibly obtained via the `download_cephia`).
+#'                 If NULL, then uses CEPHIA version in this package.
+#'
+#' @return A data frame with the following columns:
+#' \item{id}{ID column (there can be multiple measurements per individual)}
+#' \item{ui}{infection duration in **days** (note, if using with other functions in this package, may have to convert to years)}
+#' \item{ri}{identified as recent based on algorithm}
+#'
 #' @export
 #' @import tidyr
 #' @import dplyr
 #' @import purrr
-#' @import data.table
+#' @importFrom data.table data.table setnames
 #'
 #' @examples
 #' f <- function(b, l, v){
 #'   ifelse((b > 1 & l < 3 & !is.na(v)), 1, 0)
 #' }
-#' get.assay.df(assays=c("BED", "LAg-Sedia", "viral_load"),
+#' createRitaCephia(assays=c("BED", "LAg-Sedia", "viral_load"),
 #'              algorithm=f)
-#'
 #' f <- function(l, v){
 #'   v <- ifelse(l > 1.5, 0, v)
 #'   return(
 #'     ifelse((l <= 1.5) & (v > 1000), 1, 0)
 #'   )
 #' }
-#' test <- get.assay.df(assays=c("LAg-Sedia", "viral_load"), algorithm=f)
-get.assay.df <- function(assays, algorithm, subtype=NULL, ever_art=NULL){
-  cephia <- get.cephia.use()
+#' test <- createRitaCephia(assays=c("LAg-Sedia", "viral_load"), algorithm=f)
+createRitaCephia <- function(assays, algorithm, subtype=NULL, ever_art=NULL, filepath=NULL){
+  cephia <- get.cephia.use(filepath=filepath)
 
   # APPLY FILTERS
   if(!is.null(subtype)){

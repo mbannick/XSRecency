@@ -5,11 +5,13 @@
 \alias{cephia}
 \title{CEPHIA Public Use Dataset}
 \format{
-## `cephia`
+\subsection{\code{cephia}}{
+
 A data frame with 212831 rows and 38 columns.
 }
+}
 \source{
-<https://zenodo.org/record/4900634#.ZCW2HuzMI-R>
+\url{https://zenodo.org/record/4900634#.ZCW2HuzMI-R}
 }
 \usage{
 cephia
@@ -21,7 +23,7 @@ Elaine, Lebedeva, Mila, Parkin, Neil, Keating,
 Sheila M., Kassanjee, Reshma, Pilcher,
 Christopher D., Murphy, Gary, Busch,
 Michael P., & Welte, Alex. (2021).
-CEPHIA public use data (1.0) [Data set].
+CEPHIA public use data (1.0) \link{Data set}.
 Zenodo. https://doi.org/10.5281/zenodo.4900634
 }
 \keyword{datasets}

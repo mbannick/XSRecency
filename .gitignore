@@ -7,3 +7,4 @@
 *.RData
 .DS_Store
 *.pdf
+inst/doc
