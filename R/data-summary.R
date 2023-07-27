@@ -469,7 +469,7 @@ estRitaProperties <- function(phidat, maxT, bigT, dt=1/365.25, min_dt=FALSE,
     abline(v=bigT, lty="dashed")
   } else {
     end.time <- Sys.time()
-    print(end.time - start.time)
+    # print(end.time - start.time)
   }
   if(return_all){
     results[["bigTidx"]] <- est$idx

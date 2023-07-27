@@ -14,6 +14,38 @@ get.gamma.params <- function(window, shadow){
   return(c(alpha, beta))
 }
 
+OMEGA <- 0.33
+BIGT <- 2
+SHADOW <- 0.2
+FRR <- 0.02
+
+loss <- function(X){
+  a <- X[1]
+  b <- X[2]
+
+  phi <- function(t) 1-pgamma(t, shape=a, rate=b) + FRR
+  phit <- function(t) t * (1-pgamma(t, shape=a, rate=b) + FRR)
+
+  intphi <- integrate(phi, lower=0, upper=BIGT)$value
+  intphit <- integrate(phit, lower=0, upper=BIGT)$value
+
+  l1 <- OMEGA - intphi
+  l2 <- SHADOW - (intphit - FRR * BIGT**2/2)/(OMEGA - BIGT * FRR)
+
+  return(sum(c(l1, l2)**2))
+}
+
+vals <- optim(c(1, 0.01), fn=loss, lower=0, upper=Inf, method="L-BFGS-B")
+
+phi <- function(t){
+  value <- (t <= BIGT)* (1 - pgamma(t, shape=vals$par[1], rate=vals$par[2]) + FRR) +
+  (t > BIGT)*FRR
+  return(value)
+}
+
+ts <- seq(0, 4, by=0.02)
+plot(phi(ts) ~ ts, type='l')
+
 #' Approximate test-recent function with given window and shadow period
 #'
 #' Generate a test-recent function that has a desired window and shadow period

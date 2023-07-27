@@ -58,8 +58,21 @@ The variables \code{ui} and \code{ri} are infection times (based on epidemiologi
 #### Snapshot Estimator
 
 ```{r}
-estSnapshot(n_r=sum(data$ri, na.rm=T), n_n=sum(!data$di), n_p=sum(data$di), n=100,
+estSnapshot(n_r=sum(data$ri, na.rm=T), n_n=sum(!data$di), n_p=sum(data$di), n=5000,
             mu=window, mu_var=0)
+```
+
+In some scenarios, not all individuals who test positive for HIV will receive a test. Here we show how to apply the estimator in these cases, using the argument `n_p_test`. The same argument can be used in the `estAdjusted` function.
+
+```{r}
+# Remove 50% of the recency tests to simulate what would happen if only 50% of
+# HIV positive individuals received a recency test
+data$mask <- rbinom(n=5000, size=1, prob=0.5)
+data$ri_mask <- data$ri
+data[data$mask == 1, "ri_mask"] <- NA
+
+estSnapshot(n_r=sum(data$ri_mask, na.rm=T), n_n=sum(!data$di), n_p=sum(data$di), n=5000,
+            mu=window, mu_var=0, n_p_test=sum(data$di & (!is.na(data$ri_mask))))
 ```
 
 #### Adjusted Estimator
