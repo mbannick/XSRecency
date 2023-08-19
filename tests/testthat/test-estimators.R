@@ -1,4 +1,5 @@
 context("Estimators")
+library(parallel)
 library(mcreplicate)
 library(data.table)
 
@@ -82,7 +83,7 @@ test_that("Enhanced estimator", {
 
     set.seed(10)
     sim <- simCrossSect(
-      phi.func=PHI,
+      phi.func=function(t) 0.5,
       incidence_type="constant",
       prevalence=0.29,
       baseline_incidence=0.032)
@@ -90,8 +91,8 @@ test_that("Enhanced estimator", {
     df <- sim(N*2)
 
     sim.pt <- simPriorTests(
-      ptest.dist=function(u) runif(1, 0, 2),
-      ptest.prob=function(u) 0.1)
+      ptest.dist=function(u) runif(1, 0, 4),
+      ptest.prob=function(u) 0.5)
 
     ptdf <- sim.pt(df[df$di == 1,])
 
@@ -111,6 +112,7 @@ test_that("Enhanced estimator", {
 
     return(estimate)
   }
+  get_one()
   ests <- mc_replicate(n=50, expr=get_one(), mc.cores=detectCores())
   ests <- unlist(ests["est",])
   print(mean(ests))

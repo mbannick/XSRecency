@@ -213,6 +213,9 @@ get.MI <- function(ptdf, bigT){
   # This is the old recency indicator
   Ri <- ptdf$ri
 
+  # These are people classified as recent based on seroconversion alone
+  AiDi0 <- Ai * (1 - Di)
+
   # This is the new recency indicator
   Mi <- Ri * (1 - Bi * Di) + (1 - Ri) * Ai * (1 - Di)
   Mi[!Qi] <- Ri[!Qi]
@@ -221,7 +224,8 @@ get.MI <- function(ptdf, bigT){
     Mi=Mi,
     Ai=Ai,
     Bi=Bi,
-    Ci=Ci
+    Ci=Ci,
+    AiDi0=AiDi0
   ))
 }
 
@@ -545,6 +549,9 @@ summarizept.generator <- function(bigT, dt=1/365.25,
     # Calculate the new number of recents, and q effective
     # (proportion of positives w/ a prior test result)
     s[["n_r"]] <- sum(ptdf$ri)
+    s[["n_r_remove"]] <- sum(ptdf$ri * (1-ptdf$Mi))
+    s[["n_r_sero"]] <- sum(ptdf$AiDi0, na.rm=T)
+    s[["n_r_add"]] <- sum((1-ptdf$ri) * ptdf$Mi)
     s[["n_r_pt"]] <- sum(ptdf$Mi)
     n_d <- sum(ptdf$qi)
     s[["q_eff"]] <- n_d / s[["n_p"]]

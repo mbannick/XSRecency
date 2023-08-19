@@ -107,7 +107,7 @@ estSnapshot <- function(n_r, n_n, n_p, n, mu, mu_var, n_p_test=NULL){
 #' estAdjusted(n_r=c(2, 3), n_n=c(50, 48), n_p=c(10, 12), n=c(60, 60),
 #'                   omega=0.36, omega_var=0, beta=0.02, beta_var=0, big_T=2)
 estAdjusted <- function(n_r, n_n, n_p, n, omega, omega_var,
-                              beta, beta_var, big_T, n_p_test=NULL){
+                              beta, beta_var, big_T, n_p_test=NULL, q_var=FALSE){
 
   # estimate q
   if(!is.null(n_p_test)){
@@ -115,13 +115,18 @@ estAdjusted <- function(n_r, n_n, n_p, n, omega, omega_var,
   } else {
     q <- 1
   }
+  if(q_var){
+    qv <- q
+  } else {
+    qv <- 1
+  }
 
   est <- adjusted.estimate(n_r=n_r, n_n=n_n, n_p=n_p,
                            omega=omega, beta=beta, big_T=big_T, q=q)
   logvar <- variance(n_n=n_n, n_r=n_r, n_p=n_p, n=n,
                      omega=omega, omega_var=omega_var,
                      beta=beta, beta_var=beta_var,
-                     big_T=big_T, q=q)
+                     big_T=big_T, q=qv)
   estvar <- var.log.to.var(est, logvar)
   return(list(est=est, var=estvar))
 }

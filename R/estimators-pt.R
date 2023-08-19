@@ -212,7 +212,8 @@ var.log.to.var <- function(estimate, variance) (estimate ** 2) * variance
 #' \item{omega_var}{estimate of variance of MDRI using \code{phidat} and model specs}
 #' \item{n_r}{number of recent infections identified based on recency assay alone, from \code{ptdf}}
 #' \item{n_r_pt}{number of recent infections after applying enhanced algorithm using prior tests}
-#' \item{q_eff}{number of individuals with prior test results available}
+#' \item{q_eff}{number of HIV-pos individuals with recency assay results + prior tests / recency assay results}
+#' \item{q}{fraction of HIV-pos individuals with recency assay results / HIV-pos individuals}
 estEnhanced <- function(n_p, n, ptdf,
                         beta, beta_var, big_T,
                         phidat, use_geese, formula, family, plot_phi=TRUE,
@@ -249,9 +250,13 @@ estEnhanced <- function(n_p, n, ptdf,
     result[["n_r"]] <- args$n_r
     result[["n_n"]] <- args$n_n
     result[["n_r_pt"]] <- args$n_r_pt
+    result[["n_r_sero"]] <- args$n_r_sero
+    result[["n_r_remove"]] <- args$n_r_remove
+    result[["n_r_add"]] <- args$n_r_add
     result[["n_p"]] <- args$n_p
     result[["n"]] <- args$n
     result[["q_eff"]] <- args$q_eff
+    result[["q"]] <- args$q
   }
 
   return(result)
@@ -269,7 +274,7 @@ get.adjusted.pt.internal <- function(n_r_pt, n_r, n_n, n_p, n, omega, omega_var,
   est <- adjusted.estimate.pt(n_r_pt=n_r_pt, n_n=n_n, n_p=n_p,
                               omega=omega, beta=beta, big_T=big_T,
                               num_beta=num_beta,
-                              den_omega=den_omega, den_beta=den_beta)
+                              den_omega=den_omega, den_beta=den_beta, q=q)
 
   var <- list()
   components_est <- list()

@@ -199,7 +199,21 @@ test-recent function. See for details on additional values returned.</p>
   family<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">binomial</a></span><span class="op">(</span>link<span class="op">=</span><span class="st">"logit"</span><span class="op">)</span>,
   min_dt<span class="op">=</span><span class="cn">TRUE</span>
 <span class="op">)</span>
-<span class="co">#&gt; Time difference of 0.8174682 secs</span>
+<span class="co">#&gt; Called from: get.MI(ptdf, bigT)</span>
+<span class="co">#&gt; debug: Np &lt;- nrow(ptdf)</span>
+<span class="co">#&gt; debug: Ai &lt;- rep(0, Np)</span>
+<span class="co">#&gt; debug: Bi &lt;- rep(0, Np)</span>
+<span class="co">#&gt; debug: BiTi &lt;- rep(0, Np)</span>
+<span class="co">#&gt; debug: Qi &lt;- as.logical(ptdf$qi)</span>
+<span class="co">#&gt; debug: Di &lt;- ptdf$deltai</span>
+<span class="co">#&gt; debug: Ti &lt;- ptdf$ti</span>
+<span class="co">#&gt; debug: Ci &lt;- Ti &lt;= bigT</span>
+<span class="co">#&gt; debug: Ai[Ci &amp; Qi] &lt;- 1</span>
+<span class="co">#&gt; debug: Bi[!Ci &amp; Qi] &lt;- 1</span>
+<span class="co">#&gt; debug: Ri &lt;- ptdf$ri</span>
+<span class="co">#&gt; debug: Mi &lt;- Ri * (1 - Bi * Di) + (1 - Ri) * Ai * (1 - Di)</span>
+<span class="co">#&gt; debug: Mi[!Qi] &lt;- Ri[!Qi]</span>
+<span class="co">#&gt; debug: return(data.frame(Mi = Mi, Ai = Ai, Bi = Bi, Ci = Ci))</span>
 
 <span class="va">estimate</span><span class="op">$</span><span class="va">est</span>
 <span class="co">#&gt; [1] 0.0329671</span>

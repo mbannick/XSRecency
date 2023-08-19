@@ -148,18 +148,36 @@ epidemiological parameters supplied) and recent infection indicators
 <h4 id="snapshot-estimator">Snapshot Estimator<a class="anchor" aria-label="anchor" href="#snapshot-estimator"></a>
 </h4>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="../reference/estSnapshot.html">estSnapshot</a></span><span class="op">(</span>n_r<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">ri</span>, na.rm<span class="op">=</span><span class="cn">T</span><span class="op">)</span>, n_n<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="op">!</span><span class="va">data</span><span class="op">$</span><span class="va">di</span><span class="op">)</span>, n_p<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">di</span><span class="op">)</span>, n<span class="op">=</span><span class="fl">100</span>,
+<code class="sourceCode R"><span class="fu"><a href="../reference/estSnapshot.html">estSnapshot</a></span><span class="op">(</span>n_r<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">ri</span>, na.rm<span class="op">=</span><span class="cn">T</span><span class="op">)</span>, n_n<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="op">!</span><span class="va">data</span><span class="op">$</span><span class="va">di</span><span class="op">)</span>, n_p<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">di</span><span class="op">)</span>, n<span class="op">=</span><span class="fl">5000</span>,
             mu<span class="op">=</span><span class="va">window</span>, mu_var<span class="op">=</span><span class="fl">0</span><span class="op">)</span>
 <span class="co">#&gt; $est</span>
 <span class="co">#&gt; [1] 0.03369465</span>
 <span class="co">#&gt; </span>
 <span class="co">#&gt; $var</span>
-<span class="co">#&gt; [1] 1.671975e-05</span></code></pre></div>
+<span class="co">#&gt; [1] 1.778887e-05</span></code></pre></div>
+<p>In some scenarios, not all individuals who test positive for HIV will
+receive a test. Here we show how to apply the estimator in these cases,
+using the argument <code>n_p_test</code>. The same argument can be used
+in the <code>estAdjusted</code> function.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="co"># Remove 50% of the recency tests to simulate what would happen if only 50% of</span>
+<span class="co"># HIV positive individuals received a recency test</span>
+<span class="va">data</span><span class="op">$</span><span class="va">mask</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html" class="external-link">rbinom</a></span><span class="op">(</span>n<span class="op">=</span><span class="fl">5000</span>, size<span class="op">=</span><span class="fl">1</span>, prob<span class="op">=</span><span class="fl">0.5</span><span class="op">)</span>
+<span class="va">data</span><span class="op">$</span><span class="va">ri_mask</span> <span class="op">&lt;-</span> <span class="va">data</span><span class="op">$</span><span class="va">ri</span>
+<span class="va">data</span><span class="op">[</span><span class="va">data</span><span class="op">$</span><span class="va">mask</span> <span class="op">==</span> <span class="fl">1</span>, <span class="st">"ri_mask"</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="cn">NA</span>
+
+<span class="fu"><a href="../reference/estSnapshot.html">estSnapshot</a></span><span class="op">(</span>n_r<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">ri_mask</span>, na.rm<span class="op">=</span><span class="cn">T</span><span class="op">)</span>, n_n<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="op">!</span><span class="va">data</span><span class="op">$</span><span class="va">di</span><span class="op">)</span>, n_p<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">di</span><span class="op">)</span>, n<span class="op">=</span><span class="fl">5000</span>,
+            mu<span class="op">=</span><span class="va">window</span>, mu_var<span class="op">=</span><span class="fl">0</span>, n_p_test<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">di</span> <span class="op">&amp;</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">ri_mask</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>
+<span class="co">#&gt; $est</span>
+<span class="co">#&gt; [1] 0.03823064</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; $var</span>
+<span class="co">#&gt; [1] 3.89342e-05</span></code></pre></div>
 </div>
 <div class="section level4">
 <h4 id="adjusted-estimator">Adjusted Estimator<a class="anchor" aria-label="anchor" href="#adjusted-estimator"></a>
 </h4>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># Suppose the FRR was known to be 0.1%</span>
 <span class="fu"><a href="../reference/estAdjusted.html">estAdjusted</a></span><span class="op">(</span>n_r<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">ri</span>, na.rm<span class="op">=</span><span class="cn">T</span><span class="op">)</span>, n_n<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="op">!</span><span class="va">data</span><span class="op">$</span><span class="va">di</span><span class="op">)</span>, n_p<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">di</span><span class="op">)</span>, n<span class="op">=</span><span class="fl">100</span>,
             omega<span class="op">=</span><span class="va">mdri</span>, omega_var<span class="op">=</span><span class="fl">0</span>, beta<span class="op">=</span><span class="fl">0.001</span>, beta_var<span class="op">=</span><span class="fl">0</span>, big_T<span class="op">=</span><span class="fl">2</span><span class="op">)</span>
