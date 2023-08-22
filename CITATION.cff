@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: Marlena
+    given-names: Bannick
+  - family-names: Fei
+    given-names: Gao
+title: "XSRecency: cross-sectional incidence estimation of HIV using recent infection testing algorithms"
+version: 0.2.0
+doi: 10.5281/zenodo.8271621
+date-released: 2023-08-21
+url: "https://github.com/mbannick/XSRecency"
