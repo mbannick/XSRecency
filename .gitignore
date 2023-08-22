@@ -5,5 +5,7 @@
 .Ruserdata
 *rsconnect*
 *.RData
+*.csv
 .DS_Store
 *.pdf
+inst/doc
