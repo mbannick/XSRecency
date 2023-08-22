@@ -59,7 +59,8 @@ Returns a list of the estimate and the variance, or more:
 \item{omega_var}{estimate of variance of MDRI using \code{phidat} and model specs}
 \item{n_r}{number of recent infections identified based on recency assay alone, from \code{ptdf}}
 \item{n_r_pt}{number of recent infections after applying enhanced algorithm using prior tests}
-\item{q_eff}{number of individuals with prior test results available}
+\item{q_eff}{number of HIV-pos individuals with recency assay results + prior tests / recency assay results}
+\item{q}{fraction of HIV-pos individuals with recency assay results / HIV-pos individuals}
 }
 \description{
 Get enhanced estimate and variance (Bannick and Gao 2023+).

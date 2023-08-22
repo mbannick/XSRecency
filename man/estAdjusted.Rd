@@ -4,7 +4,19 @@
 \alias{estAdjusted}
 \title{Adjusted estimator and variance (Kassanjee et al. 2012)}
 \usage{
-estAdjusted(n_r, n_n, n_p, n, omega, omega_var, beta, beta_var, big_T, q = 1)
+estAdjusted(
+  n_r,
+  n_n,
+  n_p,
+  n,
+  omega,
+  omega_var,
+  beta,
+  beta_var,
+  big_T,
+  n_p_test = NULL,
+  q_var = FALSE
+)
 }
 \arguments{
 \item{n_r}{Number of recent positives}
@@ -25,7 +37,8 @@ estAdjusted(n_r, n_n, n_p, n, omega, omega_var, beta, beta_var, big_T, q = 1)
 
 \item{big_T}{The \eqn{T^*} in the equation above}
 
-\item{q}{The fraction of positives that were given recency tests, defaults to 1}
+\item{n_p_test}{Optional number of positives that were given a recency test. If left \code{NULL},
+assumed to be equal to \code{n_p}.}
 }
 \value{
 Returns a list of the estimate and the variance.
@@ -43,7 +56,7 @@ a recent infected or not.
 }
 \examples{
 estAdjusted(n_r=2, n_n=50, n_p=10, n=60,
-                  omega=0.36, omega_var=0, beta=0.02, beta_var=0, big_T=2, q=1)
+                  omega=0.36, omega_var=0, beta=0.02, beta_var=0, big_T=2, n_p_test=9)
 estAdjusted(n_r=c(2, 3), n_n=c(50, 48), n_p=c(10, 12), n=c(60, 60),
                   omega=0.36, omega_var=0, beta=0.02, beta_var=0, big_T=2)
 }

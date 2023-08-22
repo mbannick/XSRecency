@@ -6,18 +6,19 @@ library(data.table)
 set.seed(10)
 
 # SET PARAMETERS
-PHI <- function(t) 1 - pgamma(t, 1, 2.7)
+PHI1 <- function(t) (1 - pgamma(t, 1, 2.7))*(t <= 2) + 0
+PHI2 <- function(t) (1 - pgamma(t, 1, 2.7))
 N <- 5000
 NSIMS <- 5000
 
 test_that("Snapshot estimator", {
 
-  MU <- integratePhi(PHI, 12)
+  MU <- integratePhi(PHI1, 12)
   set.seed(10)
 
   get_one <- function(){
     sim <- simCrossSect(
-      phi.func=PHI,
+      phi.func=PHI1,
       incidence_type="constant",
       prevalence=0.29,
       baseline_incidence=0.032)
@@ -41,11 +42,11 @@ test_that("Snapshot estimator", {
 test_that("Adjusted estimator", {
 
   set.seed(10)
-  MDRI <- integratePhi(PHI, 2)
+  MDRI <- integratePhi(PHI2, 2)
 
   get_one <- function(){
     sim <- simCrossSect(
-      phi.func=PHI,
+      phi.func=PHI2,
       incidence_type="constant",
       prevalence=0.29,
       baseline_incidence=0.032)
@@ -73,7 +74,7 @@ test_that("Enhanced estimator", {
   get_one <- function(){
 
     phidat <- XSRecency:::assay.nsim.pt(
-      n_sims=1, phi.func=PHI, tau=12, bigT=2,
+      n_sims=1, phi.func=PHI2, tau=12, bigT=2,
       ext_FRR=FALSE, ext_df=NULL,
       max_FRR=NULL
     )
@@ -83,7 +84,7 @@ test_that("Enhanced estimator", {
 
     set.seed(10)
     sim <- simCrossSect(
-      phi.func=function(t) 0.5,
+      phi.func=PHI2,
       incidence_type="constant",
       prevalence=0.29,
       baseline_incidence=0.032)
@@ -115,7 +116,6 @@ test_that("Enhanced estimator", {
   get_one()
   ests <- mc_replicate(n=50, expr=get_one(), mc.cores=detectCores())
   ests <- unlist(ests["est",])
-  print(mean(ests))
   expect_equal(round(mean(ests), digits=3), 0.032)
 
 })

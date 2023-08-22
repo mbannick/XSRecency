@@ -36,6 +36,7 @@ reference:
     Functions for simulating datasets
 - contents:
   - getTestRecentFunc
+  - getTestRecentFuncAdj
   - simCrossSect
   - simPriorTests
   - simExternal

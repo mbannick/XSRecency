@@ -4,7 +4,7 @@
 \alias{estSnapshot}
 \title{Snapshot estimator and variance (Kaplan and Brookmeyer 1999)}
 \usage{
-estSnapshot(n_r, n_n, n_p, n, mu, mu_var, q = 1)
+estSnapshot(n_r, n_n, n_p, n, mu, mu_var, n_p_test = NULL)
 }
 \arguments{
 \item{n_r}{Number of recent positives}
@@ -17,10 +17,10 @@ estSnapshot(n_r, n_n, n_p, n, mu, mu_var, q = 1)
 
 \item{mu}{Mean window period (in years, not days)}
 
-\item{mu_var}{Variance of the estimator for mean window period.}
+\item{mu_var}{Variance of the estimator for mean window period. If \eqn{\mu} is known, input 0.}
 
-\item{q}{Fraction of positives that were given recency test, defaults to 1
-If \eqn{\mu} is known, input 0.}
+\item{n_p_test}{Optional number of positives that were given a recency test. If left \code{NULL},
+assumed to be equal to \code{n_p}.}
 }
 \value{
 Returns a list of the estimate and the variance for \eqn{\lambda}.
@@ -38,5 +38,5 @@ where \eqn{\hat{\mu}} is an estimate of the mean window period.
 estSnapshot(n_r=2, n_n=50, n_p=10, n=60,
              mu=0.36, mu_var=0)
 estSnapshot(n_r=c(2, 3), n_n=c(50, 48), n_p=c(10, 12), n=c(60, 60),
-             mu=0.36, mu_var=0)
+             mu=0.36, mu_var=0, n_p_test=c(9, 10))
 }

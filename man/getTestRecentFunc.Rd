@@ -16,7 +16,7 @@ A test-recent function of t
 }
 \description{
 Generate a test-recent function that has a desired window and shadow period
-using a gamma distribution parameters.
+that satisfies the shape assumption of the snapshot estimator.
 }
 \examples{
 

@@ -67,7 +67,19 @@ a recent infected or not.</p>
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="fu">estAdjusted</span><span class="op">(</span><span class="va">n_r</span>, <span class="va">n_n</span>, <span class="va">n_p</span>, <span class="va">n</span>, <span class="va">omega</span>, <span class="va">omega_var</span>, <span class="va">beta</span>, <span class="va">beta_var</span>, <span class="va">big_T</span>, q <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="fu">estAdjusted</span><span class="op">(</span>
+  <span class="va">n_r</span>,
+  <span class="va">n_n</span>,
+  <span class="va">n_p</span>,
+  <span class="va">n</span>,
+  <span class="va">omega</span>,
+  <span class="va">omega_var</span>,
+  <span class="va">beta</span>,
+  <span class="va">beta_var</span>,
+  <span class="va">big_T</span>,
+  n_p_test <span class="op">=</span> <span class="cn">NULL</span>,
+  q_var <span class="op">=</span> <span class="cn">FALSE</span>
+<span class="op">)</span></code></pre></div>
     </div>
 
     <div id="arguments">
@@ -108,8 +120,9 @@ a recent infected or not.</p>
 <dd><p>The \(T^*\) in the equation above</p></dd>
 
 
-<dt>q</dt>
-<dd><p>The fraction of positives that were given recency tests, defaults to 1</p></dd>
+<dt>n_p_test</dt>
+<dd><p>Optional number of positives that were given a recency test. If left <code>NULL</code>,
+assumed to be equal to <code>n_p</code>.</p></dd>
 
 </dl></div>
     <div id="value">
@@ -126,8 +139,13 @@ a recent infected or not.</p>
     <div id="ref-examples">
     <h2>Examples</h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span class="fu">estAdjusted</span><span class="op">(</span>n_r<span class="op">=</span><span class="fl">2</span>, n_n<span class="op">=</span><span class="fl">50</span>, n_p<span class="op">=</span><span class="fl">10</span>, n<span class="op">=</span><span class="fl">60</span>,</span>
-<span class="r-in">                  omega<span class="op">=</span><span class="fl">0.36</span>, omega_var<span class="op">=</span><span class="fl">0</span>, beta<span class="op">=</span><span class="fl">0.02</span>, beta_var<span class="op">=</span><span class="fl">0</span>, big_T<span class="op">=</span><span class="fl">2</span>, q<span class="op">=</span><span class="fl">1</span><span class="op">)</span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in estAdjusted(n_r = 2, n_n = 50, n_p = 10, n = 60, omega = 0.36,     omega_var = 0, beta = 0.02, beta_var = 0, big_T = 2, q = 1):</span> unused argument (q = 1)</span>
+<span class="r-in">                  omega<span class="op">=</span><span class="fl">0.36</span>, omega_var<span class="op">=</span><span class="fl">0</span>, beta<span class="op">=</span><span class="fl">0.02</span>, beta_var<span class="op">=</span><span class="fl">0</span>, big_T<span class="op">=</span><span class="fl">2</span>, n_p_test<span class="op">=</span><span class="fl">9</span><span class="op">)</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $est</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 0.1263889</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $var</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 0.009805368</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span class="fu">estAdjusted</span><span class="op">(</span>n_r<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">3</span><span class="op">)</span>, n_n<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">50</span>, <span class="fl">48</span><span class="op">)</span>, n_p<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">12</span><span class="op">)</span>, n<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">60</span>, <span class="fl">60</span><span class="op">)</span>,</span>
 <span class="r-in">                  omega<span class="op">=</span><span class="fl">0.36</span>, omega_var<span class="op">=</span><span class="fl">0</span>, beta<span class="op">=</span><span class="fl">0.02</span>, beta_var<span class="op">=</span><span class="fl">0</span>, big_T<span class="op">=</span><span class="fl">2</span><span class="op">)</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $est</span>
