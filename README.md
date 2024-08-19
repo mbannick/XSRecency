@@ -27,6 +27,9 @@ We provide functions to simulate cross-sectional data samples based on different
 You can install the package with `devtools`:
 ```{R}
 require(devtools)
+require(formula.tools)
+require(zen4R)
+require(geepack)
 devtools::install_github("mbannick/XSRecency")
 ```
 
