@@ -94,7 +94,7 @@ getRitaOptions <- function(filepath=NULL){
 #'
 #' @return A data frame with the following columns:
 #' \item{id}{ID column (there can be multiple measurements per individual)}
-#' \item{ui}{infection duration in **days** (note, if using with other functions in this package, may have to convert to years)}
+#' \item{ui}{infection duration in **years**
 #' \item{ri}{identified as recent based on algorithm}
 #'
 #' @export
@@ -202,5 +202,8 @@ createRitaCephia <- function(assays, algorithm, subtype=NULL, ever_art=NULL, fil
     "Removing", num.missing,
     "observations with missing recency indicator after application of the algorithm.")
 
+  # CONVERT TIME UNIT TO YEARS, SINCE FROM THE CEPHIA DATA IT IS IN DAYS
+  final_df$ui <- final_df$ui / 365.25
+  
   return(final_df)
 }
