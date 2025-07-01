@@ -184,6 +184,7 @@ createRitaCephia <- function(assays, algorithm, subtype=NULL, ever_art=NULL, fil
   df <- full_join(cephia.dur, all_assays,
                   by=c("participant_identifier", "visit_identifier")) %>%
     rename(ui=days_since_eddi)
+  df <- data.table::as.data.table(df)
 
   # APPLY ALGORITHMS
   setnames(df, assays, formalArgs(algorithm))
