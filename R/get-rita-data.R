@@ -206,5 +206,5 @@ createRitaCephia <- function(assays, algorithm, subtype=NULL, ever_art=NULL, fil
   # CONVERT TIME UNIT TO YEARS, SINCE FROM THE CEPHIA DATA IT IS IN DAYS
   final_df$ui <- final_df$ui / 365.25
   
-  return(final_df)
+  return(as.data.frame(final_df))
 }
